@@ -36,6 +36,13 @@ bun run build        # Production build
 - Components: `src/components/ui/` (shadcn), `src/components/site/`, `src/components/admin/`, `src/components/home/`
 - Data: `src/data/` — mock/seed data
 
+## Quy tắc làm việc theo Task (.md)
+
+- Mỗi khi nhận một file task trong `tasks/`, hãy đọc kỹ mục tiêu và điều kiện hoàn thành (Definition of Done).
+- Luôn chạy typecheck và build trước khi báo hoàn tất.
+- Tuân thủ Conventional Commits khi tạo commit.
+- Di chuyển task sang thư mục tương ứng khi trạng thái thay đổi: `backlog/` → `in-progress/` → `done/`.
+
 ## Rules
 
 1. Always pass `tsc --noEmit` and `build` before committing.
