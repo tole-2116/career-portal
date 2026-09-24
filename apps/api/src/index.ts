@@ -1,10 +1,11 @@
+// Load .env BEFORE Prisma client initializes (import hoisting would otherwise
+// instantiate PrismaClient before DATABASE_URL exists).
+import "dotenv/config";
+
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import { db } from "@career-portal/database";
 import { ApplyJobSchema } from "@career-portal/types";
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -17,10 +18,11 @@ app.get("/api/jobs", async (req, res) => {
   try {
     const jobs = await db.job.findMany({
       where: { status: "PUBLISHED" },
-      orderBy: { created_at: "desc" },
+      orderBy: { posted: "desc" },
     });
     res.json(jobs);
   } catch (error) {
+    console.error("GET /api/jobs error:", error);
     res.status(500).json({ error: "Failed to fetch jobs" });
   }
 });
@@ -48,12 +50,14 @@ app.post("/api/jobs/:jobId/apply", async (req, res) => {
         phone,
         coverLetter,
         resumeUrl: "uploads/sample-resume.pdf",
+        formData: {},
         usercreate_at: "candidate_public",
       },
     });
 
     res.status(201).json({ success: true, application });
   } catch (error) {
+    console.error("POST apply error:", error);
     res.status(500).json({ error: "Failed to submit application" });
   }
 });

@@ -17,6 +17,9 @@ dist-ssr
 *.local
 .env
 
+# Turborepo
+.turbo/
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
