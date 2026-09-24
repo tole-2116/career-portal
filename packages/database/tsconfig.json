@@ -1,0 +1,12 @@
+{
+  "extends": "@career-portal/typescript-config/base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": ["src/**/*", "prisma/**/*"],
+  "exclude": ["prisma/migrations"]
+}

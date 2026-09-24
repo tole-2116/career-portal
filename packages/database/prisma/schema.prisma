@@ -1,0 +1,136 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  RECRUITER
+  CANDIDATE
+}
+
+enum JobStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum ApplicationStatus {
+  APPLIED
+  REVIEWING
+  INTERVIEW
+  OFFERED
+  REJECTED
+}
+
+model User {
+  id             String        @id @default(uuid())
+  code           String?       @unique @db.VarChar(100)
+  email          String        @unique
+  passwordHash   String
+  name           String
+  role           Role          @default(CANDIDATE)
+
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+  usercreate_at  String?       @db.VarChar(255)
+  userupdated_at String?       @db.VarChar(255)
+  isdelete       Boolean       @default(false)
+
+  applications   Application[]
+  news           News[]
+
+  @@map("users")
+}
+
+model Taxonomy {
+  id             String    @id @default(uuid())
+  code           String    @unique @db.VarChar(100)
+  type           String
+  name           Json
+  slug           String    @unique
+
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  usercreate_at  String?   @db.VarChar(255)
+  userupdated_at String?   @db.VarChar(255)
+  isdelete       Boolean   @default(false)
+
+  jobs           Job[]
+
+  @@map("taxonomies")
+}
+
+model Job {
+  id             String        @id @default(uuid())
+  code           String        @unique @db.VarChar(100)
+  title          Json
+  slug           String        @unique
+  description    Json
+  requirements   Json
+  status         JobStatus     @default(PUBLISHED)
+  department     String?
+  location       String?
+  type           String?
+
+  taxonomyId     String?
+  taxonomy       Taxonomy?     @relation(fields: [taxonomyId], references: [id])
+
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+  usercreate_at  String?       @db.VarChar(255)
+  userupdated_at String?       @db.VarChar(255)
+  isdelete       Boolean       @default(false)
+
+  applications   Application[]
+
+  @@map("jobs")
+}
+
+model Application {
+  id             String            @id @default(uuid())
+  code           String?           @unique @db.VarChar(100)
+  jobId          String
+  job            Job               @relation(fields: [jobId], references: [id])
+  candidateId    String?
+  candidate      User?             @relation(fields: [candidateId], references: [id])
+
+  name           String
+  email          String
+  phone          String
+  resumeUrl      String
+  coverLetter    String?
+  status         ApplicationStatus @default(APPLIED)
+  formData       Json?
+
+  created_at     DateTime          @default(now())
+  updated_at     DateTime          @updatedAt
+  usercreate_at  String?           @db.VarChar(255)
+  userupdated_at String?           @db.VarChar(255)
+  isdelete       Boolean           @default(false)
+
+  @@map("applications")
+}
+
+model News {
+  id             String    @id @default(uuid())
+  code           String?   @unique @db.VarChar(100)
+  title          Json
+  slug           String    @unique
+  content        Json
+  coverUrl       String?
+  authorId       String
+  author         User      @relation(fields: [authorId], references: [id])
+
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  usercreate_at  String?   @db.VarChar(255)
+  userupdated_at String?   @db.VarChar(255)
+  isdelete       Boolean   @default(false)
+
+  @@map("news")
+}
