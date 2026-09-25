@@ -60,7 +60,7 @@ model Job {
   languages      Json?
   contactName    String?
   contactEmail   String?
-  status         JobStatus     @default(PUBLISHED)
+  status         JobStatus     @default(OPEN)
   department     String?
   location       String?
   type           String?
@@ -160,7 +160,9 @@ enum Role {
 
 enum JobStatus {
   DRAFT
-  PUBLISHED
+  OPEN
+  PAUSED
+  EXPIRED
   CLOSED
 }
 

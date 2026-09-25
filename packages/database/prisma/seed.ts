@@ -281,7 +281,7 @@ async function main() {
           languages: ensureBilingualJSON(j.salary),
           contactName: null,
           contactEmail: null,
-          status: j.status === "open" ? JobStatus.PUBLISHED : j.status === "paused" ? JobStatus.PUBLISHED : j.status === "closed" ? JobStatus.CLOSED : JobStatus.DRAFT,
+          status: j.status === "open" ? JobStatus.OPEN : j.status === "paused" ? JobStatus.PAUSED : j.status === "expired" ? JobStatus.EXPIRED : j.status === "closed" ? JobStatus.CLOSED : JobStatus.DRAFT,
           // Cột taxonomyId + cột department (String?): connect qua taxonomyMap
           taxonomyId: taxonomyId ?? null,
           department: taxonomyId ?? null,

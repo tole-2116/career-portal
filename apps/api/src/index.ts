@@ -17,7 +17,7 @@ app.use(express.json());
 app.get("/api/jobs", async (req, res) => {
   try {
     const jobs = await db.job.findMany({
-      where: { status: "PUBLISHED" },
+      where: { status: "OPEN" },
       orderBy: { posted: "desc" },
     });
     res.json(jobs);
