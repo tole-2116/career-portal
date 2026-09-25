@@ -34,3 +34,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Bun build artifacts & monorepo metadata
+.bun/
+*.tsbuildinfo
+packages/*/tsconfig.tsbuildinfo
+
+# Prisma generated
+.packages/
+.prisma/
+
+# Runtime temp dirs
+.tmp/

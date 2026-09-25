@@ -19,7 +19,7 @@ model User {
   usercreate_at  String?       @db.VarChar(255)
   userupdated_at String?       @db.VarChar(255)
   isdelete       Boolean       @default(false)
-  applications   Application[]
+  candidates     Candidate[]
   news           News[]
 
   @@map("users")
@@ -68,39 +68,41 @@ model Job {
   usercreate_at  String?       @db.VarChar(255)
   userupdated_at String?       @db.VarChar(255)
   isdelete       Boolean       @default(false)
-  applications   Application[]
+  candidates     Candidate[]
   taxonomy       Taxonomy?     @relation(fields: [taxonomyId], references: [id])
 
   @@map("jobs")
 }
 
-model Application {
-  id             String            @id @default(uuid())
-  code           String?           @unique @db.VarChar(100)
-  jobId          String
-  candidateId    String?
-  name           String
-  email          String
-  phone          String
-  resumeUrl      String
-  coverLetter    String?
-  location       String?
-  stage          String            @default("new")
-  rating         Int               @default(0)
-  appliedAt      DateTime          @default(now())
-  cvFile         String            @default("")
-  experience     String            @default("")
-  highlights     Json              @default("[]")
-  notes          Json              @default("[]")
-  status         ApplicationStatus @default(APPLIED)
-  formData       Json
-  usercreate_at  String?           @db.VarChar(255)
-  userupdated_at String?           @db.VarChar(255)
-  isdelete       Boolean           @default(false)
-  candidate      User?             @relation(fields: [candidateId], references: [id])
-  job            Job               @relation(fields: [jobId], references: [id])
+model Candidate {
+  id              String         @id @default(uuid())
+  code            String         @unique @db.VarChar(100)
+  jobId           String
+  candidateUserId String?
+  name            String         @db.VarChar(255)
+  email           String         @db.VarChar(255)
+  phone           String         @db.VarChar(50)
+  currentCompany  String?        @db.VarChar(255)
+  experienceYears Int            @default(0)
+  status          CandidateStatus @default(NEW)
+  appliedAt       DateTime       @default(now())
+  resumeUrl       String         @db.Text
+  coverLetter     String?        @db.Text
+  notes           String?        @db.Text
+  rating          Int?           @default(0)
+  formData        Json?
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
+  usercreate_at   String?        @db.VarChar(255)
+  userupdated_at  String?        @db.VarChar(255)
+  isdelete        Boolean        @default(false)
+  job             Job            @relation(fields: [jobId], references: [id])
+  candidateUser   User?          @relation(fields: [candidateUserId], references: [id])
 
-  @@map("applications")
+  @@index([jobId])
+  @@index([email])
+  @@index([status])
+  @@map("candidates")
 }
 
 model News {
@@ -162,10 +164,11 @@ enum JobStatus {
   CLOSED
 }
 
-enum ApplicationStatus {
-  APPLIED
-  REVIEWING
+enum CandidateStatus {
+  NEW
+  SCREENING
   INTERVIEW
-  OFFERED
+  OFFER
+  HIRED
   REJECTED
 }

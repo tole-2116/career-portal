@@ -5,7 +5,10 @@
     "outDir": "./dist",
     "composite": true,
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "paths": {
+      "@/*": ["../apps/web/src/*"]
+    }
   },
   "include": ["src/**/*", "prisma/**/*"],
   "exclude": ["prisma/migrations"]

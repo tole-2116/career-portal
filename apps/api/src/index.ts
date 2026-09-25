@@ -41,9 +41,9 @@ app.post("/api/jobs/:jobId/apply", async (req, res) => {
 
     const { jobId, name, email, phone, coverLetter } = validation.data;
 
-    const application = await db.application.create({
+    const candidate = await db.candidate.create({
       data: {
-        code: `APP-${Date.now()}`,
+        code: `CAND-${Date.now()}`,
         jobId,
         name,
         email,
@@ -55,7 +55,7 @@ app.post("/api/jobs/:jobId/apply", async (req, res) => {
       },
     });
 
-    res.status(201).json({ success: true, application });
+    res.status(201).json({ success: true, candidate });
   } catch (error) {
     console.error("POST apply error:", error);
     res.status(500).json({ error: "Failed to submit application" });
