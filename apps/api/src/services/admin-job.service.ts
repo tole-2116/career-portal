@@ -1,5 +1,5 @@
 import { db, Prisma } from "@career-portal/database";
-import type { JobModel, JobModelQuery, LocaleStringModel } from "../types/job";
+import type { JobModel, JobModelQuery, JobStatus, LocaleStringModel } from "../types/job";
 
 // Taxonomy type codes. Seed lưu dạng thường ("department", "workType", "level", "location", "newsCategory"),
 // task spec dùng dạng hoa ("DEPARTMENT","LOCATION","LEVEL","NEWSCATEGORY") — so khớp không phân biệt hoa/thường.
@@ -193,8 +193,8 @@ async function withTaxonomyInfo<T extends JobTaxonomyColumns>(job: T) {
   };
 }
 
-export class JobService {
-  async getAll(query: JobModelQuery = {}) {
+export class AdminJobService {
+  async findMany(query: JobModelQuery = {}) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
@@ -292,7 +292,7 @@ export class JobService {
     };
   }
 
-  async getById(id: string) {
+  async findById(id: string) {
     // findUnique không qua extension — dùng findFirst để extension tự lọc isdelete.
     const job = await db.job.findFirst({
       where: { id },
@@ -399,6 +399,16 @@ export class JobService {
     const job = await db.job.update({
       where: { id },
       data: updateData,
+    });
+
+    return withTaxonomyInfo(job);
+  }
+
+  /** Cập nhật trạng thái hiển thị của job (DRAFT/OPEN/PAUSED/EXPIRED/CLOSED). */
+  async changeStatus(id: string, status: JobStatus) {
+    const job = await db.job.update({
+      where: { id },
+      data: { status },
     });
 
     return withTaxonomyInfo(job);

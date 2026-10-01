@@ -1,22 +1,22 @@
 import { Request, Response } from "express";
-import { JobService } from "../services/job.service";
+import { AdminJobService } from "../services/admin-job.service";
 import { JobModel, JobModelQuery, JobStatus } from "../types/job";
 
-export class JobController {
-  private service: JobService;
+export class AdminJobController {
+  private service: AdminJobService;
 
   constructor() {
-    this.service = new JobService();
+    this.service = new AdminJobService();
     // Express truyền handler dưới dạng hàm rời — mất `this`, nên bind trước.
-    this.list = this.list.bind(this);
-    this.getById = this.getById.bind(this);
+    this.getPaginated = this.getPaginated.bind(this);
+    this.getDetail = this.getDetail.bind(this);
     this.create = this.create.bind(this);
     this.update = this.update.bind(this);
     this.delete = this.delete.bind(this);
     this.taxonomies = this.taxonomies.bind(this);
   }
 
-  async list(req: Request, res: Response) {
+  async getPaginated(req: Request, res: Response) {
     try {
       const query: JobModelQuery = {
         page: req.query.page ? parseInt(req.query.page as string) : undefined,
@@ -30,7 +30,7 @@ export class JobController {
         search: req.query.search as string | undefined,
       };
 
-      const result = await this.service.getAll(query);
+      const result = await this.service.findMany(query);
 
       res.json({
         success: true,
@@ -50,10 +50,10 @@ export class JobController {
     }
   }
 
-  async getById(req: Request, res: Response) {
+  async getDetail(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const job = await this.service.getById(id);
+      const job = await this.service.findById(id);
 
       if (!job) {
         return res.status(404).json({

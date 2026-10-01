@@ -41,7 +41,7 @@ export interface ApiJobPayload {
   contactEmail?: string | null;
 }
 
-/** Shape Taxonomy info do JobService trả về (label {vi, en}). */
+/** Shape Taxonomy info do AdminJobService trả về (label {vi, en}). */
 export interface ApiTaxonomyInfo {
   id: string;
   code: string;
@@ -88,7 +88,7 @@ export interface ApiJob {
   experienceInfo?: ApiTaxonomyInfo | null;
 }
 
-/** Envelope `{ success, data }` do JobController trả về. */
+/** Envelope `{ success, data }` do AdminJobController trả về. */
 interface ApiEnvelope<T> {
   success: boolean;
   data: T;
