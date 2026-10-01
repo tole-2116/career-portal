@@ -126,6 +126,7 @@
       },
       "devDependencies": {
         "@career-portal/typescript-config": "workspace:*",
+        "@types/bcryptjs": "^2.4.6",
         "prisma": "^5.18.0",
         "typescript": "^5.8.3",
       },

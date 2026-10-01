@@ -83,6 +83,15 @@ function ensureBilingualJSON(value: unknown): { en: string; vi: string } {
 // Jobs from apps/web/src/data/jobs
 import { jobs } from "../../../apps/web/src/data/jobs";
 
+// Experience taxonomy catalogue (matches apps/web/src/lib/taxonomy-store.tsx)
+const experienceTaxonomies = [
+  { label: { vi: "Chưa yêu cầu kinh nghiệm", en: "No experience required" } },
+  { label: { vi: "Dưới 1 năm", en: "Less than 1 year" } },
+  { label: { vi: "1 – 3 năm", en: "1 – 3 years" } },
+  { label: { vi: "3 – 5 năm", en: "3 – 5 years" } },
+  { label: { vi: "Trên 5 năm", en: "More than 5 years" } },
+];
+
 // Candidates from apps/web/src/data/candidates
 import { candidates } from "../../../apps/web/src/data/candidates";
 
@@ -157,19 +166,9 @@ async function main() {
   // === YÊU CẦU 2: MÔI TRƯỜNG DEV/TEST - SEED PUN DAY DỮ LIỆU MOCK ===
   console.log("🔧 Development mode: seeding full mock data...");
 
-  // --- Bước 0: Dọn dẹp dữ liệu cũ (child-first) để seed chạy lại an toàn ---
-  console.log("🧹 Cleaning old data (child-first) for idempotent re-seed...");
-  await prisma.$executeRawUnsafe(
-    `TRUNCATE TABLE candidates, news, jobs, taxonomies, users RESTART IDENTITY CASCADE`,
-  );
-
-  // Đảm bảo Truncate xong rồi mới vào transaction
   await prisma.$transaction(async (tx) => {
     /* ---- 1. Taxonomies (bảng độc lập, seed trước) ---- */
-    // Tạo taxonomy groups từ jobs + newsCategories
     const taxonomyDefs: Array<{ type: string; label: { vi: string; en: string } }> = [];
-
-    // Từ jobs: department, workType, level, location
     const seenTax = new Map<string, { type: string; label: { vi: string; en: string } }>();
     const addTax = (type: string, label: { vi: string; en: string }) => {
       const key = `${type}:${label.en}`;
@@ -181,6 +180,8 @@ async function main() {
     for (const j of jobs) {
       addTax("department", j.department);
       addTax("workType", j.workType);
+      addTax("salary", j.salary);
+      for (const experience of experienceTaxonomies) addTax("experience", experience.label);
       addTax("level", j.level);
       for (const loc of j.locations) addTax("location", loc);
     }
@@ -190,16 +191,14 @@ async function main() {
 
     for (const def of taxonomyDefs) {
       const code = slugify(def.label.en);
-      const created = await tx.taxonomy.create({
-        data: {
-          code,
-          type: def.type,
-          name: asLocalized(def.label),
-          slug: slugify(def.label.en),
-          ...audit,
-        },
+      const slug = slugify(def.label.en);
+      const name = asLocalized(def.label);
+      const tax = await tx.taxonomy.upsert({
+        where: { code },
+        update: { type: def.type, name, slug },
+        create: { code, type: def.type, name, slug, ...audit },
       });
-      taxonomyMap.set(`${def.type}:${code}`, created.id);
+      taxonomyMap.set(`${def.type}:${code}`, tax.id);
     }
     console.log(`Seeded ${taxonomyDefs.length} Taxonomies`);
 
@@ -257,42 +256,58 @@ async function main() {
 
       // Map workType code -> taxonomyId (cho cột type)
       const workKey = `workType:${slugify(j.workType.en)}`;
-      const typeId = taxonomyMap.get(workKey);
+      const workTypeId = taxonomyMap.get(workKey);
+
+      // Map salary code -> taxonomyId
+      const salaryKey = `salary:${slugify(j.salary.en)}`;
+      const salaryId = taxonomyMap.get(salaryKey);
+
+      const experienceId = j.experience
+        ? taxonomyMap.get(`experience:${slugify(j.experience.en)}`)
+        : undefined;
 
       // Map location code
       const locKey = `location:${slugify(j.locations[0].en)}`;
-      const locationId = taxonomyMap.get(locKey);
+      const locationIds = taxonomyMap.get(locKey);
 
-      const created = await tx.job.create({
-        data: {
-          code: j.id, // Lưu mock id vào cột code (quy tắc #1)
-          title: ensureBilingualJSON(j.title),
-          slug: j.id, // gán slug giống code/id cho dễ query
-          description: j.description.map((p) => ensureBilingualJSON(p)),
-          requirements: j.requirements.map((r) => ensureBilingualJSON(r)),
-          benefits: j.benefits.map((b) => ensureBilingualJSON(b)),
-          extraFields: [],
-          applicants: j.applicants,
-          featured: j.featured,
-          posted: new Date(j.posted),
-          deadline: new Date(j.deadline),
-          headcount: null,
-          experience: ensureBilingualJSON(j.level),
-          languages: ensureBilingualJSON(j.salary),
-          contactName: null,
-          contactEmail: null,
-          status: j.status === "open" ? JobStatus.OPEN : j.status === "paused" ? JobStatus.PAUSED : j.status === "expired" ? JobStatus.EXPIRED : j.status === "closed" ? JobStatus.CLOSED : JobStatus.DRAFT,
-          // Cột taxonomyId + cột department (String?): connect qua taxonomyMap
-          taxonomyId: taxonomyId ?? null,
-          department: taxonomyId ?? null,
-          location: locationId ?? null,
-          type: typeId ?? null,
-          ...audit,
-        },
+      const jobData = {
+        code: j.id, // Lưu mock id vào cột code (quy tắc #1)
+        title: ensureBilingualJSON(j.title),
+        summary: ensureBilingualJSON(j.summary),
+        slug: j.id, // gán slug giống code/id cho dễ query
+        description: j.description.map((p) => ensureBilingualJSON(p)),
+        requirements: j.requirements.map((r) => ensureBilingualJSON(r)),
+        benefits: j.benefits.map((b) => ensureBilingualJSON(b)),
+        extraFields: [],
+        applicants: j.applicants,
+        featured: j.featured,
+        posted: new Date(j.posted),
+        deadline: new Date(j.deadline),
+        headcount: null,
+        experience: null,
+        level: ensureBilingualJSON(j.level),
+        languages: j.languages ? ensureBilingualJSON(j.languages) : null,
+        contactName: null,
+        contactEmail: null,
+        status: j.status === "open" ? JobStatus.OPEN : j.status === "paused" ? JobStatus.PAUSED : j.status === "expired" ? JobStatus.EXPIRED : j.status === "closed" ? JobStatus.CLOSED : JobStatus.DRAFT,
+        // Cột taxonomyId + cột departmentId/locationIds/workTypeId (String?): gán trực tiếp ID từ taxonomyMap
+        taxonomyId: taxonomyId ?? null,
+        departmentId: taxonomyId ?? null,
+        locationIds: locationIds ?? null,
+        workTypeId: workTypeId ?? null,
+        salaryId: salaryId ?? null,
+        experienceId: experienceId ?? null,
+        ...audit,
+      };
+
+      const created = await tx.job.upsert({
+        where: { slug: j.id },
+        update: jobData,
+        create: jobData,
       });
-      jobMap.set(j.id, created.id); // key = mock code, value = new UUID
+      jobMap.set(j.id, created.id); // key = mock code, value = UUID (đã có sẵn nếu chạy lại)
     }
-    console.log(`Seeded ${jobs.length} Jobs`);
+    console.log(`Seeded ${jobs.length} Jobs (upsert by slug)`);
 
     /* ---- 4. Candidates (FK -> jobId từ jobMap + candidateId từ userMap, upsert theo code) ---- */
     // upsert theo code: an toàn chạy lại nhiều lần, không lỗi Unique constraint
@@ -347,8 +362,7 @@ async function main() {
       const categoryDef = newsCategories.find((nc) => nc.code === a.categoryId);
       const categoryId = categoryDef ? categoryDef.code : a.categoryId;
 
-      await tx.news.create({
-        data: {
+      const newsData = {
           code: a.id, // mock code -> cột code
           categoryId, // taxonomy/newsCategory code dạng plain string
           title: ensureBilingualJSON(a.title),
@@ -360,15 +374,20 @@ async function main() {
           featured: a.featured,
           excerpt: ensureBilingualJSON(a.excerpt),
           ...audit,
-        },
-      });
+        };
+
+        await tx.news.upsert({
+          where: { code: a.id },
+          update: newsData,
+          create: newsData,
+        });
     }
     console.log(`Seeded ${articles.length} News articles`);
   });
 
   console.log("✅ Seed complete!");
   console.log(
-    `   - ${taxonomyMap.size} taxonomies (department, workType, level, location, newsCategory)`,
+    `   - ${taxonomyMap.size} taxonomies (department, workType, salary, level, location, newsCategory)`,
   );
   console.log(`   - ${userMap.size} users (admin, recruiters, candidates)`);
   console.log(`   - ${jobMap.size} jobs`);

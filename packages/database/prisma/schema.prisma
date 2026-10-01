@@ -36,8 +36,13 @@ model Taxonomy {
   usercreate_at  String?  @db.VarChar(255)
   userupdated_at String?  @db.VarChar(255)
   isdelete       Boolean  @default(false)
-  jobs           Job[]
+  jobs           Job[]  @relation("JobTaxonomy")
+  departmentJobs Job[]  @relation("JobDepartment")
+  workTypeJobs   Job[]  @relation("JobWorkType")
+  salaryJobs     Job[]  @relation("JobSalary")
+  experienceJobs Job[]  @relation("JobExperience")
 
+  @@index([type])
   @@map("taxonomies")
 }
 
@@ -45,6 +50,7 @@ model Job {
   id             String        @id @default(uuid())
   code           String?       @unique @db.VarChar(100)
   title          Json
+  summary        Json?
   slug           String        @unique
   description    Json
   requirements   Json
@@ -61,16 +67,25 @@ model Job {
   contactName    String?
   contactEmail   String?
   status         JobStatus     @default(OPEN)
-  department     String?
-  location       String?
-  type           String?
-  taxonomyId     String?
+  departmentId   String?       @db.VarChar(100)
+  locationIds    String?       @db.VarChar(500)
+  workTypeId     String?       @db.VarChar(100)
+  salaryId       String?       @db.VarChar(100)
+  level          Json?
+  taxonomyId     String?       @db.VarChar(100)
   usercreate_at  String?       @db.VarChar(255)
   userupdated_at String?       @db.VarChar(255)
   isdelete       Boolean       @default(false)
   candidates     Candidate[]
-  taxonomy       Taxonomy?     @relation(fields: [taxonomyId], references: [id])
+  taxonomy          Taxonomy?  @relation("JobTaxonomy", fields: [taxonomyId], references: [id])
+  departmentTaxonomy Taxonomy? @relation("JobDepartment", fields: [departmentId], references: [id])
+  workTypeTaxonomy Taxonomy? @relation("JobWorkType", fields: [workTypeId], references: [id])
+  salaryTaxonomy   Taxonomy? @relation("JobSalary", fields: [salaryId], references: [id])
+  experienceTaxonomy Taxonomy? @relation("JobExperience", fields: [experienceId], references: [id])
+  // locationIds giữ nhiều taxonomy id nối bằng dấu phẩy nên không khai báo relation.
 
+  @@index([salaryId])
+  @@index([experienceId])
   @@map("jobs")
 }
 

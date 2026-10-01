@@ -6,6 +6,7 @@ import express from "express";
 import cors from "cors";
 import { db } from "@career-portal/database";
 import { ApplyJobSchema } from "@career-portal/types";
+import { adminJobsRoutes } from "./routes/admin-jobs.routes";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -13,7 +14,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }));
 app.use(express.json());
 
-// API: Lấy danh sách jobs
+// API: Lấy danh sách jobs (mở)
 app.get("/api/jobs", async (req, res) => {
   try {
     const jobs = await db.job.findMany({
@@ -61,6 +62,9 @@ app.post("/api/jobs/:jobId/apply", async (req, res) => {
     res.status(500).json({ error: "Failed to submit application" });
   }
 });
+
+// API Admin: Job CRUD routes
+app.use("/api/admin/jobs", adminJobsRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

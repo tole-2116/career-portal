@@ -1,6 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Pencil, Plus, RotateCcw, Search, Sparkles, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Search,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -37,11 +46,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import type { Job, JobStatus } from "@/data/jobs";
 import { useI18n, type Localized } from "@/lib/i18n";
-import { emptyJob, makeJobId, useJobs } from "@/lib/jobs-store";
+import { emptyJob } from "@/lib/jobs-store";
 import { useTaxonomies, type TaxonomyKey } from "@/lib/taxonomy-store";
+import { fetchJobs, createJob, updateJob, deleteJob, toApiPayload, fetchJobTaxonomies } from "@/lib/api/jobs";
 
 export const Route = createFileRoute("/admin/jobs")({
   head: () => ({
@@ -82,37 +91,41 @@ const statusVariant: Record<JobStatus, "default" | "secondary" | "outline" | "de
 
 const ALL = "__all__";
 
-/** Pick a value from a shared catalogue. */
+/** Số dòng mỗi trang — khớp `limit` mặc định của GET /api/admin/jobs. */
+const PAGE_SIZE = 10;
+
+const emptyLocalized: Localized = { vi: "", en: "" };
+
+/** Option taxonomy cho form: id + label lấy từ database. */
+type TaxonomyOption = { id: string; label: Localized };
+
+/** Pick a taxonomy value; options come from the DB so IDs match what the API stores. */
 function TaxonomyField({
   label,
-  taxonomyKey,
+  options,
   valueId,
   onChange,
 }: {
   label: string;
-  taxonomyKey: TaxonomyKey;
+  options: TaxonomyOption[];
   valueId?: string | undefined;
   onChange: (id: string, next: Localized) => void;
 }) {
-  const { taxonomies } = useTaxonomies();
-  const list = taxonomies[taxonomyKey];
-  const match = list.find((entry) => entry.id === valueId);
-
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
       <Select
-        value={match?.id ?? ""}
+        value={valueId ?? ""}
         onValueChange={(next) => {
-          const picked = list.find((entry) => entry.id === next);
-          if (picked) onChange(picked.id, { ...picked.label });
+          const picked = options.find((entry) => entry.id === next);
+          onChange(next, picked ? { ...picked.label } : emptyLocalized);
         }}
       >
         <SelectTrigger aria-label={label}>
           <SelectValue placeholder={label} />
         </SelectTrigger>
         <SelectContent>
-          {list.map((entry) => (
+          {options.map((entry) => (
             <SelectItem key={entry.id} value={entry.id}>
               {entry.label.vi || entry.label.en}
               {entry.label.vi && entry.label.en ? ` · ${entry.label.en}` : ""}
@@ -124,22 +137,23 @@ function TaxonomyField({
   );
 }
 
-/** Pick several work locations from the catalogue, plus free-text additions. */
+/** Pick several work locations from the DB catalogue (values are Taxonomy IDs). */
 function LocationsField({
+  options,
   ids,
   onChange,
 }: {
+  options: TaxonomyOption[];
   ids: string[];
   onChange: (ids: string[], next: Localized[]) => void;
 }) {
   const { t, tr } = useI18n();
-  const { taxonomies } = useTaxonomies();
   const selected = new Set(ids);
 
   const toggle = (id: string, on: boolean) => {
     const nextIds = on ? [...ids, id] : ids.filter((current) => current !== id);
     const next = nextIds
-      .map((nextId) => taxonomies.locations.find((entry) => entry.id === nextId)?.label)
+      .map((nextId) => options.find((entry) => entry.id === nextId)?.label)
       .filter((label): label is Localized => Boolean(label));
     onChange(nextIds, next);
   };
@@ -149,7 +163,7 @@ function LocationsField({
       <Label>{t("admin.jobs.field.locations")}</Label>
       <p className="text-xs text-muted-foreground">{t("admin.jobs.field.locationsHint")}</p>
       <div className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-2">
-        {taxonomies.locations.map((entry) => {
+        {options.map((entry) => {
           return (
             <label key={entry.id} className="flex items-center gap-2 text-sm">
               <Checkbox
@@ -167,31 +181,137 @@ function LocationsField({
 
 function AdminJobsPage() {
   const { t, tr } = useI18n();
-  const { jobs, saveJob, deleteJob, resetJobs } = useJobs();
+  const { taxonomies } = useTaxonomies();
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState<string>(ALL);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [draft, setDraft] = useState<Job | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [taxOptions, setTaxOptions] = useState<{
+    departments: TaxonomyOption[];
+    locations: TaxonomyOption[];
+    workTypes: TaxonomyOption[];
+    salaries: TaxonomyOption[];
+    experiences: TaxonomyOption[];
+  }>({
+    departments: [],
+    locations: [],
+    workTypes: [],
+    salaries: [],
+    experiences: [],
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchJobs({
+      page,
+      limit: PAGE_SIZE,
+      status: status === ALL ? undefined : (status as JobStatus),
+      search: keyword.trim() || undefined,
+    })
+      .then((result) => {
+        if (!cancelled) {
+          setJobs(result.jobs);
+          setTotalPages(result.totalPages || 1);
+        }
+      })
+      .catch(() => toast.error(t("settings.storageNote")));
+    return () => {
+      cancelled = true;
+    };
+  }, [page, keyword, status, t]);
+
+  // Đổi keyword/status → về trang 1, tránh trang vượt totalPages.
+  useEffect(() => {
+    setPage(1);
+  }, [keyword, status]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchJobTaxonomies()
+      .then((result) => {
+        if (!cancelled) {
+          setTaxOptions({
+            departments: result.departments.map((t) => ({ id: t.id, label: { vi: t.label.vi, en: t.label.en } })),
+            locations: result.locations.map((t) => ({ id: t.id, label: { vi: t.label.vi, en: t.label.en } })),
+            workTypes: result.workTypes.map((t) => ({ id: t.id, label: { vi: t.label.vi, en: t.label.en } })),
+            salaries: result.salaries.map((t) => ({ id: t.id, label: { vi: t.label.vi, en: t.label.en } })),
+            experiences: result.experiences.map((t) => ({ id: t.id, label: { vi: t.label.vi, en: t.label.en } })),
+          });
+        }
+      })
+      .catch(() => toast.error(t("settings.storageNote")));
+    return () => {
+      cancelled = true;
+    };
+  }, [t]);
+
+  // Backend trả taxonomy ID (UUID), bảng hiển thị nhãn — tra cứu từ catalogue TaxonomyProvider.
+  // Lưu ý: code trong DB (slugified, ví dụ: ho-chi-minh-city/da-nang) khác code cục bộ
+  // (hcmc/danang/remote-vn) — nên labelOf fallback sẽ render code thô nếu không khớp.
+  const labelOf = (id: string | undefined, key: TaxonomyKey): Localized => {
+    const list = taxonomies[key];
+    const found = list.find((item) => item.id === id);
+    if (found && (found.label?.vi || found.label?.en)) return found.label;
+    return { vi: id ?? "", en: id ?? "" };
+  };
 
   const rows = useMemo(() => {
     const needle = keyword.trim().toLowerCase();
+    const hasLabel = (value: Localized) => Boolean(value.vi || value.en);
+
     return jobs
+      .map((job) => ({
+        ...job,
+        // API đã map label từ TaxonomyInfo; chỉ fallback catalogue cục bộ khi thiếu label.
+        department: hasLabel(job.department)
+          ? job.department
+          : labelOf(job.departmentId, "departments"),
+        locations: job.locations.length
+          ? job.locations
+          : (job.locationIds ?? []).map((id) => labelOf(id, "locations")),
+        workType: hasLabel(job.workType)
+          ? job.workType
+          : labelOf(job.workTypeId, "workTypes"),
+      }))
       .filter((job) =>
         needle ? `${job.title.vi} ${job.title.en}`.toLowerCase().includes(needle) : true,
       )
       .filter((job) => (status === ALL ? true : job.status === status));
-  }, [jobs, keyword, status]);
+  }, [jobs, keyword, status, taxonomies]);
 
   const patch = (partial: Partial<Job>) =>
     setDraft((current) => (current ? { ...current, ...partial } : current));
 
-  const submit = (statusOverride?: JobStatus) => {
+  const submit = async (statusOverride?: JobStatus) => {
     if (!draft) return;
-    const id = draft.id || makeJobId(draft.title.en || draft.title.vi, jobs);
-    const ok = saveJob({ ...draft, id, ...(statusOverride ? { status: statusOverride } : {}) });
-    toast[ok ? "success" : "error"](ok ? t("admin.jobs.saved") : t("settings.storageNote"));
-    setDraft(null);
-    setIsNew(false);
+    try {
+      const payload = toApiPayload(draft, statusOverride);
+      const saved = draft.id ? await updateJob(draft.id, payload) : await createJob(payload);
+      setJobs((prev) => {
+        const exists = prev.some((j) => j.id === saved.id);
+        return exists ? prev.map((j) => (j.id === saved.id ? saved : j)) : [saved, ...prev];
+      });
+      toast.success(t("admin.jobs.saved"));
+      setDraft(null);
+      setIsNew(false);
+    } catch (error) {
+      console.error("submit job:", error);
+      toast.error(error instanceof Error ? error.message : t("settings.storageNote"));
+    }
+  };
+
+  const removeJob = async (id: string) => {
+    try {
+      await deleteJob(id);
+      setJobs((prev) => prev.filter((j) => j.id !== id));
+      toast.success(t("admin.jobs.deleted"));
+    } catch (error) {
+      console.error("delete job:", error);
+      toast.error(error instanceof Error ? error.message : t("settings.storageNote"));
+    }
   };
 
   return (
@@ -204,7 +324,8 @@ function AdminJobsPage() {
             size="sm"
             variant="outline"
             onClick={() => {
-              resetJobs();
+              setKeyword("");
+              setStatus(ALL);
               toast.success(t("admin.jobs.resetDone"));
             }}
           >
@@ -253,9 +374,13 @@ function AdminJobsPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-14 text-center">STT</TableHead>
               <TableHead>{t("admin.jobs.col.title")}</TableHead>
               <TableHead>{t("admin.jobs.col.department")}</TableHead>
               <TableHead>{t("admin.jobs.col.location")}</TableHead>
+              <TableHead>{t("admin.jobs.field.workType")}</TableHead>
+              <TableHead>{t("admin.jobs.field.salary")}</TableHead>
+              <TableHead>{t("admin.jobs.field.experience")}</TableHead>
               <TableHead className="text-right">{t("admin.jobs.col.applicants")}</TableHead>
               <TableHead>{t("admin.jobs.col.deadline")}</TableHead>
               <TableHead>{t("admin.jobs.col.featured")}</TableHead>
@@ -264,12 +389,32 @@ function AdminJobsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((job) => (
+            {rows.map((job, index) => (
               <TableRow key={job.id}>
+                <TableCell className="text-center tabular-nums text-muted-foreground">
+                  {(page - 1) * PAGE_SIZE + index + 1}
+                </TableCell>
                 <TableCell className="font-medium">{tr(job.title)}</TableCell>
                 <TableCell className="text-muted-foreground">{tr(job.department)}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  {job.locations.map(tr).join(", ")}
+                  <div className="flex flex-wrap gap-1">
+                    {job.locations.length > 0 ? (
+                      job.locations.map((loc, index) => (
+                        <Badge key={`${job.id}-loc-${index}`} variant="secondary" className="text-xs">
+                          {tr(loc)}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-sm">—</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{tr(job.workType)}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {job.salary.vi || job.salary.en ? tr(job.salary) : "—"}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {job.experience?.vi || job.experience?.en ? tr(job.experience) : "—"}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{job.applicants}</TableCell>
                 <TableCell className="text-muted-foreground">{job.deadline}</TableCell>
@@ -296,8 +441,7 @@ function AdminJobsPage() {
                     size="sm"
                     aria-label={t("admin.jobs.delete")}
                     onClick={() => {
-                      deleteJob(job.id);
-                      toast.success(t("admin.jobs.deleted"));
+                      removeJob(job.id);
                     }}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -308,6 +452,36 @@ function AdminJobsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            aria-label="Go to previous page"
+            disabled={page <= 1}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Previous</span>
+          </Button>
+          <span className="text-sm tabular-nums text-muted-foreground">
+            {page} / {totalPages}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            aria-label="Go to next page"
+            disabled={page >= totalPages}
+            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+          >
+            <span className="hidden sm:inline">Next</span>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       <div className="mt-5 grid gap-3 md:hidden">
         {rows.map((job) => (
@@ -342,8 +516,7 @@ function AdminJobsPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    deleteJob(job.id);
-                    toast.success(t("admin.jobs.deleted"));
+                    removeJob(job.id);
                   }}
                 >
                   <Trash2 className="h-3.5 w-3.5 text-destructive" />
@@ -387,11 +560,12 @@ function AdminJobsPage() {
                 />
                 <TaxonomyField
                   label={t("admin.jobs.col.department")}
-                  taxonomyKey="departments"
+                  options={taxOptions.departments}
                   valueId={draft.departmentId}
                   onChange={(departmentId, department) => patch({ departmentId, department })}
                 />
                 <LocationsField
+                  options={taxOptions.locations}
                   ids={draft.locationIds ?? []}
                   onChange={(locationIds, locations) => patch({ locationIds, locations })}
                 />
@@ -469,7 +643,7 @@ function AdminJobsPage() {
 
                 <TaxonomyField
                   label={t("admin.jobs.field.workType")}
-                  taxonomyKey="workTypes"
+                  options={taxOptions.workTypes}
                   valueId={draft.workTypeId}
                   onChange={(workTypeId, workType) => patch({ workTypeId, workType })}
                 />
@@ -480,13 +654,13 @@ function AdminJobsPage() {
                 />
                 <TaxonomyField
                   label={t("admin.jobs.field.salary")}
-                  taxonomyKey="salaries"
+                  options={taxOptions.salaries}
                   valueId={draft.salaryId}
                   onChange={(salaryId, salary) => patch({ salaryId, salary })}
                 />
                 <TaxonomyField
                   label={t("admin.jobs.field.experience")}
-                  taxonomyKey="experiences"
+                  options={taxOptions.experiences}
                   valueId={draft.experienceId}
                   onChange={(experienceId, experience) => patch({ experienceId, experience })}
                 />
