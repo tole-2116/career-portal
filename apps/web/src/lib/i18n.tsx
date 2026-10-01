@@ -347,6 +347,8 @@ const dict = {
   "admin.jobs.delete": { vi: "Xóa tin", en: "Delete posting" },
   "admin.jobs.deleted": { vi: "Đã xóa tin tuyển dụng.", en: "Job posting deleted." },
   "admin.jobs.saved": { vi: "Đã lưu tin tuyển dụng.", en: "Job posting saved." },
+  "admin.jobs.actions.saveDraft": { vi: "Lưu nháp", en: "Save draft" },
+  "admin.jobs.actions.save": { vi: "Lưu thay đổi", en: "Save changes" },
   "admin.jobs.reset": { vi: "Khôi phục tin mẫu", en: "Restore sample jobs" },
   "admin.jobs.resetDone": { vi: "Đã khôi phục tin mẫu.", en: "Sample jobs restored." },
   "admin.jobs.col.featured": { vi: "Nổi bật", en: "Featured" },

@@ -2,6 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   ChevronLeft,
   ChevronRight,
+  Check,
+  X,
+  FileText,
+  Loader2,
   Pencil,
   Plus,
   RotateCcw,
@@ -188,6 +192,7 @@ function AdminJobsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [draft, setDraft] = useState<Job | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [taxOptions, setTaxOptions] = useState<{
     departments: TaxonomyOption[];
@@ -286,7 +291,8 @@ function AdminJobsPage() {
     setDraft((current) => (current ? { ...current, ...partial } : current));
 
   const submit = async (statusOverride?: JobStatus) => {
-    if (!draft) return;
+    if (!draft || isSaving) return;
+    setIsSaving(true);
     try {
       const payload = toApiPayload(draft, statusOverride);
       const saved = draft.id ? await updateJob(draft.id, payload) : await createJob(payload);
@@ -300,6 +306,8 @@ function AdminJobsPage() {
     } catch (error) {
       console.error("submit job:", error);
       toast.error(error instanceof Error ? error.message : t("settings.storageNote"));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -536,22 +544,33 @@ function AdminJobsPage() {
           }
         }}
       >
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{isNew ? t("admin.jobs.new") : t("admin.jobs.edit")}</DialogTitle>
-            <DialogDescription>{t("admin.jobs.storageNote")}</DialogDescription>
+        <DialogContent className="max-h-[90vh] max-w-2xl flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background">
+            <DialogTitle>
+              {Boolean(isNew)
+                ? (t("admin.jobs.new") || "Tạo mới tin tuyển dụng")
+                : (t("admin.jobs.edit") || "Chỉnh sửa tin tuyển dụng")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("admin.jobs.storageNote") || "Điền đầy đủ các thông tin vị trí công việc bên dưới."}
+            </DialogDescription>
           </DialogHeader>
 
           {draft && (
             <form
-              className="space-y-5"
+              className="flex flex-col flex-1 overflow-hidden min-h-0"
               onSubmit={(e) => {
                 e.preventDefault();
                 submit();
               }}
             >
-              <section className="space-y-4">
-                <p className="font-display text-sm font-semibold">{t("admin.jobs.group.basic")}</p>
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+                <section className="space-y-4">
+                  <div className="border-b border-border pb-2 mb-4">
+                    <p className="font-display text-sm font-semibold text-foreground">
+                      {t("admin.jobs.group.basic") || "Thông tin cơ bản"}
+                    </p>
+                  </div>
                 <BiField
                   label={t("admin.jobs.col.title")}
                   value={draft.title}
@@ -574,12 +593,14 @@ function AdminJobsPage() {
                   value={draft.summary}
                   onChange={(summary) => patch({ summary })}
                 />
-              </section>
+                </section>
 
               <section className="space-y-4">
-                <p className="font-display text-sm font-semibold">
-                  {t("admin.jobs.group.details")}
-                </p>
+                <div className="border-b border-border pb-2 mb-4 pt-2">
+                    <p className="font-display text-sm font-semibold text-foreground">
+                      {t("admin.jobs.group.details") || "Chi tiết tuyển dụng"}
+                    </p>
+                  </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="job-deadline">{t("admin.jobs.col.deadline")}</Label>
@@ -680,42 +701,67 @@ function AdminJobsPage() {
                 </div>
               </section>
 
-              <section className="space-y-4">
-                <p className="font-display text-sm font-semibold">
-                  {t("admin.jobs.group.content")}
-                </p>
-                <BiListField
-                  label={t("admin.jobs.field.description")}
-                  value={draft.description}
-                  onChange={(description) => patch({ description })}
-                />
-                <BiListField
-                  label={t("admin.jobs.field.requirements")}
-                  value={draft.requirements}
-                  onChange={(requirements) => patch({ requirements })}
-                />
-                <BiListField
-                  label={t("admin.jobs.field.benefits")}
-                  value={draft.benefits}
-                  onChange={(benefits) => patch({ benefits })}
-                />
-              </section>
+                <section className="space-y-4">
+                  <div className="border-b border-border pb-2 mb-4 pt-2">
+                    <p className="font-display text-sm font-semibold text-foreground">
+                      {t("admin.jobs.group.content") || "Nội dung chi tiết"}
+                    </p>
+                  </div>
+                  <BiListField
+                    label={t("admin.jobs.field.description")}
+                    value={draft.description}
+                    onChange={(description) => patch({ description })}
+                  />
+                  <BiListField
+                    label={t("admin.jobs.field.requirements")}
+                    value={draft.requirements}
+                    onChange={(requirements) => patch({ requirements })}
+                  />
+                  <BiListField
+                    label={t("admin.jobs.field.benefits")}
+                    value={draft.benefits}
+                    onChange={(benefits) => patch({ benefits })}
+                  />
+                </section>
+              </div>
 
-              <DialogFooter>
+              <DialogFooter className="px-6 py-4 border-t shrink-0 bg-background flex items-center justify-between gap-3">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
+                  className="gap-2 text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     setDraft(null);
                     setIsNew(false);
                   }}
                 >
-                  {t("common.cancel")}
+                  <X className="h-4 w-4" />
+                  {t("common.cancel") || "Hủy"}
                 </Button>
-                <Button type="button" variant="secondary" onClick={() => submit("draft")}>
-                  {tr({ vi: "Lưu nháp", en: "Save as draft" })}
-                </Button>
-                <Button type="submit">{t("common.save")}</Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="gap-2"
+                    disabled={isSaving}
+                    onClick={() => submit("draft")}
+                  >
+                    <FileText className="h-4 w-4" />
+                    {t("admin.jobs.actions.saveDraft") || "Lưu nháp"}
+                  </Button>
+                  <Button type="submit" className="gap-2 min-w-[120px]" disabled={isSaving}>
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                    {isSaving
+                      ? "Đang lưu..."
+                      : Boolean(isNew)
+                        ? (t("admin.jobs.actions.save") || "Tạo mới")
+                        : (t("common.save") || "Lưu thay đổi")}
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           )}
