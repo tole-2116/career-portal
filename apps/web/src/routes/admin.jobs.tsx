@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Check,
   X,
   FileText,
@@ -189,6 +191,8 @@ function AdminJobsPage() {
   const [status, setStatus] = useState<string>(ALL);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [draft, setDraft] = useState<Job | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -209,6 +213,7 @@ function AdminJobsPage() {
 
   useEffect(() => {
     let cancelled = false;
+    setIsLoading(true);
     fetchJobs({
       page,
       limit: PAGE_SIZE,
@@ -218,10 +223,14 @@ function AdminJobsPage() {
       .then((result) => {
         if (!cancelled) {
           setJobs(result.jobs);
-          setTotalPages(result.totalPages || 1);
+          setTotalCount(result.total ?? 0);
+          setTotalPages(result.totalPages ?? 1);
         }
       })
-      .catch(() => toast.error(t("settings.storageNote")));
+      .catch(() => toast.error(t("settings.storageNote")))
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -377,8 +386,9 @@ function AdminJobsPage() {
         </Select>
       </div>
 
-      <div className="mt-5 hidden overflow-hidden rounded-lg border border-border bg-card md:block">
-        <Table>
+      <div className="mt-5 hidden flex-col overflow-hidden rounded-md border border-border bg-card md:flex">
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader className="sticky top-0 z-10 bg-muted/65 backdrop-blur-sm border-b-2 border-border/80">
             <TableRow className="h-10 hover:bg-transparent border-none">
               <TableHead className="w-14 pl-4 text-center text-xs font-semibold text-foreground/80 select-none"></TableHead>
@@ -475,37 +485,91 @@ function AdminJobsPage() {
               ))}
           </TableBody>
         </Table>
-      </div>
-
-      {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            aria-label="Go to previous page"
-            disabled={page <= 1}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Previous</span>
-          </Button>
-          <span className="text-sm tabular-nums text-muted-foreground">
-            {page} / {totalPages}
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            aria-label="Go to next page"
-            disabled={page >= totalPages}
-            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-          >
-            <span className="hidden sm:inline">Next</span>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
         </div>
-      )}
+
+        <div className="shrink-0 border-t border-border/70 bg-muted/30 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 select-none">
+          {/* Phía trái: Đếm số dòng */}
+          <div className="text-xs text-muted-foreground">
+            {totalCount > 0 ? (
+              <>
+                Đang hiển thị{" "}
+                <strong className="font-semibold text-foreground">
+                  {(page - 1) * PAGE_SIZE + 1}
+                </strong>{" "}
+                -{" "}
+                <strong className="font-semibold text-foreground">
+                  {Math.min(page * PAGE_SIZE, totalCount)}
+                </strong>{" "}
+                trên tổng số{" "}
+                <strong className="font-semibold text-foreground">{totalCount}</strong> dòng
+              </>
+            ) : (
+              <span>Không có bản ghi nào</span>
+            )}
+          </div>
+
+          {/* Phía phải: Cụm 4 nút chuyển trang */}
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground">
+              Trang <strong className="font-semibold text-foreground">{page}</strong> / {totalPages || 1}
+            </span>
+
+            <div className="flex items-center gap-1">
+              {/* Về đầu */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-md border-border/70"
+                onClick={() => setPage(1)}
+                disabled={page <= 1 || isLoading}
+                title="Trang đầu"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+
+              {/* Lùi 1 trang */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-md border-border/70"
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                disabled={page <= 1 || isLoading}
+                title="Trang trước"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              {/* Tiến 1 trang */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-md border-border/70"
+                onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={page >= totalPages || isLoading}
+                title="Trang sau"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+
+              {/* Đến cuối */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-md border-border/70"
+                onClick={() => setPage(totalPages)}
+                disabled={page >= totalPages || isLoading}
+                title="Trang cuối"
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="mt-5 grid gap-3 md:hidden">
         {rows.map((job) => (
