@@ -10,7 +10,6 @@ import {
   Loader2,
   Pencil,
   Plus,
-  RotateCcw,
   Search,
   Sparkles,
   Trash2,
@@ -360,24 +359,14 @@ function AdminJobsPage() {
       action={
         <div className="flex items-center gap-2">
           <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setKeyword("");
-              setStatus(ALL);
-              toast.success(t("admin.jobs.resetDone"));
-            }}
-          >
-            <RotateCcw className="mr-1.5 h-4 w-4" /> {t("admin.jobs.reset")}
-          </Button>
-          <Button
-            size="sm"
+            className="h-9 gap-2 rounded-lg px-3.5 text-xs font-medium select-none shadow-xs transition-all duration-150 hover:shadow-sm active:scale-[0.98]"
             onClick={() => {
               setDraft(emptyJob());
               setIsNew(true);
             }}
           >
-            <Plus className="mr-1.5 h-4 w-4" /> {t("admin.jobs.new")}
+            <Plus className="h-4 w-4 stroke-[2.2]" />
+            {t("admin.jobs.actions.create") || "Tạo mới"}
           </Button>
         </div>
       }

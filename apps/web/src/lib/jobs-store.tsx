@@ -213,7 +213,6 @@ type JobsValue = {
   jobs: Job[];
   saveJob: (job: Job) => boolean;
   deleteJob: (id: string) => void;
-  resetJobs: () => void;
 };
 
 const JobsContext = createContext<JobsValue | null>(null);
@@ -301,16 +300,9 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const resetJobs = useCallback(() => {
-    const next = sampleJobs.map((job) => syncJobTaxonomies(job, taxonomies));
-    persist(next);
-    window.localStorage.removeItem(STORAGE_KEY);
-    setList(next);
-  }, [persist, taxonomies]);
-
   const value = useMemo<JobsValue>(
-    () => ({ jobs: list, saveJob, deleteJob, resetJobs }),
-    [list, saveJob, deleteJob, resetJobs],
+    () => ({ jobs: list, saveJob, deleteJob }),
+    [list, saveJob, deleteJob],
   );
 
   return <JobsContext.Provider value={value}>{children}</JobsContext.Provider>;
