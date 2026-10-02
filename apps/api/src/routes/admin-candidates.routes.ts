@@ -9,4 +9,7 @@ adminCandidateRoutes.get("/", adminCandidateController.getPaginated);
 // PATCH /api/admin/candidates/:id/status — cập nhật giai đoạn tuyển dụng
 adminCandidateRoutes.patch("/:id/status", adminCandidateController.updateStatus);
 
+// PUT /api/admin/candidates/:id — cập nhật hồ sơ ứng viên
+adminCandidateRoutes.put("/:id", adminCandidateController.update);
+
 export default adminCandidateRoutes;

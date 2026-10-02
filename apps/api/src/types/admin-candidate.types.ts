@@ -52,3 +52,14 @@ export interface AdminCandidatePaginatedResponse {
 export interface AdminCandidateStatusPayload {
   status: AdminCandidateStatus;
 }
+
+/** Body của `PUT /api/admin/candidates/:id`. */
+export interface AdminCandidateUpdatePayload {
+  name: string;
+  email: string;
+  phone: string;
+  resumeUrl: string;
+  jobId: string;
+  status: AdminCandidateStatus;
+  notes: string;
+}

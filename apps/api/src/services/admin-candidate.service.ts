@@ -5,6 +5,7 @@ import type {
   AdminCandidateLocalizedText,
   AdminCandidatePaginatedResponse,
   AdminCandidateStatus,
+  AdminCandidateUpdatePayload,
 } from "../types/admin-candidate.types";
 
 const DEFAULT_PAGE = 1;
@@ -148,6 +149,34 @@ export class AdminCandidateService {
     const updated = await db.candidate.update({
       where: { id, isdelete: false },
       data: { status },
+      include: { job: { select: { title: true } } },
+    });
+
+    return mapCandidate(updated);
+  }
+
+  async update(id: string, payload: AdminCandidateUpdatePayload): Promise<AdminCandidateListItem> {
+    if (!candidateStatuses.includes(payload.status)) {
+      throw new Error(`Invalid status: ${payload.status}`);
+    }
+
+    const job = await db.job.findFirst({
+      where: { id: payload.jobId },
+      select: { id: true },
+    });
+    if (!job) throw new Error(`Invalid jobId: ${payload.jobId}`);
+
+    const updated = await db.candidate.update({
+      where: { id, isdelete: false },
+      data: {
+        name: payload.name.trim(),
+        email: payload.email.trim(),
+        phone: payload.phone.trim(),
+        resumeUrl: payload.resumeUrl.trim(),
+        jobId: payload.jobId,
+        status: payload.status,
+        notes: payload.notes.trim() || null,
+      },
       include: { job: { select: { title: true } } },
     });
 

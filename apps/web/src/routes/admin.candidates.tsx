@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  Check,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -13,6 +14,7 @@ import {
   Phone,
   Search,
   Star,
+  X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -24,6 +26,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -202,6 +205,9 @@ function AdminCandidatesPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editStage, setEditStage] = useState<Stage>("new");
+  const [editNotes, setEditNotes] = useState("");
 
   useEffect(() => {
     document.title = getSafeMetaText("admin.candidates.meta.title", "Ứng viên — TalentHub HR");
@@ -239,6 +245,11 @@ function AdminCandidatesPage() {
   }, [keyword, jobFilter, stageFilter]);
 
   const selected = candidates.find((c) => c.id === selectedId) ?? null;
+  const handleRowClick = (candidate: Candidate) => {
+    setSelectedId(candidate.id);
+    setEditStage(candidate.stage);
+    setEditNotes(candidate.notes[0]?.body.vi ?? "");
+  };
   const emptyRowsCount = candidates.length > 0 && candidates.length < PAGE_SIZE
     ? PAGE_SIZE - candidates.length
     : 0;
@@ -262,17 +273,44 @@ function AdminCandidatesPage() {
     }
   }
 
+  async function submitCandidate() {
+    if (!selected || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const updated = await adminCandidateApi.updateCandidate(selected.id, {
+        name: selected.name,
+        email: selected.email,
+        phone: selected.phone,
+        resumeUrl: selected.cvFile,
+        jobId: selected.jobId,
+        status: editStage,
+        notes: editNotes,
+      });
+      setCandidates((prev) => prev.map((candidate) => (
+        candidate.id === updated.id ? updated : candidate
+      )));
+      toast.success(t("admin.candidates.saved"));
+      setSelectedId(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("admin.candidates.saveFailed"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <AdminLayout title={t("admin.candidates.title")} description={t("admin.demoNote")}>
       <Tabs defaultValue="applicants" className="flex min-h-0 flex-1 flex-col space-y-3.5 overflow-hidden">
-        <TabsList className="shrink-0">
-          <TabsTrigger value="applicants">
-            {tr({ vi: "Ứng viên theo tin", en: "Job applicants" })}
-          </TabsTrigger>
-          <TabsTrigger value="open">
-            {tr({ vi: "Hồ sơ tự do", en: "Open applications" })} ({openApplications.length})
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-start">
+          <TabsList className="shrink-0">
+            <TabsTrigger value="applicants">
+              {tr({ vi: "Ứng viên theo tin", en: "Job applicants" })}
+            </TabsTrigger>
+            <TabsTrigger value="open">
+              {tr({ vi: "Hồ sơ tự do", en: "Open applications" })} ({openApplications.length})
+            </TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="open" className="mt-5 min-h-0 flex-1 overflow-auto">
           <OpenApplicationsPanel />
         </TabsContent>
@@ -374,8 +412,8 @@ function AdminCandidatesPage() {
                   return (
                     <TableRow
                       key={candidate.id}
-                      className="cursor-pointer"
-                      onClick={() => setSelectedId(candidate.id)}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleRowClick(candidate)}
                     >
                       <TableCell className="w-[60px] text-center text-muted-foreground">
                         {(page - 1) * PAGE_SIZE + index + 1}
@@ -419,7 +457,7 @@ function AdminCandidatesPage() {
                           title={t("common.actions.view") || "Xem chi tiết"}
                           onClick={(event) => {
                             event.stopPropagation();
-                            setSelectedId(candidate.id);
+                            handleRowClick(candidate);
                           }}
                         >
                           <Eye className="h-4 w-4" />
@@ -570,16 +608,27 @@ function AdminCandidatesPage() {
 
 
       <Dialog open={selected !== null} onOpenChange={(open) => !open && setSelectedId(null)}>
-        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+        <DialogContent
+          className="max-h-[85vh] overflow-hidden rounded-xl border border-border p-0 shadow-lg sm:max-w-[620px]"
+          onPointerDownOutside={(event) => event.preventDefault()}
+          onInteractOutside={(event) => event.preventDefault()}
+        >
           {selected && (
-            <>
-              <DialogHeader>
+            <form
+              className="flex max-h-[85vh] flex-col overflow-hidden"
+              onSubmit={(event) => {
+                event.preventDefault();
+                submitCandidate();
+              }}
+            >
+              <DialogHeader className="shrink-0 border-b border-border/70 px-6 py-4">
                 <DialogTitle>{selected.name}</DialogTitle>
                 <DialogDescription>
                   {t("admin.candidates.profile")} · {tr(selected.experience)}
                 </DialogDescription>
               </DialogHeader>
 
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
               <div className="grid gap-3 text-sm sm:grid-cols-2">
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <Mail className="h-4 w-4 shrink-0" />
@@ -629,8 +678,9 @@ function AdminCandidatesPage() {
               <div className="space-y-2">
                 <Label htmlFor="stage">{t("admin.candidates.changeStage")}</Label>
                 <Select
-                  value={selected.stage}
-                  onValueChange={(value) => changeStage(selected.id, value as Stage)}
+                  value={editStage}
+                  onValueChange={(value) => setEditStage(value as Stage)}
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger id="stage">
                     <SelectValue />
@@ -659,15 +709,48 @@ function AdminCandidatesPage() {
                     ))}
                   </ul>
                 )}
-                <Textarea rows={3} maxLength={500} placeholder={t("admin.candidates.notes")} />
-                <Button size="sm" onClick={() => toast.success(t("admin.demoNote"))}>
-                  {t("common.save")}
-                </Button>
+                <Textarea
+                  rows={3}
+                  maxLength={500}
+                  placeholder={t("admin.candidates.notes")}
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  disabled={isSubmitting}
+                />
               </div>
-            </>
+              </div>
+
+              <DialogFooter className="shrink-0 border-t border-border/70 bg-muted/20 px-6 py-3.5 flex flex-row items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-3.5 text-xs rounded-md border-border/70 hover:bg-muted gap-1.5"
+                  disabled={isSubmitting}
+                  onClick={() => setSelectedId(null)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                  {t("common.cancel") || "Hủy"}
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-8 px-4 text-xs font-medium rounded-md gap-1.5 bg-primary text-primary-foreground shadow-xs hover:bg-primary/90"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
+                  {t("common.save") || "Lưu thay đổi"}
+                </Button>
+              </DialogFooter>
+            </form>
           )}
         </DialogContent>
       </Dialog>
+
     </AdminLayout>
   );
 }

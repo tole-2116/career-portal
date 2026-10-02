@@ -147,6 +147,16 @@ export interface CandidateListResult {
   totalPages: number;
 }
 
+export interface CandidateUpdatePayload {
+  name: string;
+  email: string;
+  phone: string;
+  resumeUrl: string;
+  jobId: string;
+  status: Stage;
+  notes: string;
+}
+
 /** GET /api/admin/candidates — danh sách ứng viên (phân trang, lọc, tìm kiếm). */
 async function getCandidates(params: CandidateListParams = {}): Promise<CandidateListResult> {
   const query = new URLSearchParams();
@@ -182,7 +192,20 @@ async function updateStatus(id: string, status: Stage): Promise<Candidate> {
   return mapApiCandidate(raw);
 }
 
+/** PUT /api/admin/candidates/:id — cập nhật hồ sơ ứng viên. */
+async function updateCandidate(id: string, payload: CandidateUpdatePayload): Promise<Candidate> {
+  const raw = await request<ApiCandidate>(`${API_BASE}/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      ...payload,
+      status: UI_TO_API[payload.status],
+    }),
+  });
+  return mapApiCandidate(raw);
+}
+
 export const adminCandidateApi = {
   getCandidates,
   updateStatus,
+  updateCandidate,
 };

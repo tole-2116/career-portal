@@ -4,6 +4,7 @@ import type {
   AdminCandidateFilterQuery,
   AdminCandidateStatus,
   AdminCandidateStatusPayload,
+  AdminCandidateUpdatePayload,
 } from "../types/admin-candidate.types";
 
 const candidateStatuses: readonly AdminCandidateStatus[] = [
@@ -28,6 +29,7 @@ export class AdminCandidateController {
   constructor() {
     this.getPaginated = this.getPaginated.bind(this);
     this.updateStatus = this.updateStatus.bind(this);
+    this.update = this.update.bind(this);
   }
 
   async getPaginated(req: Request, res: Response) {
@@ -100,6 +102,71 @@ export class AdminCandidateController {
         return res.status(404).json({ success: false, error: "Candidate not found" });
       }
       console.error("PATCH /api/admin/candidates/:id/status error:", error);
+      return res.status(500).json({ success: false, error: message });
+    }
+  }
+
+  async update(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const payload = req.body as Partial<AdminCandidateUpdatePayload> | undefined;
+
+      if (!id) {
+        return res.status(400).json({ success: false, error: "Missing candidate id" });
+      }
+      if (!payload) {
+        return res.status(400).json({ success: false, error: "Missing request body" });
+      }
+
+      const name = typeof payload.name === "string" ? payload.name.trim() : "";
+      const email = typeof payload.email === "string" ? payload.email.trim() : "";
+      const phone = typeof payload.phone === "string" ? payload.phone.trim() : "";
+      const resumeUrl = typeof payload.resumeUrl === "string" ? payload.resumeUrl.trim() : "";
+      const notes = typeof payload.notes === "string" ? payload.notes : "";
+      const jobId = typeof payload.jobId === "string" ? payload.jobId.trim() : "";
+      const status = payload.status;
+
+      const missing: string[] = [];
+      if (!name) missing.push("name");
+      if (!email) missing.push("email");
+      if (!phone) missing.push("phone");
+      if (!resumeUrl) missing.push("resumeUrl");
+      if (!jobId) missing.push("jobId");
+      if (!status) missing.push("status");
+      if (missing.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: `Missing required fields: ${missing.join(", ")}`,
+        });
+      }
+      if (!candidateStatuses.includes(status as AdminCandidateStatus)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid candidate status: ${status}`,
+        });
+      }
+
+      const candidate = await adminCandidateService.update(id, {
+        name,
+        email,
+        phone,
+        resumeUrl,
+        jobId,
+        status: status as AdminCandidateStatus,
+        notes,
+      });
+
+      return res.json({ success: true, data: candidate });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update candidate";
+      if (message.startsWith("Invalid status:") || message.startsWith("Invalid jobId:")) {
+        return res.status(400).json({ success: false, error: message });
+      }
+      // Prisma ném P2025 khi bản ghi không tồn tại hoặc bị xoá mềm.
+      if (message.includes("No record was found")) {
+        return res.status(404).json({ success: false, error: "Candidate not found" });
+      }
+      console.error("PUT /api/admin/candidates/:id error:", error);
       return res.status(500).json({ success: false, error: message });
     }
   }

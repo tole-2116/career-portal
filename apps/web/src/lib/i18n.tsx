@@ -224,6 +224,23 @@ const dict = {
     en: "Could not update the hiring stage.",
   },
   "admin.candidates.actions.detail": { vi: "Chi tiết", en: "Details" },
+  "admin.candidates.actions.edit": { vi: "Sửa hồ sơ", en: "Edit candidate" },
+  "admin.candidates.edit.title": { vi: "Chỉnh sửa hồ sơ ứng viên", en: "Edit candidate profile" },
+  "admin.candidates.edit.description": {
+    vi: "Cập nhật thông tin liên hệ, vị trí ứng tuyển và giai đoạn tuyển dụng.",
+    en: "Update contact details, applied position and hiring stage.",
+  },
+  "admin.candidates.field.name": { vi: "Họ và tên", en: "Full name" },
+  "admin.candidates.field.email": { vi: "Email", en: "Email" },
+  "admin.candidates.field.phone": { vi: "Số điện thoại", en: "Phone number" },
+  "admin.candidates.field.resumeUrl": { vi: "Đường dẫn CV", en: "CV link" },
+  "admin.candidates.field.job": { vi: "Vị trí ứng tuyển", en: "Applied position" },
+  "admin.candidates.field.stage": { vi: "Giai đoạn", en: "Stage" },
+  "admin.candidates.saved": { vi: "Đã lưu hồ sơ ứng viên.", en: "Candidate profile saved." },
+  "admin.candidates.saveFailed": {
+    vi: "Không thể lưu hồ sơ ứng viên.",
+    en: "Could not save the candidate profile.",
+  },
   "admin.candidates.empty": {
     vi: "Không có ứng viên nào khớp bộ lọc.",
     en: "No candidates match the filters.",
