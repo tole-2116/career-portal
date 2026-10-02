@@ -478,9 +478,20 @@ function AdminJobsPage() {
                 <TableRow
                   key={`empty-row-${index}`}
                   aria-hidden
-                  className="h-[52px] border-b border-border/30 hover:bg-transparent pointer-events-none"
+                  className="h-[52px] border-b border-border/50 hover:bg-transparent pointer-events-none select-none"
                 >
-                  <TableCell colSpan={12}>&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
                 </TableRow>
               ))}
           </TableBody>
