@@ -419,6 +419,7 @@ const dict = {
   "common.en": { vi: "Tiếng Anh", en: "English" },
   "common.close": { vi: "Đóng", en: "Close" },
   "common.table.stt": { vi: "STT", en: "No." },
+  "common.actions.view": { vi: "Xem chi tiết", en: "View details" },
 
   "common.save": { vi: "Lưu", en: "Save" },
   "common.cancel": { vi: "Hủy", en: "Cancel" },

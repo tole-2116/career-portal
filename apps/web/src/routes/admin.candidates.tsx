@@ -5,6 +5,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Download,
+  Eye,
   FileText,
   Loader2,
   Mail,
@@ -412,15 +413,17 @@ function AdminCandidatesPage() {
                       <TableCell className="w-[100px] pr-4">
                         <Button
                           type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8 px-2"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                          title={t("common.actions.view") || "Xem chi tiết"}
                           onClick={(event) => {
                             event.stopPropagation();
                             setSelectedId(candidate.id);
                           }}
                         >
-                          {t("admin.candidates.actions.detail")}
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only">Xem chi tiết</span>
                         </Button>
                       </TableCell>
                     </TableRow>
