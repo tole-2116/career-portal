@@ -19,7 +19,6 @@ import { toast } from "sonner";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
   LocalizedField as BiField,
-  LocalizedListField as BiListField,
 } from "@/components/admin/LocalizedInput";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -544,7 +543,7 @@ function AdminJobsPage() {
           }
         }}
       >
-        <DialogContent className="max-h-[90vh] max-w-2xl flex flex-col p-0 overflow-hidden">
+        <DialogContent className="max-h-[90vh] max-w-2xl flex flex-col p-0 overflow-hidden rounded-lg border border-border/80 shadow-2xl bg-background">
           <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background">
             <DialogTitle>
               {Boolean(isNew)
@@ -707,19 +706,22 @@ function AdminJobsPage() {
                       {t("admin.jobs.group.content") || "Nội dung chi tiết"}
                     </p>
                   </div>
-                  <BiListField
+                  <BiField
                     label={t("admin.jobs.field.description")}
-                    value={draft.description}
+                    value={draft.description ?? emptyLocalized}
+                    multiline
                     onChange={(description) => patch({ description })}
                   />
-                  <BiListField
+                  <BiField
                     label={t("admin.jobs.field.requirements")}
-                    value={draft.requirements}
+                    value={draft.requirements ?? emptyLocalized}
+                    multiline
                     onChange={(requirements) => patch({ requirements })}
                   />
-                  <BiListField
+                  <BiField
                     label={t("admin.jobs.field.benefits")}
-                    value={draft.benefits}
+                    value={draft.benefits ?? emptyLocalized}
+                    multiline
                     onChange={(benefits) => patch({ benefits })}
                   />
                 </section>
@@ -729,7 +731,7 @@ function AdminJobsPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  className="gap-2 text-muted-foreground hover:text-foreground"
+                  className="rounded-md gap-2 h-9 px-4 text-xs font-medium tracking-wide shadow-xs transition-all active:scale-[0.99] hover:bg-muted text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     setDraft(null);
                     setIsNew(false);
@@ -741,15 +743,19 @@ function AdminJobsPage() {
                 <div className="flex items-center gap-2">
                   <Button
                     type="button"
-                    variant="secondary"
-                    className="gap-2"
+                    variant="outline"
+                    className="rounded-md gap-2 h-9 px-4 text-xs font-medium tracking-wide shadow-xs transition-all active:scale-[0.99] border-border/70 hover:bg-accent"
                     disabled={isSaving}
                     onClick={() => submit("draft")}
                   >
                     <FileText className="h-4 w-4" />
                     {t("admin.jobs.actions.saveDraft") || "Lưu nháp"}
                   </Button>
-                  <Button type="submit" className="gap-2 min-w-[120px]" disabled={isSaving}>
+                  <Button
+                    type="submit"
+                    className="rounded-md gap-2 h-9 px-4 min-w-[120px] text-xs font-medium tracking-wide shadow-xs transition-all active:scale-[0.99] hover:shadow-sm"
+                    disabled={isSaving}
+                  >
                     {isSaving ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (

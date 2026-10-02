@@ -81,6 +81,15 @@ function JobDetailPage() {
     .map((id) => taxonomies.locations.find((item) => item.id === id)?.label)
     .filter((label): label is typeof job.department => Boolean(label));
   const displayLocations = locations.length ? locations : job.locations;
+  const descriptionLines = job.description
+    ? tr(job.description).split("\n").filter(Boolean)
+    : [];
+  const requirementLines = job.requirements
+    ? tr(job.requirements).split("\n").filter(Boolean)
+    : [];
+  const benefitLines = job.benefits
+    ? tr(job.benefits).split("\n").filter(Boolean)
+    : [];
 
   return (
     <SiteLayout>
@@ -121,37 +130,41 @@ function JobDetailPage() {
           <section>
             <h2 className="font-display text-xl font-semibold">{t("jobs.section.about")}</h2>
             <div className="mt-4 space-y-4">
-              {job.description.map((paragraph) => (
-                <p key={paragraph.en} className="text-sm leading-relaxed text-muted-foreground">
-                  {tr(paragraph)}
+              {descriptionLines.map((paragraph, index) => (
+                <p key={`${job.id}-desc-${index}`} className="text-sm leading-relaxed text-muted-foreground">
+                  {paragraph}
                 </p>
               ))}
             </div>
           </section>
 
+          {requirementLines.length > 0 && (
           <section>
             <h2 className="font-display text-xl font-semibold">{t("jobs.section.requirements")}</h2>
             <ul className="mt-4 space-y-3">
-              {job.requirements.map((item) => (
-                <li key={item.en} className="flex gap-3 text-sm text-muted-foreground">
+              {requirementLines.map((item, index) => (
+                <li key={`${job.id}-req-${index}`} className="flex gap-3 text-sm text-muted-foreground">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                  <span>{tr(item)}</span>
+                  <span>{item}</span>
                 </li>
               ))}
             </ul>
           </section>
+          )}
 
+          {benefitLines.length > 0 && (
           <section>
             <h2 className="font-display text-xl font-semibold">{t("jobs.section.benefits")}</h2>
             <ul className="mt-4 space-y-3">
-              {job.benefits.map((item) => (
-                <li key={item.en} className="flex gap-3 text-sm text-muted-foreground">
+              {benefitLines.map((item, index) => (
+                <li key={`${job.id}-ben-${index}`} className="flex gap-3 text-sm text-muted-foreground">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                  <span>{tr(item)}</span>
+                  <span>{item}</span>
                 </li>
               ))}
             </ul>
           </section>
+          )}
         </article>
 
         <aside className="lg:sticky lg:top-24 lg:h-fit">

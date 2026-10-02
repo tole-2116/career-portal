@@ -275,9 +275,24 @@ async function main() {
         title: ensureBilingualJSON(j.title),
         summary: ensureBilingualJSON(j.summary),
         slug: j.id, // gán slug giống code/id cho dễ query
-        description: j.description.map((p) => ensureBilingualJSON(p)),
-        requirements: j.requirements.map((r) => ensureBilingualJSON(r)),
-        benefits: j.benefits.map((b) => ensureBilingualJSON(b)),
+        description: j.description.length
+          ? ensureBilingualJSON({
+              vi: j.description.map((p) => p.vi).join("\n"),
+              en: j.description.map((p) => p.en).join("\n"),
+            })
+          : null,
+        requirements: j.requirements.length
+          ? ensureBilingualJSON({
+              vi: j.requirements.map((r) => r.vi).join("\n"),
+              en: j.requirements.map((r) => r.en).join("\n"),
+            })
+          : null,
+        benefits: j.benefits.length
+          ? ensureBilingualJSON({
+              vi: j.benefits.map((b) => b.vi).join("\n"),
+              en: j.benefits.map((b) => b.en).join("\n"),
+            })
+          : null,
         extraFields: [],
         applicants: j.applicants,
         featured: j.featured,

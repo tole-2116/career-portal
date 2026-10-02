@@ -52,9 +52,9 @@ model Job {
   title          Json
   summary        Json?
   slug           String        @unique
-  description    Json
-  requirements   Json
-  benefits       Json          @default("[]")
+  description    Json?
+  requirements   Json?
+  benefits       Json?
   extraFields    Json          @default("[]")
   applicants     Int           @default(0)
   featured       Boolean       @default(false)
