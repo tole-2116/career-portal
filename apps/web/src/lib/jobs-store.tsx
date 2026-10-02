@@ -28,6 +28,19 @@ function localizedList(value: unknown): Localized[] {
   return Array.isArray(value) ? value.map((item) => localized(item)) : [];
 }
 
+function localizedContent(value: unknown): Localized | null {
+  if (Array.isArray(value)) {
+    const items = value.map((item) => localized(item)).filter((item) => item.vi || item.en);
+    if (!items.length) return null;
+    return {
+      vi: items.map((item) => item.vi || item.en).join("\n"),
+      en: items.map((item) => item.en || item.vi).join("\n"),
+    };
+  }
+  const item = localized(value);
+  return item.vi || item.en ? item : null;
+}
+
 function optionalString(value: unknown): string | undefined {
   return typeof value === "string" && value ? value : undefined;
 }
@@ -117,9 +130,9 @@ function normalize(raw: unknown): Job | null {
     applicants: typeof j.applicants === "number" ? j.applicants : 0,
     featured: j.featured === true,
     summary: localized(j.summary),
-    description: localizedList(j.description),
-    requirements: localizedList(j.requirements),
-    benefits: localizedList(j.benefits),
+    description: localizedContent(j.description),
+    requirements: localizedContent(j.requirements),
+    benefits: localizedContent(j.benefits),
     extraFields: Array.isArray(j.extraFields) ? j.extraFields : [],
     headcount: typeof j.headcount === "number" ? j.headcount : undefined,
     experienceId: optionalString(j.experienceId),
@@ -189,9 +202,9 @@ export function emptyJob(): Job {
     contactName: undefined,
     contactEmail: undefined,
     summary: { ...emptyLocalized },
-    description: [],
-    requirements: [],
-    benefits: [],
+    description: null,
+    requirements: null,
+    benefits: null,
     extraFields: [],
   };
 }
@@ -200,7 +213,6 @@ type JobsValue = {
   jobs: Job[];
   saveJob: (job: Job) => boolean;
   deleteJob: (id: string) => void;
-  resetJobs: () => void;
 };
 
 const JobsContext = createContext<JobsValue | null>(null);
@@ -288,16 +300,9 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const resetJobs = useCallback(() => {
-    const next = sampleJobs.map((job) => syncJobTaxonomies(job, taxonomies));
-    persist(next);
-    window.localStorage.removeItem(STORAGE_KEY);
-    setList(next);
-  }, [persist, taxonomies]);
-
   const value = useMemo<JobsValue>(
-    () => ({ jobs: list, saveJob, deleteJob, resetJobs }),
-    [list, saveJob, deleteJob, resetJobs],
+    () => ({ jobs: list, saveJob, deleteJob }),
+    [list, saveJob, deleteJob],
   );
 
   return <JobsContext.Provider value={value}>{children}</JobsContext.Provider>;

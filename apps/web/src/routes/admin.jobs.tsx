@@ -2,13 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Check,
   X,
   FileText,
   Loader2,
   Pencil,
   Plus,
-  RotateCcw,
   Search,
   Sparkles,
   Trash2,
@@ -19,7 +20,6 @@ import { toast } from "sonner";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
   LocalizedField as BiField,
-  LocalizedListField as BiListField,
 } from "@/components/admin/LocalizedInput";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +51,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Job, JobStatus } from "@/data/jobs";
-import { useI18n, type Localized } from "@/lib/i18n";
+import { translate, useI18n, type Localized } from "@/lib/i18n";
+
+const getSafeMetaText = (key: Parameters<typeof translate>[0], fallback: string) =>
+  translate(key, fallback) || fallback;
 import { emptyJob } from "@/lib/jobs-store";
 import { useTaxonomies, type TaxonomyKey } from "@/lib/taxonomy-store";
 import { fetchJobs, createJob, updateJob, deleteJob, toApiPayload, fetchJobTaxonomies } from "@/lib/api/jobs";
@@ -59,15 +62,29 @@ import { fetchJobs, createJob, updateJob, deleteJob, toApiPayload, fetchJobTaxon
 export const Route = createFileRoute("/admin/jobs")({
   head: () => ({
     meta: [
-      { title: "Tin tuyển dụng — TalentHub HR" },
+      {
+        title: getSafeMetaText(
+          "admin.jobs.meta.title",
+          "Tin tuyển dụng — TalentHub HR",
+        ),
+      },
       {
         name: "description",
-        content: "Quản lý tin tuyển dụng: tạo, chỉnh sửa và theo dõi trạng thái từng vị trí.",
+        content: getSafeMetaText(
+          "admin.jobs.meta.description",
+          "Quản lý tin tuyển dụng: tạo, chỉnh sửa và theo dõi trạng thái từng vị trí.",
+        ),
       },
-      { property: "og:title", content: "Tin tuyển dụng — TalentHub HR" },
+      {
+        property: "og:title",
+        content: getSafeMetaText("admin.jobs.meta.title", "Tin tuyển dụng — TalentHub HR"),
+      },
       {
         property: "og:description",
-        content: "Tạo, chỉnh sửa và theo dõi trạng thái từng tin tuyển dụng.",
+        content: getSafeMetaText(
+          "admin.jobs.meta.ogDescription",
+          "Tạo, chỉnh sửa và theo dõi trạng thái từng tin tuyển dụng.",
+        ),
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -184,12 +201,20 @@ function LocationsField({
 }
 
 function AdminJobsPage() {
-  const { t, tr } = useI18n();
+  const { t, tr, lang } = useI18n();
   const { taxonomies } = useTaxonomies();
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.title = getSafeMetaText("admin.jobs.meta.title", "Tin tuyển dụng — TalentHub HR");
+    }
+  }, [lang]);
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState<string>(ALL);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [draft, setDraft] = useState<Job | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -210,6 +235,7 @@ function AdminJobsPage() {
 
   useEffect(() => {
     let cancelled = false;
+    setIsLoading(true);
     fetchJobs({
       page,
       limit: PAGE_SIZE,
@@ -219,10 +245,14 @@ function AdminJobsPage() {
       .then((result) => {
         if (!cancelled) {
           setJobs(result.jobs);
-          setTotalPages(result.totalPages || 1);
+          setTotalCount(result.total ?? 0);
+          setTotalPages(result.totalPages ?? 1);
         }
       })
-      .catch(() => toast.error(t("settings.storageNote")));
+      .catch(() => toast.error(t("settings.storageNote")))
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -329,24 +359,14 @@ function AdminJobsPage() {
       action={
         <div className="flex items-center gap-2">
           <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setKeyword("");
-              setStatus(ALL);
-              toast.success(t("admin.jobs.resetDone"));
-            }}
-          >
-            <RotateCcw className="mr-1.5 h-4 w-4" /> {t("admin.jobs.reset")}
-          </Button>
-          <Button
-            size="sm"
+            className="h-9 gap-2 rounded-lg px-3.5 text-xs font-medium select-none shadow-xs transition-all duration-150 hover:shadow-sm active:scale-[0.98]"
             onClick={() => {
               setDraft(emptyJob());
               setIsNew(true);
             }}
           >
-            <Plus className="mr-1.5 h-4 w-4" /> {t("admin.jobs.new")}
+            <Plus className="h-4 w-4 stroke-[2.2]" />
+            {t("admin.jobs.actions.create") || "Tạo mới"}
           </Button>
         </div>
       }
@@ -381,26 +401,33 @@ function AdminJobsPage() {
 
       <div className="mt-5 hidden min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
         <div className="min-h-0 flex-1 overflow-auto">
-        <Table>
-          <TableHeader className="sticky top-0 z-20 bg-muted/90 backdrop-blur-md">
-            <TableRow>
-              <TableHead className="w-14 text-center">STT</TableHead>
-              <TableHead>{t("admin.jobs.col.title")}</TableHead>
-              <TableHead>{t("admin.jobs.col.department")}</TableHead>
-              <TableHead>{t("admin.jobs.col.location")}</TableHead>
-              <TableHead>{t("admin.jobs.field.workType")}</TableHead>
-              <TableHead>{t("admin.jobs.field.salary")}</TableHead>
-              <TableHead>{t("admin.jobs.field.experience")}</TableHead>
-              <TableHead className="text-right">{t("admin.jobs.col.applicants")}</TableHead>
-              <TableHead>{t("admin.jobs.col.deadline")}</TableHead>
-              <TableHead>{t("admin.jobs.col.featured")}</TableHead>
-              <TableHead>{t("admin.jobs.col.status")}</TableHead>
-              <TableHead />
+          <Table>
+          <TableHeader className="sticky top-0 z-20 bg-muted/90 backdrop-blur-md border-b-2 border-border/80">
+            <TableRow className="h-10 hover:bg-transparent border-none">
+              <TableHead className="w-14 pl-4 text-center text-xs font-semibold text-foreground/80 select-none"></TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.title")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.department")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.location")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.field.workType")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.field.salary")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.field.experience")}</TableHead>
+              <TableHead className="text-right text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.applicants")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.deadline")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.featured")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.status")}</TableHead>
+              <TableHead className="pr-4 text-xs font-semibold text-foreground/80 select-none" />
             </TableRow>
           </TableHeader>
           <TableBody>
+            {rows.length === 0 && (
+              <TableRow className="h-[520px]">
+                <TableCell colSpan={12} className="h-[520px] text-center text-sm text-muted-foreground">
+                  {tr({ vi: "Chưa có tin tuyển dụng nào", en: "No job postings yet" })}
+                </TableCell>
+              </TableRow>
+            )}
             {rows.map((job, index) => (
-              <TableRow key={job.id}>
+              <TableRow key={job.id} className="h-[52px]">
                 <TableCell className="text-center tabular-nums text-muted-foreground">
                   {(page - 1) * PAGE_SIZE + index + 1}
                 </TableCell>
@@ -459,37 +486,115 @@ function AdminJobsPage() {
                 </TableCell>
               </TableRow>
             ))}
+            {rows.length > 0 && rows.length < PAGE_SIZE &&
+              Array.from({ length: PAGE_SIZE - rows.length }).map((_, index) => (
+                <TableRow
+                  key={`empty-row-${index}`}
+                  aria-hidden
+                  className="h-[52px] border-b border-border/50 hover:bg-transparent pointer-events-none select-none"
+                >
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
         </div>
 
-      <div className="mt-4 flex shrink-0 items-center justify-center gap-3 border-t border-border/70 bg-muted/30 px-4 py-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            aria-label="Go to previous page"
-            disabled={page <= 1}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Previous</span>
-          </Button>
-          <span className="text-sm tabular-nums text-muted-foreground">
-            {page} / {totalPages}
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            aria-label="Go to next page"
-            disabled={page >= totalPages}
-            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-          >
-            <span className="hidden sm:inline">Next</span>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-      </div>
+        <div className="shrink-0 border-t border-border/70 bg-muted/30 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 select-none">
+          {/* Phía trái: Đếm số dòng */}
+          <div className="text-xs text-muted-foreground">
+            {totalCount > 0 ? (
+              <>
+                {t("admin.jobs.footer.showing") || "Đang hiển thị"}{" "}
+                <strong className="font-semibold text-foreground">
+                  {(page - 1) * PAGE_SIZE + 1}
+                </strong>{" "}
+                -{" "}
+                <strong className="font-semibold text-foreground">
+                  {Math.min(page * PAGE_SIZE, totalCount)}
+                </strong>{" "}
+                {t("admin.jobs.footer.of") || "trên tổng số"}{" "}
+                <strong className="font-semibold text-foreground">{totalCount}</strong>{" "}
+                {t("admin.jobs.footer.records") || "dòng"}
+              </>
+            ) : (
+              <span>{t("admin.jobs.footer.noRecords") || "Không có bản ghi nào"}</span>
+            )}
+          </div>
+
+          {/* Phía phải: Cụm 4 nút chuyển trang */}
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground">
+              {t("admin.jobs.footer.page") || "Trang"}{" "}
+              <strong className="font-semibold text-foreground">{page}</strong> / {totalPages || 1}
+            </span>
+
+            <div className="flex items-center gap-1">
+              {/* Về đầu */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-md border-border/70"
+                onClick={() => setPage(1)}
+                disabled={page <= 1 || isLoading}
+                title={t("admin.jobs.footer.firstPage") || "Trang đầu"}
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+
+              {/* Lùi 1 trang */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-md border-border/70"
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                disabled={page <= 1 || isLoading}
+                title={t("admin.jobs.footer.prevPage") || "Trang trước"}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              {/* Tiến 1 trang */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-md border-border/70"
+                onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={page >= totalPages || isLoading}
+                title={t("admin.jobs.footer.nextPage") || "Trang sau"}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+
+              {/* Đến cuối */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-md border-border/70"
+                onClick={() => setPage(totalPages)}
+                disabled={page >= totalPages || isLoading}
+                title={t("admin.jobs.footer.lastPage") || "Trang cuối"}
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="mt-5 grid shrink-0 gap-3 md:hidden">
@@ -546,15 +651,23 @@ function AdminJobsPage() {
           }
         }}
       >
-        <DialogContent className="max-h-[90vh] max-w-2xl flex flex-col p-0 overflow-hidden">
+        <DialogContent
+          className="max-h-[90vh] max-w-2xl flex flex-col p-0 overflow-hidden rounded-lg border border-border/80 shadow-2xl bg-background"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background">
             <DialogTitle>
               {Boolean(isNew)
                 ? (t("admin.jobs.new") || "Tạo mới tin tuyển dụng")
                 : (t("admin.jobs.edit") || "Chỉnh sửa tin tuyển dụng")}
             </DialogTitle>
-            <DialogDescription>
-              {t("admin.jobs.storageNote") || "Điền đầy đủ các thông tin vị trí công việc bên dưới."}
+            <DialogDescription className="text-xs text-muted-foreground mt-1">
+              {isNew
+                ? (t("admin.jobs.dialog.createDescription") ||
+                  "Thiết lập thông tin vị trí tuyển dụng, yêu cầu chuyên môn và chế độ đãi ngộ (hỗ trợ hiển thị song ngữ).")
+                : (t("admin.jobs.dialog.editDescription") ||
+                  "Cập nhật chi tiết vị trí tuyển dụng, yêu cầu ứng viên và quyền lợi áp dụng cho đợt tuyển dụng này.")}
             </DialogDescription>
           </DialogHeader>
 
@@ -566,7 +679,7 @@ function AdminJobsPage() {
                 submit();
               }}
             >
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+              <div className="flex-1 overflow-y-auto px-6 py-4 pr-4 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
                 <section className="space-y-4">
                   <div className="border-b border-border pb-2 mb-4">
                     <p className="font-display text-sm font-semibold text-foreground">
@@ -709,19 +822,22 @@ function AdminJobsPage() {
                       {t("admin.jobs.group.content") || "Nội dung chi tiết"}
                     </p>
                   </div>
-                  <BiListField
+                  <BiField
                     label={t("admin.jobs.field.description")}
-                    value={draft.description}
+                    value={draft.description ?? emptyLocalized}
+                    multiline
                     onChange={(description) => patch({ description })}
                   />
-                  <BiListField
+                  <BiField
                     label={t("admin.jobs.field.requirements")}
-                    value={draft.requirements}
+                    value={draft.requirements ?? emptyLocalized}
+                    multiline
                     onChange={(requirements) => patch({ requirements })}
                   />
-                  <BiListField
+                  <BiField
                     label={t("admin.jobs.field.benefits")}
-                    value={draft.benefits}
+                    value={draft.benefits ?? emptyLocalized}
+                    multiline
                     onChange={(benefits) => patch({ benefits })}
                   />
                 </section>
@@ -731,7 +847,7 @@ function AdminJobsPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  className="gap-2 text-muted-foreground hover:text-foreground"
+                  className="rounded-md gap-2 h-9 px-4 text-xs font-medium tracking-wide shadow-xs transition-all active:scale-[0.99] hover:bg-muted text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     setDraft(null);
                     setIsNew(false);
@@ -743,15 +859,19 @@ function AdminJobsPage() {
                 <div className="flex items-center gap-2">
                   <Button
                     type="button"
-                    variant="secondary"
-                    className="gap-2"
+                    variant="outline"
+                    className="rounded-md gap-2 h-9 px-4 text-xs font-medium tracking-wide shadow-xs transition-all active:scale-[0.99] border-border/70 hover:bg-accent"
                     disabled={isSaving}
                     onClick={() => submit("draft")}
                   >
                     <FileText className="h-4 w-4" />
                     {t("admin.jobs.actions.saveDraft") || "Lưu nháp"}
                   </Button>
-                  <Button type="submit" className="gap-2 min-w-[120px]" disabled={isSaving}>
+                  <Button
+                    type="submit"
+                    className="rounded-md gap-2 h-9 px-4 min-w-[120px] text-xs font-medium tracking-wide shadow-xs transition-all active:scale-[0.99] hover:shadow-sm"
+                    disabled={isSaving}
+                  >
                     {isSaving ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (

@@ -4,6 +4,9 @@ export type LocaleStringModel = {
   [key: string]: string | undefined;
 };
 
+/** Input đa ngữ dạng object { en, vi } hoặc chuỗi thuần. */
+export type LocalizedJsonInput = LocaleStringModel | string | null | undefined;
+
 export type JobStatus = "DRAFT" | "OPEN" | "PAUSED" | "EXPIRED" | "CLOSED";
 
 // Định nghĩa model dữ liệu Job đầu vào / thao tác
@@ -11,9 +14,9 @@ export interface JobModel {
   slug?: string;
   title: LocaleStringModel;
   summary?: LocaleStringModel;
-  description: LocaleStringModel;
-  requirements?: LocaleStringModel;
-  benefits?: LocaleStringModel;
+  description?: LocalizedJsonInput;
+  requirements?: LocalizedJsonInput;
+  benefits?: LocalizedJsonInput;
   departmentId: string;
   locationIds?: string | string[];
   workTypeId: string;

@@ -174,7 +174,17 @@ const dict = {
   "admin.funnel.title": { vi: "Phễu tuyển dụng", en: "Hiring funnel" },
   "admin.activity.title": { vi: "Hoạt động gần đây", en: "Recent activity" },
   "admin.jobs.title": { vi: "Tin tuyển dụng", en: "Job postings" },
+  "admin.jobs.meta.title": { vi: "Tin tuyển dụng — TalentHub HR", en: "Job Postings — TalentHub HR" },
+  "admin.jobs.meta.description": {
+    vi: "Quản lý tin tuyển dụng: tạo, chỉnh sửa và theo dõi trạng thái từng vị trí.",
+    en: "Manage job postings: create, edit, and track statuses of every position.",
+  },
+  "admin.jobs.meta.ogDescription": {
+    vi: "Tạo, chỉnh sửa và theo dõi trạng thái từng tin tuyển dụng.",
+    en: "Create, update, and track job postings seamlessly.",
+  },
   "admin.jobs.new": { vi: "Tạo tin mới", en: "New posting" },
+  "admin.jobs.actions.create": { vi: "Tạo mới", en: "Create job" },
   "admin.jobs.edit": { vi: "Chỉnh sửa tin", en: "Edit posting" },
   "admin.jobs.search": { vi: "Tìm theo tên vị trí", en: "Search by job title" },
   "admin.jobs.col.title": { vi: "Vị trí", en: "Position" },
@@ -349,8 +359,6 @@ const dict = {
   "admin.jobs.saved": { vi: "Đã lưu tin tuyển dụng.", en: "Job posting saved." },
   "admin.jobs.actions.saveDraft": { vi: "Lưu nháp", en: "Save draft" },
   "admin.jobs.actions.save": { vi: "Lưu thay đổi", en: "Save changes" },
-  "admin.jobs.reset": { vi: "Khôi phục tin mẫu", en: "Restore sample jobs" },
-  "admin.jobs.resetDone": { vi: "Đã khôi phục tin mẫu.", en: "Sample jobs restored." },
   "admin.jobs.col.featured": { vi: "Nổi bật", en: "Featured" },
   "admin.jobs.group.basic": { vi: "Thông tin chung", en: "Basics" },
   "admin.jobs.group.details": { vi: "Chi tiết tuyển dụng", en: "Hiring details" },
@@ -372,6 +380,23 @@ const dict = {
     vi: "Tin tuyển dụng lưu trên trình duyệt này.",
     en: "Job postings are stored in this browser.",
   },
+  "admin.jobs.dialog.createDescription": {
+    vi: "Thiết lập thông tin vị trí tuyển dụng, yêu cầu chuyên môn và chế độ đãi ngộ (hỗ trợ hiển thị song ngữ).",
+    en: "Set up the job details, professional requirements, and benefits (bilingual display supported).",
+  },
+  "admin.jobs.dialog.editDescription": {
+    vi: "Cập nhật chi tiết vị trí tuyển dụng, yêu cầu ứng viên và quyền lợi áp dụng cho đợt tuyển dụng này.",
+    en: "Update the job details, candidate requirements, and benefits for this hiring round.",
+  },
+  "admin.jobs.footer.showing": { vi: "Đang hiển thị", en: "Showing" },
+  "admin.jobs.footer.of": { vi: "trên tổng số", en: "of" },
+  "admin.jobs.footer.records": { vi: "dòng", en: "rows" },
+  "admin.jobs.footer.noRecords": { vi: "Không có bản ghi nào", en: "No records found" },
+  "admin.jobs.footer.page": { vi: "Trang", en: "Page" },
+  "admin.jobs.footer.firstPage": { vi: "Trang đầu", en: "First page" },
+  "admin.jobs.footer.prevPage": { vi: "Trang trước", en: "Previous page" },
+  "admin.jobs.footer.nextPage": { vi: "Trang sau", en: "Next page" },
+  "admin.jobs.footer.lastPage": { vi: "Trang cuối", en: "Last page" },
   "common.vi": { vi: "Tiếng Việt", en: "Vietnamese" },
   "common.en": { vi: "Tiếng Anh", en: "English" },
   "common.close": { vi: "Đóng", en: "Close" },
@@ -471,4 +496,21 @@ export function useI18n() {
   const ctx = useContext(I18nContext);
   if (!ctx) throw new Error("useI18n must be used inside I18nProvider");
   return ctx;
+}
+
+/**
+ * Dịch ngoài React (ví dụ hàm `head` của route) — đọc ngôn ngữ đã lưu trong
+ * localStorage, fallback về tiếng Việt khi chạy SSR hoặc thiếu key.
+ */
+export function translate(key: TranslationKey, fallback = ""): string {
+  const entry = dict[key] as Localized | undefined;
+  let lang = "vi";
+  if (typeof window !== "undefined") {
+    try {
+      lang = window.localStorage.getItem(STORAGE_KEY) || "vi";
+    } catch {
+      /* ignore blocked storage */
+    }
+  }
+  return entry?.[lang] || entry?.vi || entry?.en || fallback;
 }

@@ -123,13 +123,38 @@ function toLocalizedObj(locale: LocaleStringModel): { en: string; vi: string } {
   };
 }
 
-/** Chuyển LocaleStringModel hoặc mảng sang {en, vi}[]. */
-function toLocalizedList(
-  value?: LocaleStringModel | LocaleStringModel[] | undefined,
-): { en: string; vi: string }[] | undefined {
-  if (!value) return undefined;
-  const items = Array.isArray(value) ? value : [value];
-  return items.map(toLocalizedObj);
+/** Chuẩn hoá một field đa ngữ về JSON nullable { en, vi }. */
+function formatLocalizedField(value: unknown): { en: string; vi: string } | typeof Prisma.JsonNull {
+  if (value === null || value === undefined) return Prisma.JsonNull;
+
+  if (typeof value === "string") {
+    const text = value.trim();
+    return text ? { en: text, vi: text } : Prisma.JsonNull;
+  }
+
+  if (Array.isArray(value)) {
+    const items = value
+      .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object"))
+      .map((item) => ({
+        en: typeof item.en === "string" ? item.en.trim() : "",
+        vi: typeof item.vi === "string" ? item.vi.trim() : "",
+      }))
+      .filter((item) => item.en || item.vi);
+    if (!items.length) return Prisma.JsonNull;
+    return {
+      en: items.map((item) => item.en || item.vi).join("\\n"),
+      vi: items.map((item) => item.vi || item.en).join("\\n"),
+    };
+  }
+
+  if (typeof value === "object") {
+    const item = value as { en?: unknown; vi?: unknown };
+    const en = typeof item.en === "string" ? item.en.trim() : "";
+    const vi = typeof item.vi === "string" ? item.vi.trim() : "";
+    return en || vi ? { en: en || vi, vi: vi || en } : Prisma.JsonNull;
+  }
+
+  return Prisma.JsonNull;
 }
 
 function normalizeHeadcount(value: number | string | null | undefined): number | null {
@@ -330,9 +355,9 @@ export class AdminJobService {
         slug: data.slug ?? slugify(data.title.en),
         title: toLocalizedObj(data.title),
         ...(data.summary && { summary: toLocalizedObj(data.summary) }),
-        description: toLocalizedObj(data.description),
-        requirements: toLocalizedList(data.requirements) ?? [],
-        benefits: toLocalizedList(data.benefits) ?? [],
+        description: formatLocalizedField(data.description),
+        requirements: formatLocalizedField(data.requirements),
+        benefits: formatLocalizedField(data.benefits),
         level: data.level ? toLocalizedObj(typeof data.level === "string" ? { en: data.level, vi: data.level } : data.level) : Prisma.JsonNull,
         languages: data.languages ? toLocalizedObj(typeof data.languages === "string" ? { en: data.languages, vi: data.languages } : data.languages) : Prisma.JsonNull,
         applicants: 0,
@@ -375,9 +400,9 @@ export class AdminJobService {
     const updateData: Record<string, unknown> = {
       ...(data.title && { title: toLocalizedObj(data.title) }),
       ...(data.summary && { summary: toLocalizedObj(data.summary) }),
-      ...(data.description && { description: toLocalizedObj(data.description) }),
-      ...(data.requirements && { requirements: toLocalizedList(data.requirements) }),
-      ...(data.benefits && { benefits: toLocalizedList(data.benefits) }),
+      ...(data.description !== undefined && { description: formatLocalizedField(data.description) }),
+      ...(data.requirements !== undefined && { requirements: formatLocalizedField(data.requirements) }),
+      ...(data.benefits !== undefined && { benefits: formatLocalizedField(data.benefits) }),
       ...(data.status && { status: data.status }),
       ...(data.isFeatured !== undefined && { featured: data.isFeatured }),
       ...(data.headcount !== undefined && { headcount: normalizeHeadcount(data.headcount) }),

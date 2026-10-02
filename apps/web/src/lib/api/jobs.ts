@@ -24,9 +24,9 @@ export interface ApiJobPayload {
   slug?: string;
   title: LocalizedInput;
   summary?: LocalizedInput;
-  description: LocalizedInput | LocalizedInput[];
-  requirements?: LocalizedInput | LocalizedInput[] | undefined;
-  benefits?: LocalizedInput | LocalizedInput[] | undefined;
+  description?: LocalizedInput | null;
+  requirements?: LocalizedInput | null;
+  benefits?: LocalizedInput | null;
   departmentId?: string;
   locationIds?: string;
   workTypeId?: string;
@@ -63,8 +63,8 @@ export interface ApiJob {
   posted: string;
   deadline: string;
   headcount?: number | null;
-  experience?: unknown;
   experienceId?: string | null;
+  experience?: unknown;
   languages?: unknown;
   contactName?: string | null;
   contactEmail?: string | null;
@@ -73,9 +73,7 @@ export interface ApiJob {
   locationIds?: string | null;
   workTypeId?: string | null;
   salaryId?: string | null;
-  experienceId?: string | null;
   level?: unknown;
-  languages?: unknown;
   /** Legacy aliases kept for records returned by older API versions. */
   department?: string | null;
   location?: string | null;
@@ -125,10 +123,22 @@ function asLocalized(value: unknown): Localized {
   return { ...emptyLocalized };
 }
 
-function asLocalizedList(value: unknown): Localized[] {
-  return Array.isArray(value)
-    ? value.map(asLocalized).filter((item) => item.vi || item.en)
-    : [];
+/** Chuẩn hoá JSON đa ngữ thành một Localized; legacy arrays được nối bằng xuống dòng. */
+function asLocalizedContent(value: unknown): Localized | null {
+  if (Array.isArray(value)) {
+    const items = value.map(asLocalized).filter((item) => item.vi || item.en);
+    if (!items.length) return null;
+    return {
+      vi: items.map((item) => item.vi || item.en).join("\n"),
+      en: items.map((item) => item.en || item.vi).join("\n"),
+    };
+  }
+  if (typeof value === "string") {
+    const text = value.trim();
+    return text ? { vi: text, en: text } : null;
+  }
+  const item = asLocalized(value);
+  return item.vi || item.en ? item : null;
 }
 
 /** Ngày ISO (Prisma DateTime) -> "yyyy-mm-dd" cho <Input type="date">. */
@@ -166,15 +176,14 @@ function mapApiJob(raw: ApiJob): Job {
     salaryId,
     salary: raw.salaryInfo?.label ?? emptyLocalized,
     level: asLocalized(raw.level),
-    languages: raw.languages ? asLocalized(raw.languages) : undefined,
     posted: toDateString(raw.posted),
     deadline: toDateString(raw.deadline),
     status: API_TO_UI[raw.status] ?? "draft",
     applicants: typeof raw.applicants === "number" ? raw.applicants : 0,
     featured: raw.featured === true,
-    description: asLocalizedList(raw.description),
-    requirements: asLocalizedList(raw.requirements),
-    benefits: asLocalizedList(raw.benefits),
+    description: asLocalizedContent(raw.description),
+    requirements: asLocalizedContent(raw.requirements),
+    benefits: asLocalizedContent(raw.benefits),
     extraFields: [],
     headcount: typeof raw.headcount === "number" ? raw.headcount : undefined,
     experienceId: experienceId,
@@ -185,18 +194,26 @@ function mapApiJob(raw: ApiJob): Job {
   };
 }
 
+/** Gửi lên API: nội dung rỗng -> null để backend xóa field; ngược lại gửi {en, vi}. */
+function toLocalizedPayload(value: Localized | null | undefined): LocalizedInput | null {
+  const en = value?.en?.trim() ?? "";
+  const vi = value?.vi?.trim() ?? "";
+  if (!en && !vi) return null;
+  return { en: en || vi, vi: vi || en };
+}
+
 /** Map Job (frontend) -> JobModel (payload backend). */
 export function toApiPayload(job: Job, statusOverride?: JobStatus): ApiJobPayload {
   const payload: ApiJobPayload = {
     title: { en: job.title.en, vi: job.title.vi },
     summary: { en: job.summary.en, vi: job.summary.vi },
-    description: job.description.length ? job.description : { en: job.summary.en, vi: job.summary.vi },
+    description: toLocalizedPayload(job.description),
+    requirements: toLocalizedPayload(job.requirements),
+    benefits: toLocalizedPayload(job.benefits),
     status: UI_TO_API[statusOverride ?? job.status],
     isFeatured: job.featured,
   };
 
-  if (job.requirements.length) payload.requirements = job.requirements;
-  if (job.benefits.length) payload.benefits = job.benefits;
   // Không gửi slug: backend tự slugify từ title.en (id của Prisma không phải slug).
   if (job.departmentId) payload.departmentId = job.departmentId;
   const locationIds = (job.locationIds ?? []).map((id) => id.trim()).filter(Boolean);
