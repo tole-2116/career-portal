@@ -372,6 +372,14 @@ const dict = {
     vi: "Tin tuyển dụng lưu trên trình duyệt này.",
     en: "Job postings are stored in this browser.",
   },
+  "admin.jobs.dialog.createDescription": {
+    vi: "Thiết lập thông tin vị trí tuyển dụng, yêu cầu chuyên môn và chế độ đãi ngộ (hỗ trợ hiển thị song ngữ).",
+    en: "Set up the job details, professional requirements, and benefits (bilingual display supported).",
+  },
+  "admin.jobs.dialog.editDescription": {
+    vi: "Cập nhật chi tiết vị trí tuyển dụng, yêu cầu ứng viên và quyền lợi áp dụng cho đợt tuyển dụng này.",
+    en: "Update the job details, candidate requirements, and benefits for this hiring round.",
+  },
   "common.vi": { vi: "Tiếng Việt", en: "Vietnamese" },
   "common.en": { vi: "Tiếng Anh", en: "English" },
   "common.close": { vi: "Đóng", en: "Close" },

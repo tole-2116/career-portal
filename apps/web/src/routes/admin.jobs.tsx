@@ -646,8 +646,12 @@ function AdminJobsPage() {
                 ? (t("admin.jobs.new") || "Tạo mới tin tuyển dụng")
                 : (t("admin.jobs.edit") || "Chỉnh sửa tin tuyển dụng")}
             </DialogTitle>
-            <DialogDescription>
-              {t("admin.jobs.storageNote") || "Điền đầy đủ các thông tin vị trí công việc bên dưới."}
+            <DialogDescription className="text-xs text-muted-foreground mt-1">
+              {isNew
+                ? (t("admin.jobs.dialog.createDescription") ||
+                  "Thiết lập thông tin vị trí tuyển dụng, yêu cầu chuyên môn và chế độ đãi ngộ (hỗ trợ hiển thị song ngữ).")
+                : (t("admin.jobs.dialog.editDescription") ||
+                  "Cập nhật chi tiết vị trí tuyển dụng, yêu cầu ứng viên và quyền lợi áp dụng cho đợt tuyển dụng này.")}
             </DialogDescription>
           </DialogHeader>
 
