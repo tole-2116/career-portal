@@ -379,25 +379,32 @@ function AdminJobsPage() {
 
       <div className="mt-5 hidden overflow-hidden rounded-lg border border-border bg-card md:block">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-14 text-center">STT</TableHead>
-              <TableHead>{t("admin.jobs.col.title")}</TableHead>
-              <TableHead>{t("admin.jobs.col.department")}</TableHead>
-              <TableHead>{t("admin.jobs.col.location")}</TableHead>
-              <TableHead>{t("admin.jobs.field.workType")}</TableHead>
-              <TableHead>{t("admin.jobs.field.salary")}</TableHead>
-              <TableHead>{t("admin.jobs.field.experience")}</TableHead>
-              <TableHead className="text-right">{t("admin.jobs.col.applicants")}</TableHead>
-              <TableHead>{t("admin.jobs.col.deadline")}</TableHead>
-              <TableHead>{t("admin.jobs.col.featured")}</TableHead>
-              <TableHead>{t("admin.jobs.col.status")}</TableHead>
-              <TableHead />
+          <TableHeader className="sticky top-0 z-10 bg-muted/65 backdrop-blur-sm border-b-2 border-border/80">
+            <TableRow className="h-10 hover:bg-transparent border-none">
+              <TableHead className="w-14 pl-4 text-center text-xs font-semibold text-foreground/80 select-none"></TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.title")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.department")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.location")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.field.workType")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.field.salary")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.field.experience")}</TableHead>
+              <TableHead className="text-right text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.applicants")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.deadline")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.featured")}</TableHead>
+              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.status")}</TableHead>
+              <TableHead className="pr-4 text-xs font-semibold text-foreground/80 select-none" />
             </TableRow>
           </TableHeader>
           <TableBody>
+            {rows.length === 0 && (
+              <TableRow className="h-[520px]">
+                <TableCell colSpan={12} className="h-[520px] text-center text-sm text-muted-foreground">
+                  {tr({ vi: "Chưa có tin tuyển dụng nào", en: "No job postings yet" })}
+                </TableCell>
+              </TableRow>
+            )}
             {rows.map((job, index) => (
-              <TableRow key={job.id}>
+              <TableRow key={job.id} className="h-[52px]">
                 <TableCell className="text-center tabular-nums text-muted-foreground">
                   {(page - 1) * PAGE_SIZE + index + 1}
                 </TableCell>
@@ -456,6 +463,16 @@ function AdminJobsPage() {
                 </TableCell>
               </TableRow>
             ))}
+            {rows.length > 0 && rows.length < PAGE_SIZE &&
+              Array.from({ length: PAGE_SIZE - rows.length }).map((_, index) => (
+                <TableRow
+                  key={`empty-row-${index}`}
+                  aria-hidden
+                  className="h-[52px] border-b border-border/30 hover:bg-transparent pointer-events-none"
+                >
+                  <TableCell colSpan={12}>&nbsp;</TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </div>
