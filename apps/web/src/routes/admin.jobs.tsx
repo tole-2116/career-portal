@@ -543,7 +543,11 @@ function AdminJobsPage() {
           }
         }}
       >
-        <DialogContent className="max-h-[90vh] max-w-2xl flex flex-col p-0 overflow-hidden rounded-lg border border-border/80 shadow-2xl bg-background">
+        <DialogContent
+          className="max-h-[90vh] max-w-2xl flex flex-col p-0 overflow-hidden rounded-lg border border-border/80 shadow-2xl bg-background"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background">
             <DialogTitle>
               {Boolean(isNew)
@@ -563,7 +567,7 @@ function AdminJobsPage() {
                 submit();
               }}
             >
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+              <div className="flex-1 overflow-y-auto px-6 py-4 pr-4 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
                 <section className="space-y-4">
                   <div className="border-b border-border pb-2 mb-4">
                     <p className="font-display text-sm font-semibold text-foreground">
