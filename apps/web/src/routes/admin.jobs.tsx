@@ -503,7 +503,7 @@ function AdminJobsPage() {
           <div className="text-xs text-muted-foreground">
             {totalCount > 0 ? (
               <>
-                Đang hiển thị{" "}
+                {t("admin.jobs.footer.showing") || "Đang hiển thị"}{" "}
                 <strong className="font-semibold text-foreground">
                   {(page - 1) * PAGE_SIZE + 1}
                 </strong>{" "}
@@ -511,18 +511,20 @@ function AdminJobsPage() {
                 <strong className="font-semibold text-foreground">
                   {Math.min(page * PAGE_SIZE, totalCount)}
                 </strong>{" "}
-                trên tổng số{" "}
-                <strong className="font-semibold text-foreground">{totalCount}</strong> dòng
+                {t("admin.jobs.footer.of") || "trên tổng số"}{" "}
+                <strong className="font-semibold text-foreground">{totalCount}</strong>{" "}
+                {t("admin.jobs.footer.records") || "dòng"}
               </>
             ) : (
-              <span>Không có bản ghi nào</span>
+              <span>{t("admin.jobs.footer.noRecords") || "Không có bản ghi nào"}</span>
             )}
           </div>
 
           {/* Phía phải: Cụm 4 nút chuyển trang */}
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground">
-              Trang <strong className="font-semibold text-foreground">{page}</strong> / {totalPages || 1}
+              {t("admin.jobs.footer.page") || "Trang"}{" "}
+              <strong className="font-semibold text-foreground">{page}</strong> / {totalPages || 1}
             </span>
 
             <div className="flex items-center gap-1">
@@ -534,7 +536,7 @@ function AdminJobsPage() {
                 className="h-8 w-8 rounded-md border-border/70"
                 onClick={() => setPage(1)}
                 disabled={page <= 1 || isLoading}
-                title="Trang đầu"
+                title={t("admin.jobs.footer.firstPage") || "Trang đầu"}
               >
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
@@ -547,7 +549,7 @@ function AdminJobsPage() {
                 className="h-8 w-8 rounded-md border-border/70"
                 onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
                 disabled={page <= 1 || isLoading}
-                title="Trang trước"
+                title={t("admin.jobs.footer.prevPage") || "Trang trước"}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -560,7 +562,7 @@ function AdminJobsPage() {
                 className="h-8 w-8 rounded-md border-border/70"
                 onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
                 disabled={page >= totalPages || isLoading}
-                title="Trang sau"
+                title={t("admin.jobs.footer.nextPage") || "Trang sau"}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -573,7 +575,7 @@ function AdminJobsPage() {
                 className="h-8 w-8 rounded-md border-border/70"
                 onClick={() => setPage(totalPages)}
                 disabled={page >= totalPages || isLoading}
-                title="Trang cuối"
+                title={t("admin.jobs.footer.lastPage") || "Trang cuối"}
               >
                 <ChevronsRight className="h-4 w-4" />
               </Button>
