@@ -174,6 +174,15 @@ const dict = {
   "admin.funnel.title": { vi: "Phễu tuyển dụng", en: "Hiring funnel" },
   "admin.activity.title": { vi: "Hoạt động gần đây", en: "Recent activity" },
   "admin.jobs.title": { vi: "Tin tuyển dụng", en: "Job postings" },
+  "admin.jobs.meta.title": { vi: "Tin tuyển dụng — TalentHub HR", en: "Job Postings — TalentHub HR" },
+  "admin.jobs.meta.description": {
+    vi: "Quản lý tin tuyển dụng: tạo, chỉnh sửa và theo dõi trạng thái từng vị trí.",
+    en: "Manage job postings: create, edit, and track statuses of every position.",
+  },
+  "admin.jobs.meta.ogDescription": {
+    vi: "Tạo, chỉnh sửa và theo dõi trạng thái từng tin tuyển dụng.",
+    en: "Create, update, and track job postings seamlessly.",
+  },
   "admin.jobs.new": { vi: "Tạo tin mới", en: "New posting" },
   "admin.jobs.edit": { vi: "Chỉnh sửa tin", en: "Edit posting" },
   "admin.jobs.search": { vi: "Tìm theo tên vị trí", en: "Search by job title" },
@@ -488,4 +497,21 @@ export function useI18n() {
   const ctx = useContext(I18nContext);
   if (!ctx) throw new Error("useI18n must be used inside I18nProvider");
   return ctx;
+}
+
+/**
+ * Dịch ngoài React (ví dụ hàm `head` của route) — đọc ngôn ngữ đã lưu trong
+ * localStorage, fallback về tiếng Việt khi chạy SSR hoặc thiếu key.
+ */
+export function translate(key: TranslationKey, fallback = ""): string {
+  const entry = dict[key] as Localized | undefined;
+  let lang = "vi";
+  if (typeof window !== "undefined") {
+    try {
+      lang = window.localStorage.getItem(STORAGE_KEY) || "vi";
+    } catch {
+      /* ignore blocked storage */
+    }
+  }
+  return entry?.[lang] || entry?.vi || entry?.en || fallback;
 }
