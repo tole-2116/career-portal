@@ -351,7 +351,8 @@ function AdminJobsPage() {
         </div>
       }
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-card px-3">
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <Input
@@ -378,9 +379,10 @@ function AdminJobsPage() {
         </Select>
       </div>
 
-      <div className="mt-5 hidden overflow-hidden rounded-lg border border-border bg-card md:block">
+      <div className="mt-5 hidden min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
+        <div className="min-h-0 flex-1 overflow-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-20 bg-muted/90 backdrop-blur-md">
             <TableRow>
               <TableHead className="w-14 text-center">STT</TableHead>
               <TableHead>{t("admin.jobs.col.title")}</TableHead>
@@ -459,10 +461,9 @@ function AdminJobsPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
+        </div>
 
-      {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-center gap-3">
+      <div className="mt-4 flex shrink-0 items-center justify-center gap-3 border-t border-border/70 bg-muted/30 px-4 py-3">
           <Button
             type="button"
             variant="outline"
@@ -488,10 +489,10 @@ function AdminJobsPage() {
             <span className="hidden sm:inline">Next</span>
             <ChevronRight className="h-4 w-4" />
           </Button>
-        </div>
-      )}
+      </div>
+      </div>
 
-      <div className="mt-5 grid gap-3 md:hidden">
+      <div className="mt-5 grid shrink-0 gap-3 md:hidden">
         {rows.map((job) => (
           <div key={job.id} className="rounded-lg border border-border bg-card p-4">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
@@ -533,6 +534,7 @@ function AdminJobsPage() {
             </div>
           </div>
         ))}
+      </div>
       </div>
 
       <Dialog

@@ -164,8 +164,8 @@ export function AdminLayout({
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
+      <div className="flex h-screen min-h-screen min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="sticky top-0 z-30 shrink-0 border-b border-border bg-background/85 backdrop-blur-xl">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-4 sm:px-6">
             <div className="min-w-0">
               <h1 className="truncate font-display text-xl font-semibold sm:text-2xl">{title}</h1>
@@ -210,7 +210,7 @@ export function AdminLayout({
           </nav>
         </header>
 
-        <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
+        <main className="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 py-5 sm:px-6 sm:py-5">
           {usesDefaultPassword && (
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm">
               <span>
