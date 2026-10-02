@@ -20,6 +20,8 @@ export type Candidate = {
   phone: string;
   location: Localized;
   jobId: string;
+  /** Tiêu đề job lấy từ API (DB id khác slug cục bộ) — fallback khi thiếu. */
+  jobTitle?: Localized;
   stage: Stage;
   rating: number;
   appliedAt: string;

@@ -194,6 +194,15 @@ const dict = {
   "admin.jobs.col.status": { vi: "Trạng thái", en: "Status" },
   "admin.jobs.col.deadline": { vi: "Hạn nộp", en: "Deadline" },
   "admin.candidates.title": { vi: "Ứng viên", en: "Candidates" },
+  "admin.candidates.meta.title": { vi: "Ứng viên — TalentHub HR", en: "Candidates — TalentHub HR" },
+  "admin.candidates.meta.description": {
+    vi: "Danh sách ứng viên, hồ sơ chi tiết, CV, ghi chú nội bộ và giai đoạn tuyển dụng.",
+    en: "Candidate list, detailed profiles, CVs, internal notes, and hiring stages.",
+  },
+  "admin.candidates.meta.ogDescription": {
+    vi: "Hồ sơ ứng viên, CV, ghi chú nội bộ và giai đoạn tuyển dụng.",
+    en: "Candidate profiles, CVs, internal notes, and hiring stages.",
+  },
   "admin.candidates.search": { vi: "Tìm theo tên hoặc email", en: "Search by name or email" },
   "admin.candidates.col.name": { vi: "Ứng viên", en: "Candidate" },
   "admin.candidates.col.job": { vi: "Vị trí ứng tuyển", en: "Applied for" },
@@ -206,6 +215,15 @@ const dict = {
   "admin.candidates.cv": { vi: "Tệp CV", en: "CV file" },
   "admin.candidates.notes": { vi: "Ghi chú nội bộ", en: "Internal notes" },
   "admin.candidates.changeStage": { vi: "Chuyển giai đoạn", en: "Move to stage" },
+  "admin.candidates.stageUpdated": {
+    vi: "Đã cập nhật giai đoạn tuyển dụng.",
+    en: "Hiring stage updated.",
+  },
+  "admin.candidates.stageUpdateFailed": {
+    vi: "Không thể cập nhật giai đoạn tuyển dụng.",
+    en: "Could not update the hiring stage.",
+  },
+  "admin.candidates.actions.detail": { vi: "Chi tiết", en: "Details" },
   "admin.candidates.empty": {
     vi: "Không có ứng viên nào khớp bộ lọc.",
     en: "No candidates match the filters.",
@@ -400,6 +418,7 @@ const dict = {
   "common.vi": { vi: "Tiếng Việt", en: "Vietnamese" },
   "common.en": { vi: "Tiếng Anh", en: "English" },
   "common.close": { vi: "Đóng", en: "Close" },
+  "common.table.stt": { vi: "STT", en: "No." },
 
   "common.save": { vi: "Lưu", en: "Save" },
   "common.cancel": { vi: "Hủy", en: "Cancel" },

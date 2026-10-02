@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
+  AlertTriangle,
   ArrowLeft,
   Briefcase,
   FormInput,
@@ -177,6 +178,22 @@ export function AdminLayout({
               <span className="hidden text-xs text-muted-foreground sm:inline">
                 {currentUser.name}
               </span>
+              {usesDefaultPassword && (
+                <div className="flex items-center gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-1.5 text-xs text-destructive">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  <span className="hidden xl:inline">
+                    {tr({
+                      vi: "Bạn đang dùng mật khẩu mặc định.",
+                      en: "You are using the default password.",
+                    })}
+                  </span>
+                  <Button asChild size="sm" variant="destructive" className="h-6 px-2 text-[11px]">
+                    <Link to="/admin/users">
+                      {tr({ vi: "Đổi mật khẩu", en: "Change password" })}
+                    </Link>
+                  </Button>
+                </div>
+              )}
               <LanguageToggle />
               {action}
               <Button
@@ -210,23 +227,7 @@ export function AdminLayout({
           </nav>
         </header>
 
-        <main className="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 py-5 sm:px-6 sm:py-5">
-          {usesDefaultPassword && (
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm">
-              <span>
-                {tr({
-                  vi: "Tài khoản của bạn vẫn dùng mật khẩu mặc định. Hãy đổi mật khẩu ngay để bảo vệ khu quản trị.",
-                  en: "Your account still uses the default password. Change it now to protect the admin area.",
-                })}
-              </span>
-              <Link
-                to="/admin/users"
-                className="rounded-md bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground"
-              >
-                {tr({ vi: "Đổi mật khẩu", en: "Change password" })}
-              </Link>
-            </div>
-          )}
+        <main className="flex h-full min-h-0 flex-1 flex-col space-y-3.5 overflow-hidden px-6 pt-5 pb-5">
           {children}
         </main>
       </div>

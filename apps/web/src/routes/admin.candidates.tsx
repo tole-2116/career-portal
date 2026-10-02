@@ -1,6 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, FileText, Mail, MapPin, Phone, Search, Star } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Download,
+  FileText,
+  Loader2,
+  Mail,
+  MapPin,
+  Phone,
+  Search,
+  Star,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -32,7 +45,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  candidates as seedCandidates,
   stageLabels,
   stageOrder,
   type Candidate,
@@ -40,7 +52,12 @@ import {
 } from "@/data/candidates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getJob, jobs } from "@/data/jobs";
-import { useI18n } from "@/lib/i18n";
+import { translate, useI18n } from "@/lib/i18n";
+import { adminCandidateApi } from "@/services/admin-candidate.api";
+
+const PAGE_SIZE = 10;
+const getSafeMetaText = (key: Parameters<typeof translate>[0], fallback: string) =>
+  translate(key, fallback) || fallback;
 import { useInbox } from "@/lib/inbox-store";
 import { useJobs } from "@/lib/jobs-store";
 import { cn } from "@/lib/utils";
@@ -48,16 +65,32 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/admin/candidates")({
   head: () => ({
     meta: [
-      { title: "Ứng viên — TalentHub HR" },
+      {
+        title: getSafeMetaText(
+          "admin.candidates.meta.title",
+          "Ứng viên — TalentHub HR",
+        ),
+      },
       {
         name: "description",
-        content: "Danh sách ứng viên, hồ sơ chi tiết, CV, ghi chú nội bộ và giai đoạn tuyển dụng.",
+        content: getSafeMetaText(
+          "admin.candidates.meta.description",
+          "Danh sách ứng viên, hồ sơ chi tiết, CV, ghi chú nội bộ và giai đoạn tuyển dụng.",
+        ),
       },
-      { property: "og:title", content: "Ứng viên — TalentHub HR" },
+      {
+        property: "og:title",
+        content: getSafeMetaText("admin.candidates.meta.title", "Ứng viên — TalentHub HR"),
+      },
       {
         property: "og:description",
-        content: "Hồ sơ ứng viên, CV, ghi chú nội bộ và giai đoạn tuyển dụng.",
+        content: getSafeMetaText(
+          "admin.candidates.meta.ogDescription",
+          "Hồ sơ ứng viên, CV, ghi chú nội bộ và giai đoạn tuyển dụng.",
+        ),
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -156,33 +189,82 @@ function OpenApplicationsPanel() {
 }
 
 function AdminCandidatesPage() {
-  const { t, tr } = useI18n();
+  const { t, tr, lang } = useI18n();
   const { openApplications } = useInbox();
-  const [list, setList] = useState<Candidate[]>(seedCandidates);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [keyword, setKeyword] = useState("");
   const [jobFilter, setJobFilter] = useState(ALL);
   const [stageFilter, setStageFilter] = useState(ALL);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const rows = useMemo(() => {
-    const needle = keyword.trim().toLowerCase();
-    return list
-      .filter((c) => (needle ? `${c.name} ${c.email}`.toLowerCase().includes(needle) : true))
-      .filter((c) => (jobFilter === ALL ? true : c.jobId === jobFilter))
-      .filter((c) => (stageFilter === ALL ? true : c.stage === stageFilter));
-  }, [list, keyword, jobFilter, stageFilter]);
+  useEffect(() => {
+    document.title = getSafeMetaText("admin.candidates.meta.title", "Ứng viên — TalentHub HR");
+  }, [lang]);
 
-  const selected = list.find((c) => c.id === selectedId) ?? null;
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    adminCandidateApi.getCandidates({
+      page,
+      pageSize: PAGE_SIZE,
+      search: keyword.trim() || undefined,
+      jobId: jobFilter === ALL ? undefined : jobFilter,
+      status: stageFilter === ALL ? undefined : (stageFilter as Stage),
+    })
+      .then((result) => {
+        if (cancelled) return;
+        setCandidates(result.candidates);
+        setTotalCount(result.total);
+        setTotalPages(result.totalPages);
+      })
+      .catch((error) => {
+        if (!cancelled) toast.error(error instanceof Error ? error.message : t("settings.storageNote"));
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [page, keyword, jobFilter, stageFilter, t]);
 
-  function changeStage(id: string, stage: Stage) {
-    setList((prev) => prev.map((c) => (c.id === id ? { ...c, stage } : c)));
-    toast.success(tr(stageLabels[stage]));
+  useEffect(() => {
+    setPage(1);
+  }, [keyword, jobFilter, stageFilter]);
+
+  const selected = candidates.find((c) => c.id === selectedId) ?? null;
+  const emptyRowsCount = candidates.length > 0 && candidates.length < PAGE_SIZE
+    ? PAGE_SIZE - candidates.length
+    : 0;
+
+  async function changeStage(id: string, stage: Stage) {
+    if (savingId) return;
+    const previous = candidates.find((candidate) => candidate.id === id)?.stage;
+    if (!previous || previous === stage) return;
+
+    setSavingId(id);
+    try {
+      const updated = await adminCandidateApi.updateStatus(id, stage);
+      setCandidates((prev) => prev.map((candidate) => (
+        candidate.id === id ? updated : candidate
+      )));
+      toast.success(t("admin.candidates.stageUpdated"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("admin.candidates.stageUpdateFailed"));
+    } finally {
+      setSavingId(null);
+    }
   }
 
   return (
     <AdminLayout title={t("admin.candidates.title")} description={t("admin.demoNote")}>
-      <Tabs defaultValue="applicants">
-        <TabsList className="flex-wrap">
+      <Tabs defaultValue="applicants" className="flex min-h-0 flex-1 flex-col space-y-3.5 overflow-hidden">
+        <TabsList className="shrink-0">
           <TabsTrigger value="applicants">
             {tr({ vi: "Ứng viên theo tin", en: "Job applicants" })}
           </TabsTrigger>
@@ -190,11 +272,11 @@ function AdminCandidatesPage() {
             {tr({ vi: "Hồ sơ tự do", en: "Open applications" })} ({openApplications.length})
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="open" className="mt-5">
+        <TabsContent value="open" className="mt-5 min-h-0 flex-1 overflow-auto">
           <OpenApplicationsPanel />
         </TabsContent>
-        <TabsContent value="applicants" className="mt-5">
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <TabsContent value="applicants" className="flex min-h-0 flex-1 flex-col space-y-3.5 overflow-hidden">
+      <div className="grid shrink-0 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 items-center gap-2 rounded-md border border-input bg-card px-3">
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <Input
@@ -236,58 +318,224 @@ function AdminCandidatesPage() {
         </Select>
       </div>
 
-      {rows.length === 0 ? (
-        <p className="mt-8 rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          {t("admin.candidates.empty")}
-        </p>
-      ) : (
-        <>
-          <div className="mt-5 hidden overflow-hidden rounded-lg border border-border bg-card md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("admin.candidates.col.name")}</TableHead>
-                  <TableHead>{t("admin.candidates.col.job")}</TableHead>
-                  <TableHead>{t("admin.candidates.col.stage")}</TableHead>
-                  <TableHead>{t("admin.candidates.col.rating")}</TableHead>
-                  <TableHead>{t("admin.candidates.col.applied")}</TableHead>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
+        <div className="shrink-0 overflow-hidden rounded-t-xl border-b-2 border-border/80 bg-muted/60 backdrop-blur-sm">
+          <Table className="table-fixed w-full">
+            <TableHeader className="bg-transparent">
+              <TableRow className="h-10 border-none hover:bg-transparent">
+                <TableHead className="w-[60px] text-center text-xs font-semibold text-foreground/80 select-none">
+                  {t("common.table.stt")}
+                </TableHead>
+                <TableHead className="w-[240px] pl-4 text-xs font-semibold text-foreground/80 select-none">
+                  {t("admin.candidates.col.name")}
+                </TableHead>
+                <TableHead className="w-[200px] text-xs font-semibold text-foreground/80 select-none">
+                  {t("admin.candidates.col.job")}
+                </TableHead>
+                <TableHead className="w-[140px] text-xs font-semibold text-foreground/80 select-none">
+                  {t("admin.candidates.col.stage")}
+                </TableHead>
+                <TableHead className="w-[130px] text-xs font-semibold text-foreground/80 select-none">
+                  {t("admin.candidates.col.applied")}
+                </TableHead>
+                <TableHead className="w-[110px] text-xs font-semibold text-foreground/80 select-none">
+                  {t("admin.candidates.cv")}
+                </TableHead>
+                <TableHead className="w-[100px] pr-4 text-xs font-semibold text-foreground/80 select-none">
+                  {t("admin.candidates.actions.detail")}
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+          </Table>
+        </div>
+
+        <div className="relative min-h-0 flex-1 overflow-hidden [&>div]:h-full [&>div]:overflow-hidden">
+          <Table className="table-fixed h-full w-full">
+            <TableBody className="[&_tr]:h-[10%]">
+              {isLoading && (
+                <TableRow className="h-full">
+                  <TableCell colSpan={7} className="p-2 text-center text-sm text-muted-foreground">
+                    <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((candidate) => {
+              )}
+              {!isLoading && candidates.length === 0 && (
+                <TableRow className="h-full">
+                  <TableCell colSpan={7} className="p-2 text-center text-sm text-muted-foreground">
+                    {t("admin.candidates.empty")}
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading &&
+                candidates.map((candidate, index) => {
                   const job = getJob(candidate.jobId);
+                  const jobTitle = candidate.jobTitle ?? job?.title;
                   return (
                     <TableRow
                       key={candidate.id}
                       className="cursor-pointer"
                       onClick={() => setSelectedId(candidate.id)}
                     >
-                      <TableCell>
-                        <span className="block font-medium">{candidate.name}</span>
-                        <span className="block text-xs text-muted-foreground">
+                      <TableCell className="w-[60px] text-center text-muted-foreground">
+                        {(page - 1) * PAGE_SIZE + index + 1}
+                      </TableCell>
+                      <TableCell className="w-[240px] pl-4">
+                        <span className="block truncate font-medium">{candidate.name}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
                           {candidate.email}
                         </span>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {job ? tr(job.title) : "—"}
+                      <TableCell className="w-[200px] truncate text-muted-foreground">
+                        {jobTitle ? tr(jobTitle) : "—"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="w-[140px]">
                         <Badge variant="secondary">{tr(stageLabels[candidate.stage])}</Badge>
                       </TableCell>
-                      <TableCell>
-                        <Rating value={candidate.rating} />
+                      <TableCell className="w-[130px] text-muted-foreground">
+                        {candidate.appliedAt}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{candidate.appliedAt}</TableCell>
+                      <TableCell className="w-[110px]">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toast.info(candidate.cvFile || t("admin.candidates.cv"));
+                          }}
+                        >
+                          <FileText className="mr-1 h-3.5 w-3.5" />
+                          {t("admin.candidates.cv")}
+                        </Button>
+                      </TableCell>
+                      <TableCell className="w-[100px] pr-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-2"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setSelectedId(candidate.id);
+                          }}
+                        >
+                          {t("admin.candidates.actions.detail")}
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
-              </TableBody>
-            </Table>
+              {!isLoading && emptyRowsCount > 0 &&
+                Array.from({ length: emptyRowsCount }).map((_, index) => (
+                  <TableRow
+                    key={`empty-row-${index}`}
+                    aria-hidden
+                    className="border-b border-border/50 hover:bg-transparent pointer-events-none select-none"
+                  >
+                    <TableCell className="py-3 px-4 w-[60px] text-transparent">&nbsp;</TableCell>
+                    <TableCell className="py-3 px-4 w-[240px] text-transparent">&nbsp;</TableCell>
+                    <TableCell className="py-3 px-4 w-[200px] text-transparent">&nbsp;</TableCell>
+                    <TableCell className="py-3 px-4 w-[140px] text-transparent">&nbsp;</TableCell>
+                    <TableCell className="py-3 px-4 w-[130px] text-transparent">&nbsp;</TableCell>
+                    <TableCell className="py-3 px-4 w-[110px] text-transparent">&nbsp;</TableCell>
+                    <TableCell className="py-3 px-4 w-[100px] text-transparent">&nbsp;</TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="shrink-0 border-t border-border/70 bg-muted/30 px-4 py-3 flex items-center justify-between gap-3 select-none">
+          {/* Phía trái: Đếm số dòng */}
+          <div className="text-xs text-muted-foreground">
+            {totalCount > 0 ? (
+              <>
+                {t("admin.jobs.footer.showing")}{" "}
+                <strong className="font-semibold text-foreground">
+                  {(page - 1) * PAGE_SIZE + 1}
+                </strong>{" "}
+                -{" "}
+                <strong className="font-semibold text-foreground">
+                  {Math.min(page * PAGE_SIZE, totalCount)}
+                </strong>{" "}
+                {t("admin.jobs.footer.of")}{" "}
+                <strong className="font-semibold text-foreground">{totalCount}</strong>{" "}
+                {t("admin.jobs.footer.records")}
+              </>
+            ) : (
+              <span>{t("admin.jobs.footer.noRecords")}</span>
+            )}
           </div>
 
-          <div className="mt-5 grid gap-3 md:hidden">
-            {rows.map((candidate) => {
+          {/* Phía phải: Cụm 4 nút chuyển trang */}
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground">
+              {t("admin.jobs.footer.page")}{" "}
+              <strong className="font-semibold text-foreground">{page}</strong> / {totalPages || 1}
+            </span>
+
+            <div className="flex items-center gap-1">
+              {/* Về đầu */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-lg border-border/70"
+                onClick={() => setPage(1)}
+                disabled={page <= 1 || isLoading}
+                title={t("admin.jobs.footer.firstPage")}
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+
+              {/* Lùi 1 trang */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-lg border-border/70"
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                disabled={page <= 1 || isLoading}
+                title={t("admin.jobs.footer.prevPage")}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              {/* Tiến 1 trang */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-lg border-border/70"
+                onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={page >= totalPages || isLoading}
+                title={t("admin.jobs.footer.nextPage")}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+
+              {/* Đến cuối */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-lg border-border/70"
+                onClick={() => setPage(totalPages)}
+                disabled={page >= totalPages || isLoading}
+                title={t("admin.jobs.footer.lastPage")}
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:hidden">
+            {candidates.map((candidate) => {
               const job = getJob(candidate.jobId);
+              const jobTitle = candidate.jobTitle ?? job?.title;
               return (
                 <button
                   key={candidate.id}
@@ -299,7 +547,7 @@ function AdminCandidatesPage() {
                     <div className="min-w-0">
                       <p className="truncate font-medium">{candidate.name}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {job ? tr(job.title) : "—"}
+                        {jobTitle ? tr(jobTitle) : "—"}
                       </p>
                     </div>
                     <Badge variant="secondary" className="shrink-0">
@@ -313,9 +561,7 @@ function AdminCandidatesPage() {
                 </button>
               );
             })}
-          </div>
-        </>
-      )}
+      </div>
         </TabsContent>
       </Tabs>
 

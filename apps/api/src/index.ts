@@ -7,6 +7,7 @@ import cors from "cors";
 import { db } from "@career-portal/database";
 import { ApplyJobSchema } from "@career-portal/types";
 import { adminJobsRoutes } from "./routes/admin-jobs.routes";
+import { adminCandidateRoutes } from "./routes/admin-candidates.routes";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -65,6 +66,7 @@ app.post("/api/jobs/:jobId/apply", async (req, res) => {
 
 // API Admin: Job CRUD routes
 app.use("/api/admin/jobs", adminJobsRoutes);
+app.use("/api/admin/candidates", adminCandidateRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
