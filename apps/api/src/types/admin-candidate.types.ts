@@ -11,6 +11,7 @@ export interface AdminCandidateFilterQuery {
   limit?: number;
   status?: AdminCandidateStatus;
   jobId?: string;
+  experienceId?: string;
   search?: string;
 }
 
@@ -31,6 +32,7 @@ export interface AdminCandidateListItem {
   rating: number;
   appliedAt: string;
   cvFile: string;
+  experienceId: string | null;
   location: AdminCandidateLocalizedText;
   experience: AdminCandidateLocalizedText;
   highlights: AdminCandidateLocalizedText[];

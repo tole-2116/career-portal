@@ -26,6 +26,7 @@ export type Candidate = {
   rating: number;
   appliedAt: string;
   cvFile: string;
+  experienceId?: string | null;
   experience: Localized;
   highlights: Localized[];
   notes: { author: string; at: string; body: Localized }[];

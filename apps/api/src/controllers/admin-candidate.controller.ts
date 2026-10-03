@@ -28,8 +28,20 @@ function parsePositiveInteger(value: unknown, field: string): number | undefined
 export class AdminCandidateController {
   constructor() {
     this.getPaginated = this.getPaginated.bind(this);
+    this.getExperienceTaxonomies = this.getExperienceTaxonomies.bind(this);
     this.updateStatus = this.updateStatus.bind(this);
     this.update = this.update.bind(this);
+  }
+
+  async getExperienceTaxonomies(_req: Request, res: Response) {
+    try {
+      const experiences = await adminCandidateService.findExperienceTaxonomies();
+      return res.json({ success: true, data: { experiences } });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to fetch experience taxonomies";
+      console.error("GET /api/admin/candidates/taxonomies error:", error);
+      return res.status(500).json({ success: false, error: message });
+    }
   }
 
   async getPaginated(req: Request, res: Response) {
@@ -47,6 +59,7 @@ export class AdminCandidateController {
         limit: parsePositiveInteger(req.query.limit, "limit"),
         status: rawStatus as AdminCandidateStatus | undefined,
         jobId: req.query.jobId as string | undefined,
+        experienceId: req.query.experienceId as string | undefined,
         search: req.query.search as string | undefined,
       };
       const result = await adminCandidateService.findMany(query);

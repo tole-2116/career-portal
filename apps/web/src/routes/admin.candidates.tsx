@@ -55,15 +55,18 @@ import {
   type Stage,
 } from "@/data/candidates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getJob, jobs } from "@/data/jobs";
+import { getJob } from "@/data/jobs";
+import { fetchJobs } from "@/lib/api/jobs";
 import { translate, useI18n } from "@/lib/i18n";
 import { adminCandidateApi } from "@/services/admin-candidate.api";
 
 const PAGE_SIZE = 10;
 const getSafeMetaText = (key: Parameters<typeof translate>[0], fallback: string) =>
   translate(key, fallback) || fallback;
+
 import { useInbox } from "@/lib/inbox-store";
 import { useJobs } from "@/lib/jobs-store";
+import type { TaxonomyItem } from "@/lib/taxonomy-store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/candidates")({
@@ -196,8 +199,11 @@ function AdminCandidatesPage() {
   const { t, tr, lang } = useI18n();
   const { openApplications } = useInbox();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [filterJobs, setFilterJobs] = useState<import("@/data/jobs").Job[]>([]);
+  const [filterExperiences, setFilterExperiences] = useState<TaxonomyItem[]>([]);
   const [keyword, setKeyword] = useState("");
   const [jobFilter, setJobFilter] = useState(ALL);
+  const [experienceFilter, setExperienceFilter] = useState(ALL);
   const [stageFilter, setStageFilter] = useState(ALL);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -213,6 +219,38 @@ function AdminCandidatesPage() {
     document.title = getSafeMetaText("admin.candidates.meta.title", "Ứng viên — TalentHub HR");
   }, [lang]);
 
+  // Dropdown lọc cần jobId dạng UUID của database để khớp Candidate.jobId.
+  useEffect(() => {
+    let cancelled = false;
+    fetchJobs({ limit: 100 })
+      .then((result) => {
+        if (!cancelled) setFilterJobs(result.jobs);
+      })
+      .catch((error) => {
+        if (!cancelled) toast.error(error instanceof Error ? error.message : t("settings.storageNote"));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [t]);
+
+  useEffect(() => {
+    let cancelled = false;
+    adminCandidateApi.getExperienceTaxonomies()
+      .then((items) => {
+        if (!cancelled) setFilterExperiences(items.map((item) => ({
+          id: item.id,
+          label: { vi: item.label.vi, en: item.label.en },
+        })));
+      })
+      .catch(() => {
+        if (!cancelled) setFilterExperiences([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
@@ -221,6 +259,7 @@ function AdminCandidatesPage() {
       pageSize: PAGE_SIZE,
       search: keyword.trim() || undefined,
       jobId: jobFilter === ALL ? undefined : jobFilter,
+      experienceId: experienceFilter === ALL ? undefined : experienceFilter,
       status: stageFilter === ALL ? undefined : (stageFilter as Stage),
     })
       .then((result) => {
@@ -238,11 +277,11 @@ function AdminCandidatesPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, keyword, jobFilter, stageFilter, t]);
+  }, [page, keyword, jobFilter, experienceFilter, stageFilter, t]);
 
   useEffect(() => {
     setPage(1);
-  }, [keyword, jobFilter, stageFilter]);
+  }, [keyword, jobFilter, experienceFilter, stageFilter]);
 
   const selected = candidates.find((c) => c.id === selectedId) ?? null;
   const handleRowClick = (candidate: Candidate) => {
@@ -315,7 +354,7 @@ function AdminCandidatesPage() {
           <OpenApplicationsPanel />
         </TabsContent>
         <TabsContent value="applicants" className="flex min-h-0 flex-1 flex-col space-y-3.5 overflow-hidden">
-      <div className="grid shrink-0 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid shrink-0 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 items-center gap-2 rounded-md border border-input bg-card px-3">
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <Input
@@ -327,22 +366,54 @@ function AdminCandidatesPage() {
         </div>
         <Select value={jobFilter} onValueChange={setJobFilter}>
           <SelectTrigger className="bg-card" aria-label={t("admin.candidates.filter.job")}>
-            <SelectValue />
+            <SelectValue>
+              {jobFilter === ALL
+                ? `${t("jobs.filter.all")} — ${t("admin.candidates.filter.job")}`
+                : tr(filterJobs.find((job) => job.id === jobFilter)?.title ?? { vi: "", en: "" })}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>
               {t("jobs.filter.all")} — {t("admin.candidates.filter.job")}
             </SelectItem>
-            {jobs.map((job) => (
+            {filterJobs.map((job) => (
               <SelectItem key={job.id} value={job.id}>
                 {tr(job.title)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <Select value={experienceFilter} onValueChange={setExperienceFilter}>
+          <SelectTrigger className="bg-card" aria-label={t("admin.candidates.filter.experience")}>
+            <SelectValue>
+              {experienceFilter === ALL
+                ? `${t("jobs.filter.all")} — ${t("admin.candidates.filter.experience")}`
+                : tr(
+                    filterExperiences.find((item) => item.id === experienceFilter)?.label ?? {
+                      vi: "",
+                      en: "",
+                    },
+                  )}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>
+              {t("jobs.filter.all")} — {t("admin.candidates.filter.experience")}
+            </SelectItem>
+            {filterExperiences.map((item) => (
+              <SelectItem key={item.id} value={item.id}>
+                {tr(item.label)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={stageFilter} onValueChange={setStageFilter}>
           <SelectTrigger className="bg-card" aria-label={t("admin.candidates.filter.stage")}>
-            <SelectValue />
+            <SelectValue>
+              {stageFilter === ALL
+                ? `${t("jobs.filter.all")} — ${t("admin.candidates.filter.stage")}`
+                : tr(stageLabels[stageFilter as Stage])}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>

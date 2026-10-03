@@ -210,6 +210,7 @@ const dict = {
   "admin.candidates.col.rating": { vi: "Đánh giá", en: "Rating" },
   "admin.candidates.col.applied": { vi: "Ngày nộp", en: "Applied" },
   "admin.candidates.filter.job": { vi: "Vị trí", en: "Position" },
+  "admin.candidates.filter.experience": { vi: "Kinh nghiệm", en: "Experience" },
   "admin.candidates.filter.stage": { vi: "Giai đoạn", en: "Stage" },
   "admin.candidates.profile": { vi: "Hồ sơ ứng viên", en: "Candidate profile" },
   "admin.candidates.cv": { vi: "Tệp CV", en: "CV file" },

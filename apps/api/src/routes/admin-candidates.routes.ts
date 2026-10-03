@@ -6,6 +6,9 @@ export const adminCandidateRoutes: RouterType = Router();
 // GET /api/admin/candidates — danh sách ứng viên (phân trang, lọc, tìm kiếm)
 adminCandidateRoutes.get("/", adminCandidateController.getPaginated);
 
+// GET /api/admin/candidates/taxonomies — taxonomy experience dùng filter có ID thực từ DB
+adminCandidateRoutes.get("/taxonomies", adminCandidateController.getExperienceTaxonomies);
+
 // PATCH /api/admin/candidates/:id/status — cập nhật giai đoạn tuyển dụng
 adminCandidateRoutes.patch("/:id/status", adminCandidateController.updateStatus);
 

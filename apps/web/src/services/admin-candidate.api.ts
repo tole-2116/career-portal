@@ -34,6 +34,7 @@ interface ApiCandidate {
   rating: number;
   appliedAt: string;
   cvFile: string;
+  experienceId: string | null;
   location: ApiLocalizedText;
   experience: ApiLocalizedText;
   highlights: ApiLocalizedText[];
@@ -94,6 +95,7 @@ function mapApiCandidate(raw: ApiCandidate): Candidate {
     rating: typeof raw.rating === "number" ? raw.rating : 0,
     appliedAt: toDateString(raw.appliedAt),
     cvFile: raw.cvFile || "",
+    experienceId: raw.experienceId ?? null,
     experience: asLocalized(raw.experience),
     highlights: (raw.highlights ?? []).map(asLocalized),
     notes: (raw.notes ?? []).map((note) => ({
@@ -137,6 +139,7 @@ export interface CandidateListParams {
   /** Backward-compatible alias for callers using the old name. */
   stage?: Stage | undefined;
   jobId?: string | undefined;
+  experienceId?: string | undefined;
   search?: string | undefined;
 }
 
@@ -158,6 +161,18 @@ export interface CandidateUpdatePayload {
 }
 
 /** GET /api/admin/candidates — danh sách ứng viên (phân trang, lọc, tìm kiếm). */
+export interface CandidateExperienceTaxonomy {
+  id: string;
+  code: string;
+  type: string;
+  label: ApiLocalizedText;
+}
+
+async function getExperienceTaxonomies(): Promise<CandidateExperienceTaxonomy[]> {
+  const result = await request<{ experiences: CandidateExperienceTaxonomy[] }>(`${API_BASE}/taxonomies`);
+  return result?.experiences ?? [];
+}
+
 async function getCandidates(params: CandidateListParams = {}): Promise<CandidateListResult> {
   const query = new URLSearchParams();
   if (params.page) query.set("page", String(params.page));
@@ -165,6 +180,7 @@ async function getCandidates(params: CandidateListParams = {}): Promise<Candidat
   const status = params.status ?? params.stage;
   if (status) query.set("status", UI_TO_API[status]);
   if (params.jobId) query.set("jobId", params.jobId);
+  if (params.experienceId) query.set("experienceId", params.experienceId);
   if (params.search) query.set("search", params.search);
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
@@ -206,6 +222,7 @@ async function updateCandidate(id: string, payload: CandidateUpdatePayload): Pro
 
 export const adminCandidateApi = {
   getCandidates,
+  getExperienceTaxonomies,
   updateStatus,
   updateCandidate,
 };

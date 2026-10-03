@@ -68,17 +68,22 @@ function mapCandidate(candidate: {
   rating: number | null;
   appliedAt: Date;
   cvFile: string | null;
+  experienceId: string | null;
   experienceYears: number;
   formData: unknown;
   notes: string | null;
   job: { title: unknown } | null;
+  experienceTaxonomy: { name: unknown; type: string } | null;
 }): AdminCandidateListItem {
-  const experience = candidate.experienceYears
-    ? {
-        vi: `${candidate.experienceYears} năm kinh nghiệm`,
-        en: `${candidate.experienceYears} years of experience`,
-      }
-    : { vi: "", en: "" };
+  const taxonomyExperience = readLocalized(candidate.experienceTaxonomy?.name);
+  const experience = taxonomyExperience.vi || taxonomyExperience.en
+    ? taxonomyExperience
+    : candidate.experienceYears
+      ? {
+          vi: `${candidate.experienceYears} năm kinh nghiệm`,
+          en: `${candidate.experienceYears} years of experience`,
+        }
+      : { vi: "", en: "" };
 
   return {
     id: candidate.id,
@@ -92,6 +97,7 @@ function mapCandidate(candidate: {
     rating: candidate.rating ?? 0,
     appliedAt: candidate.appliedAt.toISOString(),
     cvFile: candidate.cvFile ?? "",
+    experienceId: candidate.experienceId,
     location: readFormLocation(candidate.formData),
     experience,
     highlights: [],
@@ -100,6 +106,20 @@ function mapCandidate(candidate: {
 }
 
 export class AdminCandidateService {
+  async findExperienceTaxonomies() {
+    const rows = await db.taxonomy.findMany({
+      where: { type: "experience", isdelete: false },
+      orderBy: { code: "asc" },
+      select: { id: true, code: true, type: true, name: true },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      code: row.code,
+      type: row.type,
+      label: readLocalized(row.name),
+    }));
+  }
+
   async findMany(
     query: AdminCandidateFilterQuery = {},
   ): Promise<AdminCandidatePaginatedResponse> {
@@ -109,6 +129,7 @@ export class AdminCandidateService {
     const where: Record<string, unknown> = { isdelete: false };
 
     if (query.jobId?.trim()) where.jobId = query.jobId.trim();
+    if (query.experienceId?.trim()) where.experienceId = query.experienceId.trim();
     if (query.status && candidateStatuses.includes(query.status)) where.status = query.status;
     if (query.search?.trim()) {
       const search = query.search.trim();
@@ -125,7 +146,10 @@ export class AdminCandidateService {
         skip,
         take: limit,
         orderBy: { appliedAt: "desc" },
-        include: { job: { select: { title: true } } },
+        include: {
+          job: { select: { title: true } },
+          experienceTaxonomy: { select: { name: true, type: true } },
+        },
       }),
       db.candidate.count({ where }),
     ]);
@@ -149,7 +173,10 @@ export class AdminCandidateService {
     const updated = await db.candidate.update({
       where: { id, isdelete: false },
       data: { status },
-      include: { job: { select: { title: true } } },
+      include: {
+        job: { select: { title: true } },
+        experienceTaxonomy: { select: { name: true, type: true } },
+      },
     });
 
     return mapCandidate(updated);
@@ -177,7 +204,10 @@ export class AdminCandidateService {
         status: payload.status,
         notes: payload.notes.trim() || null,
       },
-      include: { job: { select: { title: true } } },
+      include: {
+        job: { select: { title: true } },
+        experienceTaxonomy: { select: { name: true, type: true } },
+      },
     });
 
     return mapCandidate(updated);
