@@ -351,6 +351,7 @@ async function main() {
         name: c.name,
         email: c.email,
         phone: c.phone,
+        address: c.address || null,
         currentCompany: "",
         experienceYears: 0,
         experienceId: taxonomyMap.get(`experience:${slugify(candidateExperienceLabel(c.experience).en)}`) ?? null,

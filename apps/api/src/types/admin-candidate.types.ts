@@ -26,6 +26,7 @@ export interface AdminCandidateListItem {
   name: string;
   email: string;
   phone: string;
+  address: string | null;
   jobId: string;
   jobTitle: AdminCandidateLocalizedText;
   status: AdminCandidateStatus;
@@ -60,6 +61,7 @@ export interface AdminCandidateUpdatePayload {
   name: string;
   email: string;
   phone: string;
+  address?: string;
   cvFile: string;
   jobId: string;
   status: AdminCandidateStatus;

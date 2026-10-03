@@ -63,6 +63,7 @@ function mapCandidate(candidate: {
   name: string;
   email: string;
   phone: string;
+  address: string | null;
   jobId: string;
   status: AdminCandidateStatus;
   rating: number | null;
@@ -91,6 +92,7 @@ function mapCandidate(candidate: {
     name: candidate.name,
     email: candidate.email,
     phone: candidate.phone,
+    address: candidate.address,
     jobId: candidate.jobId,
     jobTitle: readLocalized(candidate.job?.title),
     status: candidate.status,
@@ -199,6 +201,7 @@ export class AdminCandidateService {
         name: payload.name.trim(),
         email: payload.email.trim(),
         phone: payload.phone.trim(),
+        address: payload.address?.trim().slice(0, 500) || null,
         cvFile: payload.cvFile.trim(),
         jobId: payload.jobId,
         status: payload.status,

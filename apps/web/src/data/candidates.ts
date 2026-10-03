@@ -18,6 +18,7 @@ export type Candidate = {
   name: string;
   email: string;
   phone: string;
+  address?: string;
   location: Localized;
   jobId: string;
   /** Tiêu đề job lấy từ API (DB id khác slug cục bộ) — fallback khi thiếu. */
@@ -38,6 +39,7 @@ export const candidates: Candidate[] = [
     name: "Nguyễn Minh Anh",
     email: "minhanh.nguyen@email.com",
     phone: "+84 912 345 678",
+    address: "45 Lê Lợi, Hoàn Kiếm, Hà Nội",
     location: { vi: "Hà Nội", en: "Hanoi" },
     jobId: "senior-frontend-engineer",
     stage: "interview",
@@ -65,6 +67,7 @@ export const candidates: Candidate[] = [
     name: "Lê Quốc Bảo",
     email: "quocbao.le@email.com",
     phone: "+84 938 221 004",
+    address: "88 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh",
     location: { vi: "TP. Hồ Chí Minh", en: "Ho Chi Minh City" },
     jobId: "product-designer",
     stage: "screening",
@@ -92,6 +95,7 @@ export const candidates: Candidate[] = [
     name: "Trần Khánh Linh",
     email: "khanhlinh.tran@email.com",
     phone: "+84 905 776 112",
+    address: "12 Bạch Đằng, Hải Châu, Đà Nẵng",
     location: { vi: "Đà Nẵng", en: "Da Nang" },
     jobId: "data-analyst",
     stage: "new",
@@ -107,6 +111,7 @@ export const candidates: Candidate[] = [
     name: "Vũ Hoàng Nam",
     email: "hoangnam.vu@email.com",
     phone: "+84 977 310 445",
+    address: "210 Nguyễn Thị Minh Khai, Quận 3, TP. Hồ Chí Minh",
     location: { vi: "TP. Hồ Chí Minh", en: "Ho Chi Minh City" },
     jobId: "enterprise-account-executive",
     stage: "offer",
@@ -131,6 +136,7 @@ export const candidates: Candidate[] = [
     name: "Phạm Thùy Dương",
     email: "thuyduong.pham@email.com",
     phone: "+84 966 118 220",
+    address: "7 Phan Đình Phùng, Ba Đình, Hà Nội",
     location: { vi: "Hà Nội", en: "Hanoi" },
     jobId: "hr-business-partner",
     stage: "interview",
@@ -148,6 +154,7 @@ export const candidates: Candidate[] = [
     name: "Hoàng Gia Huy",
     email: "giahuy.hoang@email.com",
     phone: "+84 903 664 187",
+    address: "33 Trần Hưng Đạo, Hoàn Kiếm, Hà Nội",
     location: { vi: "Hà Nội", en: "Hanoi" },
     jobId: "senior-frontend-engineer",
     stage: "rejected",
@@ -169,6 +176,7 @@ export const candidates: Candidate[] = [
     name: "Đặng Bảo Châu",
     email: "baochau.dang@email.com",
     phone: "+84 944 205 338",
+    address: "9 Lê Duẩn, Hải Châu, Đà Nẵng",
     location: { vi: "Đà Nẵng", en: "Da Nang" },
     jobId: "customer-success-specialist",
     stage: "screening",
@@ -184,6 +192,7 @@ export const candidates: Candidate[] = [
     name: "Ngô Tuấn Kiệt",
     email: "tuankiet.ngo@email.com",
     phone: "+84 918 472 909",
+    address: "156 Nguyễn Văn Trỗi, Phú Nhuận, TP. Hồ Chí Minh",
     location: { vi: "TP. Hồ Chí Minh", en: "Ho Chi Minh City" },
     jobId: "product-designer",
     stage: "hired",

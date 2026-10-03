@@ -320,6 +320,7 @@ function AdminCandidatesPage() {
         name: selected.name,
         email: selected.email,
         phone: selected.phone,
+        address: selected.address,
         cvFile: selected.cvFile,
         jobId: selected.jobId,
         status: editStage,
@@ -434,7 +435,6 @@ function AdminCandidatesPage() {
             <TableHeader className="bg-transparent">
               <TableRow className="h-10 border-none hover:bg-transparent">
                 <TableHead className="w-[60px] text-center text-xs font-semibold text-foreground/80 select-none">
-                  {t("common.table.stt")}
                 </TableHead>
                 <TableHead className="w-[240px] pl-4 text-xs font-semibold text-foreground/80 select-none">
                   {t("admin.candidates.col.name")}
@@ -708,8 +708,9 @@ function AdminCandidatesPage() {
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <Phone className="h-4 w-4 shrink-0" /> {selected.phone}
                 </span>
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  <MapPin className="h-4 w-4 shrink-0" /> {tr(selected.location)}
+                <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                  <MapPin className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{selected.address || tr(selected.location)}</span>
                 </span>
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <Star className="h-4 w-4 shrink-0" />

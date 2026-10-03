@@ -28,6 +28,7 @@ interface ApiCandidate {
   name: string;
   email: string;
   phone: string;
+  address: string | null;
   jobId: string;
   jobTitle: ApiLocalizedText;
   status: ApiCandidateStatus;
@@ -88,6 +89,7 @@ function mapApiCandidate(raw: ApiCandidate): Candidate {
     name: raw.name,
     email: raw.email,
     phone: raw.phone,
+    address: raw.address ?? undefined,
     location: asLocalized(raw.location),
     jobId: raw.jobId,
     jobTitle: asLocalized(raw.jobTitle),
@@ -154,6 +156,7 @@ export interface CandidateUpdatePayload {
   name: string;
   email: string;
   phone: string;
+  address?: string;
   cvFile: string;
   jobId: string;
   status: Stage;

@@ -41,7 +41,7 @@ app.post("/api/jobs/:jobId/apply", async (req, res) => {
       return res.status(400).json({ errors: validation.error.format() });
     }
 
-    const { jobId, name, email, phone, coverLetter } = validation.data;
+    const { jobId, name, email, phone, address, coverLetter } = validation.data;
 
     const candidate = await db.candidate.create({
       data: {
@@ -50,6 +50,7 @@ app.post("/api/jobs/:jobId/apply", async (req, res) => {
         name,
         email,
         phone,
+        address: address || null,
         coverLetter,
         cvFile: "uploads/sample-resume.pdf",
         formData: {},

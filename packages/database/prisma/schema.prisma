@@ -98,6 +98,7 @@ model Candidate {
   name            String         @db.VarChar(255)
   email           String         @db.VarChar(255)
   phone           String         @db.VarChar(50)
+  address         String?        @db.VarChar(500)
   currentCompany  String?        @db.VarChar(255)
   experienceYears Int            @default(0)
   status          CandidateStatus @default(NEW)

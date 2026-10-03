@@ -134,6 +134,11 @@ export class AdminCandidateController {
       const name = typeof payload.name === "string" ? payload.name.trim() : "";
       const email = typeof payload.email === "string" ? payload.email.trim() : "";
       const phone = typeof payload.phone === "string" ? payload.phone.trim() : "";
+      const address = payload.address == null
+        ? undefined
+        : typeof payload.address === "string"
+          ? payload.address.trim()
+          : "__invalid__";
       const cvFile = typeof payload.cvFile === "string" ? payload.cvFile.trim() : "";
       const notes = typeof payload.notes === "string" ? payload.notes : "";
       const jobId = typeof payload.jobId === "string" ? payload.jobId.trim() : "";
@@ -152,6 +157,18 @@ export class AdminCandidateController {
           error: `Missing required fields: ${missing.join(", ")}`,
         });
       }
+      if (address === "__invalid__") {
+        return res.status(400).json({
+          success: false,
+          error: "address must be a string or null",
+        });
+      }
+      if (address && address.length > 500) {
+        return res.status(400).json({
+          success: false,
+          error: "address cannot exceed 500 characters",
+        });
+      }
       if (!candidateStatuses.includes(status as AdminCandidateStatus)) {
         return res.status(400).json({
           success: false,
@@ -163,6 +180,7 @@ export class AdminCandidateController {
         name,
         email,
         phone,
+        address,
         cvFile,
         jobId,
         status: status as AdminCandidateStatus,
