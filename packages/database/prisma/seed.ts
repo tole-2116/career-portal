@@ -78,6 +78,16 @@ function ensureBilingualJSON(value: unknown): { en: string; vi: string } {
   return { en: txt, vi: txt };
 }
 
+/** Maps the mock candidate's numeric experience to an experience taxonomy bucket. */
+function candidateExperienceLabel(experience: { en: string; vi: string }): { en: string; vi: string } {
+  const years = Number.parseInt(experience.en, 10);
+  if (!Number.isFinite(years) || years <= 0) return experienceTaxonomies[0].label;
+  if (years < 1) return experienceTaxonomies[1].label;
+  if (years <= 3) return experienceTaxonomies[2].label;
+  if (years <= 5) return experienceTaxonomies[3].label;
+  return experienceTaxonomies[4].label;
+}
+
 /* ---------- Source data (taken from apps/web mock stores) ---------- */
 
 // Jobs from apps/web/src/data/jobs
@@ -343,9 +353,10 @@ async function main() {
         phone: c.phone,
         currentCompany: "",
         experienceYears: 0,
+        experienceId: taxonomyMap.get(`experience:${slugify(candidateExperienceLabel(c.experience).en)}`) ?? null,
         status: candidateStatus,
         appliedAt: new Date(c.appliedAt), // string -> Date
-        resumeUrl: c.cvFile,
+        cvFile: c.cvFile,
         coverLetter: "",
         notes: "",
         rating: c.rating,

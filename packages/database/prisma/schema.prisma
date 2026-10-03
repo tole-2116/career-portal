@@ -41,6 +41,7 @@ model Taxonomy {
   workTypeJobs   Job[]  @relation("JobWorkType")
   salaryJobs     Job[]  @relation("JobSalary")
   experienceJobs Job[]  @relation("JobExperience")
+  candidateExperiences Candidate[] @relation("CandidateExperience")
 
   @@index([type])
   @@map("taxonomies")
@@ -101,7 +102,8 @@ model Candidate {
   experienceYears Int            @default(0)
   status          CandidateStatus @default(NEW)
   appliedAt       DateTime       @default(now())
-  resumeUrl       String         @db.Text
+  cvFile          String?        @db.Text
+  experienceId     String?
   coverLetter     String?        @db.Text
   notes           String?        @db.Text
   rating          Int?           @default(0)
@@ -113,8 +115,10 @@ model Candidate {
   isdelete        Boolean        @default(false)
   job             Job            @relation(fields: [jobId], references: [id])
   candidateUser   User?          @relation(fields: [candidateUserId], references: [id])
+  experienceTaxonomy Taxonomy?   @relation("CandidateExperience", fields: [experienceId], references: [id])
 
   @@index([jobId])
+  @@index([experienceId])
   @@index([email])
   @@index([status])
   @@map("candidates")

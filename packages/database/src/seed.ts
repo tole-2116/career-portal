@@ -761,7 +761,7 @@ async function main() {
         experience: a.experience,
         highlights: a.highlights,
         notes: a.notes,
-        resumeUrl: a.cvFile || "uploads/resume.pdf",
+        cvFile: a.cvFile || "uploads/resume.pdf",
         status: mapApplicationStage(a.stage) as any,
         usercreate_at: "seed",
       },

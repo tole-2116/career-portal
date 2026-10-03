@@ -233,7 +233,7 @@ const dict = {
   "admin.candidates.field.name": { vi: "Họ và tên", en: "Full name" },
   "admin.candidates.field.email": { vi: "Email", en: "Email" },
   "admin.candidates.field.phone": { vi: "Số điện thoại", en: "Phone number" },
-  "admin.candidates.field.resumeUrl": { vi: "Đường dẫn CV", en: "CV link" },
+  "admin.candidates.field.cvFile": { vi: "Đường dẫn CV", en: "CV link" },
   "admin.candidates.field.job": { vi: "Vị trí ứng tuyển", en: "Applied position" },
   "admin.candidates.field.stage": { vi: "Giai đoạn", en: "Stage" },
   "admin.candidates.saved": { vi: "Đã lưu hồ sơ ứng viên.", en: "Candidate profile saved." },

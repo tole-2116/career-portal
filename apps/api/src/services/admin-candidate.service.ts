@@ -67,7 +67,7 @@ function mapCandidate(candidate: {
   status: AdminCandidateStatus;
   rating: number | null;
   appliedAt: Date;
-  resumeUrl: string;
+  cvFile: string | null;
   experienceYears: number;
   formData: unknown;
   notes: string | null;
@@ -91,7 +91,7 @@ function mapCandidate(candidate: {
     status: candidate.status,
     rating: candidate.rating ?? 0,
     appliedAt: candidate.appliedAt.toISOString(),
-    cvFile: candidate.resumeUrl,
+    cvFile: candidate.cvFile ?? "",
     location: readFormLocation(candidate.formData),
     experience,
     highlights: [],
@@ -172,7 +172,7 @@ export class AdminCandidateService {
         name: payload.name.trim(),
         email: payload.email.trim(),
         phone: payload.phone.trim(),
-        resumeUrl: payload.resumeUrl.trim(),
+        cvFile: payload.cvFile.trim(),
         jobId: payload.jobId,
         status: payload.status,
         notes: payload.notes.trim() || null,

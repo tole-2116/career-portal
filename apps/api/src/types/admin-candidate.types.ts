@@ -58,7 +58,7 @@ export interface AdminCandidateUpdatePayload {
   name: string;
   email: string;
   phone: string;
-  resumeUrl: string;
+  cvFile: string;
   jobId: string;
   status: AdminCandidateStatus;
   notes: string;

@@ -51,7 +51,7 @@ app.post("/api/jobs/:jobId/apply", async (req, res) => {
         email,
         phone,
         coverLetter,
-        resumeUrl: "uploads/sample-resume.pdf",
+        cvFile: "uploads/sample-resume.pdf",
         formData: {},
         usercreate_at: "candidate_public",
       },

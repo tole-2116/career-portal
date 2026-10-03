@@ -281,7 +281,7 @@ function AdminCandidatesPage() {
         name: selected.name,
         email: selected.email,
         phone: selected.phone,
-        resumeUrl: selected.cvFile,
+        cvFile: selected.cvFile,
         jobId: selected.jobId,
         status: editStage,
         notes: editNotes,

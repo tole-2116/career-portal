@@ -121,7 +121,7 @@ export class AdminCandidateController {
       const name = typeof payload.name === "string" ? payload.name.trim() : "";
       const email = typeof payload.email === "string" ? payload.email.trim() : "";
       const phone = typeof payload.phone === "string" ? payload.phone.trim() : "";
-      const resumeUrl = typeof payload.resumeUrl === "string" ? payload.resumeUrl.trim() : "";
+      const cvFile = typeof payload.cvFile === "string" ? payload.cvFile.trim() : "";
       const notes = typeof payload.notes === "string" ? payload.notes : "";
       const jobId = typeof payload.jobId === "string" ? payload.jobId.trim() : "";
       const status = payload.status;
@@ -130,7 +130,7 @@ export class AdminCandidateController {
       if (!name) missing.push("name");
       if (!email) missing.push("email");
       if (!phone) missing.push("phone");
-      if (!resumeUrl) missing.push("resumeUrl");
+      if (!cvFile) missing.push("cvFile");
       if (!jobId) missing.push("jobId");
       if (!status) missing.push("status");
       if (missing.length > 0) {
@@ -150,7 +150,7 @@ export class AdminCandidateController {
         name,
         email,
         phone,
-        resumeUrl,
+        cvFile,
         jobId,
         status: status as AdminCandidateStatus,
         notes,

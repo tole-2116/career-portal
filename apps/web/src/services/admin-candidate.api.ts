@@ -151,7 +151,7 @@ export interface CandidateUpdatePayload {
   name: string;
   email: string;
   phone: string;
-  resumeUrl: string;
+  cvFile: string;
   jobId: string;
   status: Stage;
   notes: string;
