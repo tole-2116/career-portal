@@ -106,6 +106,7 @@ model Candidate {
   cvFile          String?        @db.Text
   experienceId     String?
   coverLetter     String?        @db.Text
+  highlights      Json           @default("[]")
   notes           String?        @db.Text
   rating          Int?           @default(0)
   formData        Json?

@@ -57,6 +57,14 @@ function readNotes(value: string | null): AdminCandidateListItem["notes"] {
   }];
 }
 
+/** Highlights lưu JSON array [{vi, en}] — đọc an toàn bất kể null/string/array. */
+function readHighlights(value: unknown): AdminCandidateLocalizedText[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => readLocalized(item))
+    .filter((item) => item.vi || item.en);
+}
+
 function mapCandidate(candidate: {
   id: string;
   code: string;
@@ -71,6 +79,7 @@ function mapCandidate(candidate: {
   cvFile: string | null;
   experienceId: string | null;
   experienceYears: number;
+  highlights: unknown;
   formData: unknown;
   notes: string | null;
   job: { title: unknown } | null;
@@ -102,7 +111,7 @@ function mapCandidate(candidate: {
     experienceId: candidate.experienceId,
     location: readFormLocation(candidate.formData),
     experience,
-    highlights: [],
+    highlights: readHighlights(candidate.highlights),
     notes: readNotes(candidate.notes),
   };
 }

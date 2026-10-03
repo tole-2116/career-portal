@@ -359,6 +359,7 @@ async function main() {
         appliedAt: new Date(c.appliedAt), // string -> Date
         cvFile: c.cvFile,
         coverLetter: "",
+        highlights: c.highlights,
         notes: "",
         rating: c.rating,
         formData: JSON.stringify({
