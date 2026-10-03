@@ -107,7 +107,7 @@ model Candidate {
   experienceId     String?
   coverLetter     String?        @db.Text
   highlights      Json           @default("[]")
-  notes           String?        @db.Text
+  notes           Json           @default("[]")
   rating          Int?           @default(0)
   formData        Json?
   created_at      DateTime       @default(now())

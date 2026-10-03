@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { adminCandidateService } from "../services/admin-candidate.service";
 import type {
   AdminCandidateFilterQuery,
+  AdminCandidateNote,
   AdminCandidateStatus,
   AdminCandidateStatusPayload,
   AdminCandidateUpdatePayload,
@@ -140,7 +141,7 @@ export class AdminCandidateController {
           ? payload.address.trim()
           : "__invalid__";
       const cvFile = typeof payload.cvFile === "string" ? payload.cvFile.trim() : "";
-      const notes = typeof payload.notes === "string" ? payload.notes : "";
+      const notes = payload.notes;
       const jobId = typeof payload.jobId === "string" ? payload.jobId.trim() : "";
       const status = payload.status;
 
@@ -151,6 +152,31 @@ export class AdminCandidateController {
       if (!cvFile) missing.push("cvFile");
       if (!jobId) missing.push("jobId");
       if (!status) missing.push("status");
+      if (!Array.isArray(notes)) {
+        return res.status(400).json({ success: false, error: "notes must be an array" });
+      }
+      const normalizedNotes: AdminCandidateNote[] = [];
+      for (const note of notes) {
+        if (!note || typeof note !== "object" || Array.isArray(note)) {
+          return res.status(400).json({ success: false, error: "Invalid note entry" });
+        }
+        const raw = note as unknown as Record<string, unknown>;
+        const body = raw.body;
+        if (!body || typeof body !== "object" || Array.isArray(body)) {
+          return res.status(400).json({ success: false, error: "Invalid note body" });
+        }
+        const localized = body as Record<string, unknown>;
+        const vi = typeof localized.vi === "string" ? localized.vi.trim() : "";
+        const en = typeof localized.en === "string" ? localized.en.trim() : "";
+        if (!vi && !en || vi.length > 500 || en.length > 500) {
+          return res.status(400).json({ success: false, error: "Note body must contain text up to 500 characters" });
+        }
+        normalizedNotes.push({
+          author: typeof raw.author === "string" ? raw.author : "",
+          at: typeof raw.at === "string" ? raw.at : "",
+          body: { vi: vi || en, en: en || vi },
+        });
+      }
       if (missing.length > 0) {
         return res.status(400).json({
           success: false,
@@ -184,8 +210,8 @@ export class AdminCandidateController {
         cvFile,
         jobId,
         status: status as AdminCandidateStatus,
-        notes,
-      });
+        notes: normalizedNotes,
+      }, req.user?.name ?? "");
 
       return res.json({ success: true, data: candidate });
     } catch (error) {

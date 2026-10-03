@@ -20,6 +20,12 @@ export interface AdminCandidateLocalizedText {
   en: string;
 }
 
+export interface AdminCandidateNote {
+  author: string;
+  at: string;
+  body: AdminCandidateLocalizedText;
+}
+
 export interface AdminCandidateListItem {
   id: string;
   code: string;
@@ -37,11 +43,7 @@ export interface AdminCandidateListItem {
   location: AdminCandidateLocalizedText;
   experience: AdminCandidateLocalizedText;
   highlights: AdminCandidateLocalizedText[];
-  notes: Array<{
-    author: string;
-    at: string;
-    body: AdminCandidateLocalizedText;
-  }>;
+  notes: AdminCandidateNote[];
 }
 
 export interface AdminCandidatePaginatedResponse {
@@ -65,5 +67,5 @@ export interface AdminCandidateUpdatePayload {
   cvFile: string;
   jobId: string;
   status: AdminCandidateStatus;
-  notes: string;
+  notes: AdminCandidateNote[];
 }

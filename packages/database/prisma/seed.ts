@@ -360,7 +360,7 @@ async function main() {
         cvFile: c.cvFile,
         coverLetter: "",
         highlights: c.highlights,
-        notes: "",
+        notes: c.notes,
         rating: c.rating,
         formData: JSON.stringify({
           fullName: c.name,

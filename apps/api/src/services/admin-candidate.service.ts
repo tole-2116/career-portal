@@ -3,6 +3,7 @@ import type {
   AdminCandidateFilterQuery,
   AdminCandidateListItem,
   AdminCandidateLocalizedText,
+  AdminCandidateNote,
   AdminCandidatePaginatedResponse,
   AdminCandidateStatus,
   AdminCandidateUpdatePayload,
@@ -48,13 +49,28 @@ function readFormLocation(value: unknown): AdminCandidateLocalizedText {
   return readLocalized(formData.location);
 }
 
-function readNotes(value: string | null): AdminCandidateListItem["notes"] {
-  if (!value?.trim()) return [];
-  return [{
-    author: "",
-    at: "",
-    body: { vi: value, en: value },
-  }];
+function readNotes(value: unknown): AdminCandidateNote[] {
+  if (typeof value === "string") {
+    if (!value.trim()) return [];
+    return [{ author: "", at: "", body: { vi: value, en: value } }];
+  }
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item): AdminCandidateNote[] => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const raw = item as Record<string, unknown>;
+    const body = readLocalized(raw.body);
+    if (!body.vi && !body.en) return [];
+    return [{
+      author: typeof raw.author === "string" ? raw.author : "",
+      at: typeof raw.at === "string" ? raw.at : "",
+      body,
+    }];
+  });
+}
+
+/** Khóa định danh note để so sánh note client gửi với note đã lưu. */
+function noteKey(note: AdminCandidateNote): string {
+  return `${note.author}|${note.at}|${note.body.vi}|${note.body.en}`;
 }
 
 /** Highlights lưu JSON array [{vi, en}] — đọc an toàn bất kể null/string/array. */
@@ -81,9 +97,9 @@ function mapCandidate(candidate: {
   experienceYears: number;
   highlights: unknown;
   formData: unknown;
-  notes: string | null;
-  job: { title: unknown } | null;
-  experienceTaxonomy: { name: unknown; type: string } | null;
+  notes: unknown;
+  job?: { title: unknown } | null;
+  experienceTaxonomy?: { name: unknown; type: string } | null;
 }): AdminCandidateListItem {
   const taxonomyExperience = readLocalized(candidate.experienceTaxonomy?.name);
   const experience = taxonomyExperience.vi || taxonomyExperience.en
@@ -193,7 +209,11 @@ export class AdminCandidateService {
     return mapCandidate(updated);
   }
 
-  async update(id: string, payload: AdminCandidateUpdatePayload): Promise<AdminCandidateListItem> {
+  async update(
+    id: string,
+    payload: AdminCandidateUpdatePayload,
+    actorName: string,
+  ): Promise<AdminCandidateListItem> {
     if (!candidateStatuses.includes(payload.status)) {
       throw new Error(`Invalid status: ${payload.status}`);
     }
@@ -203,6 +223,23 @@ export class AdminCandidateService {
       select: { id: true },
     });
     if (!job) throw new Error(`Invalid jobId: ${payload.jobId}`);
+
+    // Notes hiện có trong DB — dùng để nhận diện note cũ vs note mới.
+    const current = await db.candidate.findFirst({
+      where: { id, isdelete: false },
+      select: { notes: true },
+    });
+    const storedNotes = readNotes(current?.notes);
+    const storedKeys = new Set(storedNotes.map(noteKey));
+
+    const now = new Date().toISOString();
+    const nextNotes: AdminCandidateNote[] = payload.notes.map((note) => {
+      const key = noteKey(note);
+      // Note đã tồn tại: giữ nguyên author/at (client không được tin cậy để sửa lịch sử).
+      if (storedKeys.has(key)) return note;
+      // Note mới: backend gán author theo user đăng nhập và thời gian hiện tại.
+      return { author: actorName, at: now, body: note.body };
+    });
 
     const updated = await db.candidate.update({
       where: { id, isdelete: false },
@@ -214,7 +251,7 @@ export class AdminCandidateService {
         cvFile: payload.cvFile.trim(),
         jobId: payload.jobId,
         status: payload.status,
-        notes: payload.notes.trim() || null,
+        notes: nextNotes,
       },
       include: {
         job: { select: { title: true } },

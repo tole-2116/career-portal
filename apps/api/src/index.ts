@@ -8,6 +8,7 @@ import { db } from "@career-portal/database";
 import { ApplyJobSchema } from "@career-portal/types";
 import { adminJobsRoutes } from "./routes/admin-jobs.routes";
 import { adminCandidateRoutes } from "./routes/admin-candidates.routes";
+import { authRoutes } from "./routes/auth.routes";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -64,6 +65,9 @@ app.post("/api/jobs/:jobId/apply", async (req, res) => {
     res.status(500).json({ error: "Failed to submit application" });
   }
 });
+
+// API Auth
+app.use("/api/auth", authRoutes);
 
 // API Admin: Job CRUD routes
 app.use("/api/admin/jobs", adminJobsRoutes);

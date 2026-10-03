@@ -10,6 +10,7 @@
 
 import type { Candidate, Stage } from "@/data/candidates";
 import type { Localized } from "@/lib/i18n";
+import { getApiToken } from "@/lib/auth-store";
 
 const API_BASE = "/api/admin/candidates";
 
@@ -20,6 +21,12 @@ export type ApiCandidateStatus = "NEW" | "SCREENING" | "INTERVIEW" | "OFFER" | "
 interface ApiLocalizedText {
   vi: string;
   en: string;
+}
+
+export interface CandidateNote {
+  author: string;
+  at: string;
+  body: ApiLocalizedText;
 }
 
 interface ApiCandidate {
@@ -39,7 +46,7 @@ interface ApiCandidate {
   location: ApiLocalizedText;
   experience: ApiLocalizedText;
   highlights: ApiLocalizedText[];
-  notes: Array<{ author: string; at: string; body: ApiLocalizedText }>;
+  notes: CandidateNote[];
 }
 
 interface ApiEnvelope<T> {
@@ -110,8 +117,13 @@ function mapApiCandidate(raw: ApiCandidate): Candidate {
 
 /** Fetch wrapper: unwrap `{ success, data }`, ném lỗi kèm message từ backend. */
 async function request<T>(input: string, init?: RequestInit): Promise<T> {
+  const token = getApiToken();
   const response = await fetch(input, {
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers ?? {}),
+    },
     ...init,
   });
 
@@ -160,7 +172,7 @@ export interface CandidateUpdatePayload {
   cvFile: string;
   jobId: string;
   status: Stage;
-  notes: string;
+  notes: CandidateNote[];
 }
 
 /** GET /api/admin/candidates — danh sách ứng viên (phân trang, lọc, tìm kiếm). */

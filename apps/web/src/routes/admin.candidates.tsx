@@ -213,7 +213,7 @@ function AdminCandidatesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editStage, setEditStage] = useState<Stage>("new");
-  const [editNotes, setEditNotes] = useState("");
+  const [editNoteBody, setEditNoteBody] = useState("");
 
   useEffect(() => {
     document.title = getSafeMetaText("admin.candidates.meta.title", "Ứng viên — TalentHub HR");
@@ -287,7 +287,7 @@ function AdminCandidatesPage() {
   const handleRowClick = (candidate: Candidate) => {
     setSelectedId(candidate.id);
     setEditStage(candidate.stage);
-    setEditNotes(candidate.notes[0]?.body.vi ?? "");
+    setEditNoteBody("");
   };
   const emptyRowsCount = candidates.length > 0 && candidates.length < PAGE_SIZE
     ? PAGE_SIZE - candidates.length
@@ -324,7 +324,16 @@ function AdminCandidatesPage() {
         cvFile: selected.cvFile,
         jobId: selected.jobId,
         status: editStage,
-        notes: editNotes,
+        notes: editNoteBody.trim()
+          ? [
+              ...selected.notes,
+              {
+                author: "",
+                at: "",
+                body: { vi: editNoteBody.trim(), en: editNoteBody.trim() },
+              },
+            ]
+          : selected.notes,
       });
       setCandidates((prev) => prev.map((candidate) => (
         candidate.id === updated.id ? updated : candidate
@@ -771,10 +780,13 @@ function AdminCandidatesPage() {
                 <p className="text-sm font-medium">{t("admin.candidates.notes")}</p>
                 {selected.notes.length > 0 && (
                   <ul className="space-y-3">
-                    {selected.notes.map((note) => (
-                      <li key={note.at} className="rounded-md border border-border p-3">
+                    {selected.notes.map((note, index) => (
+                      <li
+                        key={`${note.at}-${index}`}
+                        className="rounded-md border border-border p-3"
+                      >
                         <p className="text-xs text-muted-foreground">
-                          {note.author} · {note.at}
+                          {note.author || t("admin.demoNote")} · {note.at}
                         </p>
                         <p className="mt-1 text-sm">{tr(note.body)}</p>
                       </li>
@@ -785,8 +797,8 @@ function AdminCandidatesPage() {
                   rows={3}
                   maxLength={500}
                   placeholder={t("admin.candidates.notes")}
-                  value={editNotes}
-                  onChange={(e) => setEditNotes(e.target.value)}
+                  value={editNoteBody}
+                  onChange={(e) => setEditNoteBody(e.target.value)}
                   disabled={isSubmitting}
                 />
               </div>
