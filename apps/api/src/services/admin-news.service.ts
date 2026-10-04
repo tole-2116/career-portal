@@ -97,15 +97,28 @@ export class AdminNewsService {
     ]);
 
     // Load category labels từ Taxonomy
-    const categoryIds = Array.from(new Set(news.map((n) => n.categoryId).filter(Boolean)));
+    const categoryIds = Array.from(new Set(news.map((n: { categoryId: string }) => n.categoryId).filter(Boolean)));
     const categories = await db.taxonomy.findMany({
       where: { code: { in: categoryIds }, type: "newsCategory" },
     });
     const categoryMap = new Map(
-      categories.map((c) => [c.code, { id: c.id, code: c.code, type: c.type, label: readLocalized(c.name) }]),
+      categories.map((c: { id: string; code: string; type: string; name: unknown }) => [c.code, { id: c.id, code: c.code, type: c.type, label: readLocalized(c.name) }]),
     );
 
-    const formatted: NewsListItem[] = news.map((item) => ({
+    const formatted: NewsListItem[] = news.map((item: {
+      id: string;
+      code: string;
+      slug: string;
+      categoryId: string;
+      coverUrl: string | null;
+      date: Date;
+      author: { name: string };
+      published: boolean;
+      featured: boolean;
+      title: unknown;
+      excerpt: unknown;
+      body: unknown;
+    }) => ({
       id: item.id,
       code: item.code,
       slug: item.slug,
@@ -299,7 +312,7 @@ export class AdminNewsService {
       where: { type: "newsCategory" },
     });
 
-    return taxonomies.map((t) => ({
+    return taxonomies.map((t: { id: string; code: string; type: string; name: unknown }) => ({
       id: t.id,
       code: t.code,
       type: t.type,

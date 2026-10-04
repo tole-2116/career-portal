@@ -166,9 +166,9 @@ function AdminNewsPage() {
       const result = await fetchNews({
         page,
         limit: PAGE_SIZE,
-        search: keyword.trim() || undefined,
-        categoryId: categoryFilter === ALL ? undefined : categoryFilter,
-        published: publishedFilter === ALL ? undefined : publishedFilter === "published",
+        ...(keyword.trim() ? { search: keyword.trim() } : {}),
+        ...(categoryFilter !== ALL ? { categoryId: categoryFilter } : {}),
+        ...(publishedFilter !== ALL ? { published: publishedFilter === "published" } : {}),
       });
       setArticles(result.articles);
       setTotalCount(result.total);

@@ -260,16 +260,6 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     });
   }, [taxonomiesReady, taxonomies]);
 
-  const persist = useCallback((next: Job[]) => {
-    setList(next);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
-
   const saveJob = useCallback((job: Job) => {
     let ok = false;
     setList((current) => {

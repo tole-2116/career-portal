@@ -209,7 +209,6 @@ function AdminCandidatesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [savingId, setSavingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editStage, setEditStage] = useState<Stage>("new");
@@ -289,25 +288,6 @@ function AdminCandidatesPage() {
     setEditStage(candidate.stage);
     setEditNoteBody("");
   };
-  async function changeStage(id: string, stage: Stage) {
-    if (savingId) return;
-    const previous = candidates.find((candidate) => candidate.id === id)?.stage;
-    if (!previous || previous === stage) return;
-
-    setSavingId(id);
-    try {
-      const updated = await adminCandidateApi.updateStatus(id, stage);
-      setCandidates((prev) => prev.map((candidate) => (
-        candidate.id === id ? updated : candidate
-      )));
-      toast.success(t("admin.candidates.stageUpdated"));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("admin.candidates.stageUpdateFailed"));
-    } finally {
-      setSavingId(null);
-    }
-  }
-
   async function submitCandidate() {
     if (!selected || isSubmitting) return;
     setIsSubmitting(true);
@@ -316,7 +296,7 @@ function AdminCandidatesPage() {
         name: selected.name,
         email: selected.email,
         phone: selected.phone,
-        address: selected.address,
+        ...(selected.address ? { address: selected.address } : {}),
         cvFile: selected.cvFile,
         jobId: selected.jobId,
         status: editStage,
@@ -543,7 +523,7 @@ function AdminCandidatesPage() {
                     </TableRow>
                   );
                 })}
-              </TableBody>
+            </TableBody>
           </Table>
         </div>
 
