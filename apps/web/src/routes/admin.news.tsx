@@ -333,9 +333,6 @@ function AdminNewsPage() {
     }
   };
 
-  const emptyRowsCount =
-    articles.length > 0 && articles.length < PAGE_SIZE ? PAGE_SIZE - articles.length : 0;
-
   const publishedLabel = (published: boolean) =>
     published
       ? tr({ vi: "Đã xuất bản", en: "Published" })
@@ -426,12 +423,15 @@ function AdminNewsPage() {
             </Select>
           </div>
 
-          {/* Bảng desktop: header dính + body cuộn + footer phân trang */}
+          {/* Bảng desktop: body cuộn + footer phân trang cố định */}
           <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
             <div className="shrink-0 overflow-hidden rounded-t-xl border-b-2 border-border/80 bg-muted/60 backdrop-blur-sm">
               <Table className="table-fixed w-full">
                 <TableHeader className="bg-transparent">
                   <TableRow className="h-10 border-none hover:bg-transparent">
+                    <TableHead className="w-[60px] text-center text-xs font-semibold text-foreground/80 select-none">
+                      {tr({ vi: "STT", en: "No." })}
+                    </TableHead>
                     <TableHead className="w-[110px] pl-4 text-xs font-semibold text-foreground/80 select-none">
                       {tr({ vi: "Ảnh", en: "Thumb" })}
                     </TableHead>
@@ -458,20 +458,20 @@ function AdminNewsPage() {
               </Table>
             </div>
 
-            <div className="relative min-h-0 flex-1 overflow-hidden [&>div]:h-full [&>div]:overflow-hidden">
-              <Table className="table-fixed h-full w-full">
-                <TableBody className="[&_tr]:h-[10%]">
+            <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden [&>div]:overflow-visible [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
+              <Table className="table-fixed w-full">
+                <TableBody>
                   {isLoading && (
-                    <TableRow className="h-full">
-                      <TableCell colSpan={7} className="p-2 text-center">
-                        <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
+                    <TableRow>
+                      <TableCell colSpan={8} className="p-2 text-center text-sm text-muted-foreground">
+                        <Loader2 className="mx-auto h-5 w-5 animate-spin" />
                       </TableCell>
                     </TableRow>
                   )}
                   {!isLoading && articles.length === 0 && (
-                    <TableRow className="h-full">
+                    <TableRow>
                       <TableCell
-                        colSpan={7}
+                        colSpan={8}
                         className="p-2 text-center text-sm text-muted-foreground"
                       >
                         {tr({ vi: "Chưa có bài viết nào.", en: "No articles yet." })}
@@ -479,12 +479,15 @@ function AdminNewsPage() {
                     </TableRow>
                   )}
                   {!isLoading &&
-                    articles.map((article) => {
+                    articles.map((article, index) => {
                       const category = categories.find(
                         (item) => item.id === article.categoryId,
                       );
                       return (
                         <TableRow key={article.id} className="hover:bg-muted/50 transition-colors">
+                          <TableCell className="w-[60px] text-center tabular-nums text-muted-foreground">
+                            {(page - 1) * PAGE_SIZE + index + 1}
+                          </TableCell>
                           <TableCell className="w-[110px] pl-4">
                             <img
                               src={article.cover}
@@ -539,40 +542,11 @@ function AdminNewsPage() {
                         </TableRow>
                       );
                     })}
-                  {!isLoading &&
-                    emptyRowsCount > 0 &&
-                    Array.from({ length: emptyRowsCount }).map((_, index) => (
-                      <TableRow
-                        key={`empty-row-${index}`}
-                        aria-hidden
-                        className="border-b border-border/50 hover:bg-transparent pointer-events-none select-none"
-                      >
-                        <TableCell className="py-3 px-4 w-[110px] text-transparent">
-                          &nbsp;
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-transparent">&nbsp;</TableCell>
-                        <TableCell className="py-3 px-4 w-[160px] text-transparent">
-                          &nbsp;
-                        </TableCell>
-                        <TableCell className="py-3 px-4 w-[130px] text-transparent">
-                          &nbsp;
-                        </TableCell>
-                        <TableCell className="py-3 px-4 w-[120px] text-transparent">
-                          &nbsp;
-                        </TableCell>
-                        <TableCell className="py-3 px-4 w-[120px] text-transparent">
-                          &nbsp;
-                        </TableCell>
-                        <TableCell className="py-3 px-4 w-[100px] text-transparent">
-                          &nbsp;
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
+                  </TableBody>
               </Table>
             </div>
 
-            <div className="shrink-0 border-t border-border/70 bg-muted/30 px-4 py-3 flex items-center justify-between gap-3 select-none">
+            <div className="h-10 min-h-10 shrink-0 border-t border-border/70 bg-muted/30 px-4 py-0 flex items-center justify-between gap-3 select-none">
               <div className="text-xs text-muted-foreground">
                 {totalCount > 0 ? (
                   <>
