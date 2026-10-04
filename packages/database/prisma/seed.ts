@@ -106,11 +106,12 @@ const experienceTaxonomies = [
 import { candidates } from "../../../apps/web/src/data/candidates";
 
 // News articles + categories (inline — news-store.tsx imports React and cannot be used in seed)
+// `code` trùng với `id` để News.categoryId khớp Taxonomy.code khi API lọc theo chuyên mục.
 const newsCategories = [
-  { id: "company", code: "news-company", label: { vi: "Hoạt động công ty", en: "Company news" }, slug: "company-news" },
-  { id: "culture", code: "news-culture", label: { vi: "Văn hóa", en: "Culture" }, slug: "culture" },
-  { id: "event", code: "news-event", label: { vi: "Sự kiện", en: "Events" }, slug: "events" },
-  { id: "recruitment", code: "news-recruitment", label: { vi: "Tuyển dụng", en: "Recruitment" }, slug: "recruitment" },
+  { id: "company", code: "company", label: { vi: "Hoạt động công ty", en: "Company news" }, slug: "company-news" },
+  { id: "culture", code: "culture", label: { vi: "Văn hóa", en: "Culture" }, slug: "culture" },
+  { id: "event", code: "event", label: { vi: "Sự kiện", en: "Events" }, slug: "events" },
+  { id: "recruitment", code: "recruitment", label: { vi: "Tuyển dụng", en: "Recruitment" }, slug: "recruitment" },
 ];
 
 const articles = [
@@ -178,13 +179,13 @@ async function main() {
 
   await prisma.$transaction(async (tx) => {
     /* ---- 1. Taxonomies (bảng độc lập, seed trước) ---- */
-    const taxonomyDefs: Array<{ type: string; label: { vi: string; en: string } }> = [];
-    const seenTax = new Map<string, { type: string; label: { vi: string; en: string } }>();
-    const addTax = (type: string, label: { vi: string; en: string }) => {
+    const taxonomyDefs: Array<{ type: string; label: { vi: string; en: string }; code?: string }> = [];
+    const seenTax = new Map<string, { type: string; label: { vi: string; en: string }; code?: string }>();
+    const addTax = (type: string, label: { vi: string; en: string }, code?: string) => {
       const key = `${type}:${label.en}`;
       if (!seenTax.has(key)) {
-        seenTax.set(key, { type, label });
-        taxonomyDefs.push({ type, label });
+        seenTax.set(key, { type, label, code });
+        taxonomyDefs.push({ type, label, code });
       }
     };
     for (const j of jobs) {
@@ -196,18 +197,28 @@ async function main() {
       for (const loc of j.locations) addTax("location", loc);
     }
     for (const nc of newsCategories) {
-      addTax("newsCategory", nc.label);
+      // Dùng nc.code (trùng nc.id) để News.categoryId khớp Taxonomy.code khi API lọc.
+      addTax("newsCategory", nc.label, nc.code);
     }
 
     for (const def of taxonomyDefs) {
-      const code = slugify(def.label.en);
+      const code = def.code ?? slugify(def.label.en);
       const slug = slugify(def.label.en);
       const name = asLocalized(def.label);
-      const tax = await tx.taxonomy.upsert({
-        where: { code },
-        update: { type: def.type, name, slug },
-        create: { code, type: def.type, name, slug, ...audit },
+      const existingTaxonomy = await tx.taxonomy.findFirst({
+        where: {
+          type: def.type,
+          OR: [{ code }, { slug }],
+        },
       });
+      const tax = existingTaxonomy
+        ? await tx.taxonomy.update({
+            where: { id: existingTaxonomy.id },
+            data: { code, type: def.type, name, slug, ...audit },
+          })
+        : await tx.taxonomy.create({
+            data: { code, type: def.type, name, slug, ...audit },
+          });
       taxonomyMap.set(`${def.type}:${code}`, tax.id);
     }
     console.log(`Seeded ${taxonomyDefs.length} Taxonomies`);
@@ -386,9 +397,8 @@ async function main() {
     if (!authorId) throw new Error("Missing admin user mapping for news author");
 
     for (const a of articles) {
-      // Tìm categoryId từ newsCategories mapping
-      const categoryDef = newsCategories.find((nc) => nc.code === a.categoryId);
-      const categoryId = categoryDef ? categoryDef.code : a.categoryId;
+      // categoryId đã khớp Taxonomy.code (company/culture/event/recruitment).
+      const categoryId = a.categoryId;
 
       const newsData = {
           code: a.id, // mock code -> cột code
@@ -401,6 +411,7 @@ async function main() {
           published: a.published,
           featured: a.featured,
           excerpt: ensureBilingualJSON(a.excerpt),
+          body: ensureBilingualJSON(a.body),
           ...audit,
         };
 

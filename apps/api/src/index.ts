@@ -4,10 +4,13 @@ import "dotenv/config";
 
 import express from "express";
 import cors from "cors";
+import path from "node:path";
 import { db } from "@career-portal/database";
 import { ApplyJobSchema } from "@career-portal/types";
 import { adminJobsRoutes } from "./routes/admin-jobs.routes";
 import { adminCandidateRoutes } from "./routes/admin-candidates.routes";
+import { adminNewsRoutes } from "./routes/admin-news.routes";
+import { newsRoutes } from "./routes/news.routes";
 import { authRoutes } from "./routes/auth.routes";
 
 const app = express();
@@ -15,6 +18,9 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }));
 app.use(express.json());
+
+// Phục vụ ảnh bìa tin tức đã upload (apps/api/uploads).
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // API: Lấy danh sách jobs (mở)
 app.get("/api/jobs", async (req, res) => {
@@ -69,9 +75,13 @@ app.post("/api/jobs/:jobId/apply", async (req, res) => {
 // API Auth
 app.use("/api/auth", authRoutes);
 
-// API Admin: Job CRUD routes
+// API Admin: CRUD routes
 app.use("/api/admin/jobs", adminJobsRoutes);
 app.use("/api/admin/candidates", adminCandidateRoutes);
+app.use("/api/admin/news", adminNewsRoutes);
+
+// API public: published news
+app.use("/api/news", newsRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

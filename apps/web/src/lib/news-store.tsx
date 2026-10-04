@@ -10,8 +10,15 @@ import {
 
 import { defaultMedia } from "@/data/media";
 import type { Localized } from "@/lib/i18n";
-
-const STORAGE_KEY = "talenthub-news";
+import {
+  createNews,
+  createNewsCategory,
+  deleteNews,
+  deleteNewsCategory,
+  fetchNews,
+  fetchNewsCategories,
+  updateNews,
+} from "@/services/admin-news.api";
 
 export type NewsCategory = { id: string; label: Localized };
 
@@ -116,31 +123,12 @@ export const defaultArticles: Article[] = [
   },
 ];
 
-function readStored(): { articles: Article[]; categories: NewsCategory[] } | null {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<{
-      articles: Article[];
-      categories: NewsCategory[];
-    }>;
-    return {
-      articles: Array.isArray(parsed.articles)
-        ? parsed.articles.map((item) => ({ ...item, author: item.author || "TalentHub" }))
-        : defaultArticles,
-      categories: Array.isArray(parsed.categories) ? parsed.categories : defaultCategories,
-    };
-  } catch {
-    return null;
-  }
-}
-
 export function makeSlug(value: string, existing: string[]): string {
   const base =
     value
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[̀-ͯ]/g, "")
       .replace(/đ/g, "d")
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "")
@@ -173,120 +161,95 @@ export function emptyArticle(author = "TalentHub"): Article {
 type NewsValue = {
   articles: Article[];
   categories: NewsCategory[];
-  saveArticle: (article: Article) => void;
-  deleteArticle: (id: string) => void;
-  saveCategory: (category: NewsCategory) => void;
-  deleteCategory: (id: string) => void;
-  resetNews: () => void;
+  /** Trạng thái đang tải dữ liệu từ API (dùng cho spinner). */
+  loading: boolean;
+  /** Lỗi API cuối cùng nếu có (UI toast khi cần). */
+  error: string | null;
+  /** Tạo mới hoặc cập nhật bài viết — ném lỗi nếu API fail. */
+  saveArticle: (article: Article) => Promise<void>;
+  deleteArticle: (id: string) => Promise<void>;
+  saveCategory: (category: NewsCategory) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  /** Đọc lại toàn bộ dữ liệu từ API. */
+  refresh: () => Promise<void>;
 };
 
 const NewsContext = createContext<NewsValue | null>(null);
 
 export function NewsProvider({ children }: { children: ReactNode }) {
-  const [articles, setArticles] = useState<Article[]>(defaultArticles);
-  const [categories, setCategories] = useState<NewsCategory[]>(defaultCategories);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [categories, setCategories] = useState<NewsCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [newsResult, categoryResult] = await Promise.all([
+        fetchNews({ limit: 100 }),
+        fetchNewsCategories(),
+      ]);
+      setArticles(newsResult.articles);
+      setCategories(categoryResult.length ? categoryResult : defaultCategories);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không tải được tin tức");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const stored = readStored();
-    if (!stored) return;
-    setArticles(stored.articles);
-    setCategories(stored.categories);
-  }, []);
-
-  const persist = useCallback((nextArticles: Article[], nextCategories: NewsCategory[]) => {
-    try {
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ articles: nextArticles, categories: nextCategories }),
-      );
-    } catch {
-      /* ignore quota errors */
-    }
-  }, []);
+    // Bỏ qua SSR — fetch chỉ chạy phía client.
+    if (typeof window !== "undefined") void refresh();
+  }, [refresh]);
 
   const saveArticle = useCallback(
-    (article: Article) => {
-      setArticles((current) => {
-        const exists = current.some((item) => item.id === article.id);
-        const next = exists
-          ? current.map((item) => (item.id === article.id ? article : item))
-          : [article, ...current];
-        setCategories((cats) => {
-          persist(next, cats);
-          return cats;
-        });
-        return next;
-      });
+    async (article: Article) => {
+      if (article.id) {
+        const updated = await updateNews(article.id, article);
+        setArticles((current) => current.map((item) => (item.id === article.id ? updated : item)));
+      } else {
+        const created = await createNews(article);
+        setArticles((current) => [created, ...current]);
+      }
     },
-    [persist],
+    [],
   );
 
-  const deleteArticle = useCallback(
-    (id: string) => {
-      setArticles((current) => {
-        const next = current.filter((item) => item.id !== id);
-        setCategories((cats) => {
-          persist(next, cats);
-          return cats;
-        });
-        return next;
-      });
-    },
-    [persist],
-  );
+  const deleteArticle = useCallback(async (id: string) => {
+    await deleteNews(id);
+    setArticles((current) => current.filter((item) => item.id !== id));
+  }, []);
 
-  const saveCategory = useCallback(
-    (category: NewsCategory) => {
-      setCategories((current) => {
-        const exists = current.some((item) => item.id === category.id);
-        const next = exists
-          ? current.map((item) => (item.id === category.id ? category : item))
-          : [...current, category];
-        setArticles((list) => {
-          persist(list, next);
-          return list;
-        });
-        return next;
-      });
-    },
-    [persist],
-  );
+  const saveCategory = useCallback(async (category: NewsCategory) => {
+    const created = await createNewsCategory(category);
+    setCategories((current) => {
+      const exists = current.some((item) => item.id === created.id);
+      return exists
+        ? current.map((item) => (item.id === created.id ? created : item))
+        : [...current, created];
+    });
+  }, []);
 
-  const deleteCategory = useCallback(
-    (id: string) => {
-      setCategories((current) => {
-        const next = current.filter((item) => item.id !== id);
-        setArticles((list) => {
-          persist(list, next);
-          return list;
-        });
-        return next;
-      });
-    },
-    [persist],
-  );
-
-  const resetNews = useCallback(() => {
-    setArticles(defaultArticles);
-    setCategories(defaultCategories);
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      /* ignore */
-    }
+  const deleteCategory = useCallback(async (id: string) => {
+    await deleteNewsCategory(id);
+    setCategories((current) => current.filter((item) => item.id !== id));
   }, []);
 
   const value = useMemo<NewsValue>(
     () => ({
       articles,
       categories,
+      loading,
+      error,
       saveArticle,
       deleteArticle,
       saveCategory,
       deleteCategory,
-      resetNews,
+      refresh,
     }),
-    [articles, categories, saveArticle, deleteArticle, saveCategory, deleteCategory, resetNews],
+    [articles, categories, loading, error, saveArticle, deleteArticle, saveCategory, deleteCategory, refresh],
   );
 
   return <NewsContext.Provider value={value}>{children}</NewsContext.Provider>;
