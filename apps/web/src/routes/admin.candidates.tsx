@@ -289,10 +289,6 @@ function AdminCandidatesPage() {
     setEditStage(candidate.stage);
     setEditNoteBody("");
   };
-  const emptyRowsCount = candidates.length > 0 && candidates.length < PAGE_SIZE
-    ? PAGE_SIZE - candidates.length
-    : 0;
-
   async function changeStage(id: string, stage: Stage) {
     if (savingId) return;
     const previous = candidates.find((candidate) => candidate.id === id)?.stage;
@@ -438,7 +434,7 @@ function AdminCandidatesPage() {
         </Select>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
+      <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
         <div className="shrink-0 overflow-hidden rounded-t-xl border-b-2 border-border/80 bg-muted/60 backdrop-blur-sm">
           <Table className="table-fixed w-full">
             <TableHeader className="bg-transparent">
@@ -468,18 +464,18 @@ function AdminCandidatesPage() {
           </Table>
         </div>
 
-        <div className="relative min-h-0 flex-1 overflow-hidden [&>div]:h-full [&>div]:overflow-hidden">
-          <Table className="table-fixed h-full w-full">
-            <TableBody className="[&_tr]:h-[10%]">
+        <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden [&>div]:overflow-visible [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
+          <Table className="table-fixed w-full">
+            <TableBody>
               {isLoading && (
-                <TableRow className="h-full">
+                <TableRow>
                   <TableCell colSpan={7} className="p-2 text-center text-sm text-muted-foreground">
                     <Loader2 className="mx-auto h-5 w-5 animate-spin" />
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && candidates.length === 0 && (
-                <TableRow className="h-full">
+                <TableRow>
                   <TableCell colSpan={7} className="p-2 text-center text-sm text-muted-foreground">
                     {t("admin.candidates.empty")}
                   </TableCell>
@@ -547,27 +543,11 @@ function AdminCandidatesPage() {
                     </TableRow>
                   );
                 })}
-              {!isLoading && emptyRowsCount > 0 &&
-                Array.from({ length: emptyRowsCount }).map((_, index) => (
-                  <TableRow
-                    key={`empty-row-${index}`}
-                    aria-hidden
-                    className="border-b border-border/50 hover:bg-transparent pointer-events-none select-none"
-                  >
-                    <TableCell className="py-3 px-4 w-[60px] text-transparent">&nbsp;</TableCell>
-                    <TableCell className="py-3 px-4 w-[240px] text-transparent">&nbsp;</TableCell>
-                    <TableCell className="py-3 px-4 w-[200px] text-transparent">&nbsp;</TableCell>
-                    <TableCell className="py-3 px-4 w-[140px] text-transparent">&nbsp;</TableCell>
-                    <TableCell className="py-3 px-4 w-[130px] text-transparent">&nbsp;</TableCell>
-                    <TableCell className="py-3 px-4 w-[110px] text-transparent">&nbsp;</TableCell>
-                    <TableCell className="py-3 px-4 w-[100px] text-transparent">&nbsp;</TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
+              </TableBody>
           </Table>
         </div>
 
-        <div className="shrink-0 border-t border-border/70 bg-muted/30 px-4 py-3 flex items-center justify-between gap-3 select-none">
+        <div className="h-10 min-h-10 shrink-0 border-t border-border/70 bg-muted/30 px-4 py-0 flex items-center justify-between gap-3 select-none">
           {/* Phía trái: Đếm số dòng */}
           <div className="text-xs text-muted-foreground">
             {totalCount > 0 ? (
