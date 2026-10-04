@@ -25,6 +25,15 @@ export function signToken(userId: string): string {
 }
 
 /** Xác thực Bearer token, load user active từ DB, gắn vào req.user. */
+export function requireRole(...roles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ success: false, error: "Forbidden" });
+    }
+    return next();
+  };
+}
+
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
     const header = req.headers.authorization;

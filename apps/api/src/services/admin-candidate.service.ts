@@ -139,7 +139,7 @@ export class AdminCandidateService {
       orderBy: { code: "asc" },
       select: { id: true, code: true, type: true, name: true },
     });
-    return rows.map((row) => ({
+    return rows.map((row: { id: string; code: string; type: string; name: unknown }) => ({
       id: row.id,
       code: row.code,
       type: row.type,

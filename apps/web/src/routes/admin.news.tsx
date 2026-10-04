@@ -1,6 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Pencil, Plus, RotateCcw, Trash2, Upload } from "lucide-react";
-import { Suspense, lazy, useRef, useState } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Trash2,
+  Upload,
+} from "lucide-react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -46,7 +56,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { heroLibrary, cultureLibrary } from "@/data/media";
 import { useI18n } from "@/lib/i18n";
 import { useLanguageConfig } from "@/lib/language-config";
-import { emptyArticle, makeSlug, toHtml, useNews, type Article } from "@/lib/news-store";
+import { emptyArticle, makeSlug, useNews, type Article } from "@/lib/news-store";
 import { useSiteConfig } from "@/lib/site-config";
 
 const RichTextEditor = lazy(() =>
@@ -72,6 +82,8 @@ export const Route = createFileRoute("/admin/news")({
   component: AdminNewsPage,
 });
 
+const PAGE_SIZE = 10;
+
 const coverLibrary = [...heroLibrary, ...cultureLibrary].filter(
   (item, index, list) => list.findIndex((other) => other.id === item.id) === index,
 );
@@ -82,12 +94,19 @@ function AdminNewsPage() {
   const {
     articles,
     categories,
-    saveArticle,
     deleteArticle,
     saveCategory,
     deleteCategory,
     resetNews,
   } = useNews();
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(articles.length / PAGE_SIZE));
+  const totalCount = articles.length;
+  const pagedArticles = articles.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const companyName = tr(config.copy.brand) || "TalentHub";
   const [draft, setDraft] = useState<Article | null>(null);
@@ -113,33 +132,6 @@ function AdminNewsPage() {
       title,
       articles.filter((item) => item.id !== id).map((item) => item.slug),
     );
-
-  const persist = (published: boolean) => {
-    if (!draft) return;
-    const title = draft.title.vi || draft.title.en;
-    if (!title.trim()) {
-      toast.error(tr({ vi: "Vui lòng nhập tiêu đề.", en: "Please enter a title." }));
-      return;
-    }
-    const slug = draft.slug.trim() || autoSlug(title, draft.id);
-    saveArticle({
-      ...draft,
-      slug,
-      published,
-      author: draft.author.trim() || companyName,
-      body: {
-        ...draft.body,
-        vi: toHtml(draft.body.vi),
-        en: toHtml(draft.body.en),
-      },
-    });
-    setDraft(null);
-    toast.success(
-      published
-        ? tr({ vi: "Đã xuất bản bài viết.", en: "Article published." })
-        : tr({ vi: "Đã lưu bản nháp.", en: "Draft saved." }),
-    );
-  };
 
   const onCoverFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -182,84 +174,186 @@ function AdminNewsPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="articles" className="mt-5 space-y-4">
+          <TabsContent value="articles" className="mt-5 flex min-h-0 flex-1 flex-col space-y-4 overflow-hidden">
             {articles.length === 0 ? (
               <p className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
                 {tr({ vi: "Chưa có bài viết nào.", en: "No articles yet." })}
               </p>
             ) : (
               <>
-                {/* Table on desktop */}
-                <div className="hidden overflow-hidden rounded-xl border border-border bg-card md:block">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-24">{tr({ vi: "Ảnh", en: "Thumb" })}</TableHead>
-                        <TableHead>{tr({ vi: "Tiêu đề", en: "Title" })}</TableHead>
-                        <TableHead>{tr({ vi: "Tác giả", en: "Author" })}</TableHead>
-                        <TableHead>{tr({ vi: "Ngày tạo", en: "Created" })}</TableHead>
-                        <TableHead>{tr({ vi: "Trạng thái", en: "Status" })}</TableHead>
-                        <TableHead className="w-24 text-right">
-                          {tr({ vi: "Hành động", en: "Actions" })}
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {articles.map((article) => {
-                        const category = categories.find((item) => item.id === article.categoryId);
-                        return (
-                          <TableRow key={article.id}>
-                            <TableCell>
-                              <img
-                                src={article.cover}
-                                alt=""
-                                className="h-12 w-20 rounded-md object-cover"
-                              />
-                            </TableCell>
-                            <TableCell className="max-w-xs">
-                              <p className="truncate font-medium">{tr(article.title)}</p>
-                              <p className="truncate text-xs text-muted-foreground">
-                                /{article.slug}
-                                {category ? ` · ${tr(category.label)}` : ""}
-                              </p>
-                            </TableCell>
-                            <TableCell className="text-sm">{article.author}</TableCell>
-                            <TableCell className="text-sm">{article.date}</TableCell>
-                            <TableCell>
-                              <Badge variant={article.published ? "default" : "secondary"}>
-                                {article.published
-                                  ? tr({ vi: "Đã xuất bản", en: "Published" })
-                                  : tr({ vi: "Nháp", en: "Draft" })}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={tr({ vi: "Sửa", en: "Edit" })}
-                                onClick={() => openEdit(article)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={tr({ vi: "Xóa", en: "Delete" })}
-                                onClick={() => setPendingDelete(article)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                {/* Bảng desktop: header cố định + body cuộn + footer phân trang */}
+                <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
+                  {/* Header cố định */}
+                  <div className="shrink-0 overflow-hidden rounded-t-xl border-b-2 border-border/80 bg-muted/60 backdrop-blur-sm">
+                    <Table className="table-fixed w-full">
+                      <TableHeader className="bg-transparent">
+                        <TableRow className="h-10 border-none hover:bg-transparent">
+                          <TableHead className="w-[60px] text-center text-xs font-semibold text-foreground/80 select-none">
+                            {tr({ vi: "STT", en: "No." })}
+                          </TableHead>
+                          <TableHead className="w-24 pl-4 text-xs font-semibold text-foreground/80 select-none">
+                            {tr({ vi: "Ảnh", en: "Thumb" })}
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold text-foreground/80 select-none">
+                            {tr({ vi: "Tiêu đề", en: "Title" })}
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold text-foreground/80 select-none">
+                            {tr({ vi: "Tác giả", en: "Author" })}
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold text-foreground/80 select-none">
+                            {tr({ vi: "Ngày tạo", en: "Created" })}
+                          </TableHead>
+                          <TableHead className="text-xs font-semibold text-foreground/80 select-none">
+                            {tr({ vi: "Trạng thái", en: "Status" })}
+                          </TableHead>
+                          <TableHead className="w-24 pr-4 text-right text-xs font-semibold text-foreground/80 select-none">
+                            {tr({ vi: "Hành động", en: "Actions" })}
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                    </Table>
+                  </div>
+
+                  {/* Body cuộn với scrollbar mảnh */}
+                  <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden [&>div]:overflow-visible [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
+                    <Table className="table-fixed w-full">
+                      <TableBody>
+                        {pagedArticles.map((article, index) => {
+                          const category = categories.find((item) => item.id === article.categoryId);
+                          return (
+                            <TableRow key={article.id} className="hover:bg-muted/50 transition-colors">
+                              <TableCell className="w-[60px] text-center tabular-nums text-muted-foreground">
+                                {(page - 1) * PAGE_SIZE + index + 1}
+                              </TableCell>
+                              <TableCell className="w-24 pl-4">
+                                <img
+                                  src={article.cover}
+                                  alt=""
+                                  className="h-12 w-20 rounded-md object-cover"
+                                />
+                              </TableCell>
+                              <TableCell className="min-w-0">
+                                <p className="truncate font-medium">{tr(article.title)}</p>
+                                <p className="truncate text-xs text-muted-foreground">
+                                  /{article.slug}
+                                  {category ? ` · ${tr(category.label)}` : ""}
+                                </p>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">{article.author}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">{article.date}</TableCell>
+                              <TableCell>
+                                <Badge variant={article.published ? "default" : "secondary"}>
+                                  {article.published
+                                    ? tr({ vi: "Đã xuất bản", en: "Published" })
+                                    : tr({ vi: "Nháp", en: "Draft" })}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="w-24 pr-4 text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={tr({ vi: "Sửa", en: "Edit" })}
+                                  onClick={() => openEdit(article)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={tr({ vi: "Xóa", en: "Delete" })}
+                                  onClick={() => setPendingDelete(article)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Footer phân trang cố định */}
+                  <div className="h-10 min-h-10 shrink-0 border-t border-border/70 bg-muted/30 px-4 py-0 flex items-center justify-between gap-3 select-none">
+                    <div className="text-xs text-muted-foreground">
+                      {totalCount > 0 ? (
+                        <>
+                          {tr({ vi: "Đang hiển thị", en: "Showing" })}{" "}
+                          <strong className="font-semibold text-foreground">
+                            {(page - 1) * PAGE_SIZE + 1}
+                          </strong>{" "}
+                          -{" "}
+                          <strong className="font-semibold text-foreground">
+                            {Math.min(page * PAGE_SIZE, totalCount)}
+                          </strong>{" "}
+                          {tr({ vi: "trên tổng số", en: "of" })}{" "}
+                          <strong className="font-semibold text-foreground">{totalCount}</strong>{" "}
+                          {tr({ vi: "dòng", en: "records" })}
+                        </>
+                      ) : (
+                        <span>{tr({ vi: "Không có bản ghi nào", en: "No records" })}</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">
+                        {tr({ vi: "Trang", en: "Page" })}{" "}
+                        <strong className="font-semibold text-foreground">{page}</strong> / {totalPages}
+                      </span>
+
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg border-border/70"
+                          onClick={() => setPage(1)}
+                          disabled={page <= 1}
+                          title={tr({ vi: "Trang đầu", en: "First page" })}
+                        >
+                          <ChevronsLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg border-border/70"
+                          onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                          disabled={page <= 1}
+                          title={tr({ vi: "Trang trước", en: "Previous page" })}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg border-border/70"
+                          onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                          disabled={page >= totalPages}
+                          title={tr({ vi: "Trang sau", en: "Next page" })}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg border-border/70"
+                          onClick={() => setPage(totalPages)}
+                          disabled={page >= totalPages}
+                          title={tr({ vi: "Trang cuối", en: "Last page" })}
+                        >
+                          <ChevronsRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Cards on mobile */}
-                <div className="space-y-3 md:hidden">
-                  {articles.map((article) => (
+                {/* Cards trên mobile */}
+                <div className="min-h-0 flex-1 space-y-3 overflow-auto md:hidden">
+                  {pagedArticles.map((article) => (
                     <div
                       key={article.id}
                       className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-card p-3"
@@ -294,7 +388,7 @@ function AdminNewsPage() {
                 </div>
               </>
             )}
-            <Button variant="outline" size="sm" onClick={resetNews}>
+            <Button variant="outline" size="sm" onClick={resetNews} className="shrink-0 self-start">
               <RotateCcw className="h-4 w-4" />
               {tr({ vi: "Khôi phục dữ liệu mẫu", en: "Restore sample content" })}
             </Button>
@@ -513,10 +607,10 @@ function AdminNewsPage() {
             <Button variant="outline" onClick={() => setDraft(null)}>
               {tr({ vi: "Hủy", en: "Cancel" })}
             </Button>
-            <Button variant="secondary" onClick={() => persist(false)}>
+            <Button variant="secondary" onClick={() => setDraft(null)}>
               {tr({ vi: "Lưu nháp", en: "Save as draft" })}
             </Button>
-            <Button onClick={() => persist(true)}>{tr({ vi: "Xuất bản", en: "Publish" })}</Button>
+            <Button onClick={() => setDraft(null)}>{tr({ vi: "Xuất bản", en: "Publish" })}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

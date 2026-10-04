@@ -7,11 +7,11 @@ const basePrisma = globalForPrisma.prisma || new PrismaClient();
 export const db = basePrisma.$extends({
   query: {
     $allModels: {
-      async findMany({ args, query }) {
+      async findMany({ args, query }: { args: { where?: Record<string, unknown> }; query: (args: { where?: Record<string, unknown> }) => unknown }) {
         args.where = { ...args.where, isdelete: false };
         return query(args);
       },
-      async findFirst({ args, query }) {
+      async findFirst({ args, query }: { args: { where?: Record<string, unknown> }; query: (args: { where?: Record<string, unknown> }) => unknown }) {
         args.where = { ...args.where, isdelete: false };
         return query(args);
       },

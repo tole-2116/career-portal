@@ -14,7 +14,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -286,12 +286,12 @@ function AdminJobsPage() {
   // Backend trả taxonomy ID (UUID), bảng hiển thị nhãn — tra cứu từ catalogue TaxonomyProvider.
   // Lưu ý: code trong DB (slugified, ví dụ: ho-chi-minh-city/da-nang) khác code cục bộ
   // (hcmc/danang/remote-vn) — nên labelOf fallback sẽ render code thô nếu không khớp.
-  const labelOf = (id: string | undefined, key: TaxonomyKey): Localized => {
+  const labelOf = useCallback((id: string | undefined, key: TaxonomyKey): Localized => {
     const list = taxonomies[key];
     const found = list.find((item) => item.id === id);
     if (found && (found.label?.vi || found.label?.en)) return found.label;
     return { vi: id ?? "", en: id ?? "" };
-  };
+  }, [taxonomies]);
 
   const rows = useMemo(() => {
     const needle = keyword.trim().toLowerCase();
@@ -315,7 +315,7 @@ function AdminJobsPage() {
         needle ? `${job.title.vi} ${job.title.en}`.toLowerCase().includes(needle) : true,
       )
       .filter((job) => (status === ALL ? true : job.status === status));
-  }, [jobs, keyword, status, taxonomies]);
+  }, [jobs, keyword, labelOf, status]);
 
   const patch = (partial: Partial<Job>) =>
     setDraft((current) => (current ? { ...current, ...partial } : current));
@@ -400,10 +400,10 @@ function AdminJobsPage() {
       </div>
 
       <div className="mt-5 hidden min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
-        <div className="min-h-0 flex-1 overflow-auto">
-          <Table>
-          <TableHeader className="sticky top-0 z-20 bg-muted/90 backdrop-blur-md border-b-2 border-border/80">
-            <TableRow className="h-10 hover:bg-transparent border-none">
+        <div className="shrink-0 overflow-hidden rounded-t-xl border-b-2 border-border/80 bg-muted/60 backdrop-blur-sm">
+          <Table className="table-fixed w-full">
+          <TableHeader className="bg-transparent">
+            <TableRow className="h-10 border-none hover:bg-transparent">
               <TableHead className="w-14 pl-4 text-center text-xs font-semibold text-foreground/80 select-none"></TableHead>
               <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.title")}</TableHead>
               <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.department")}</TableHead>
@@ -418,16 +418,21 @@ function AdminJobsPage() {
               <TableHead className="pr-4 text-xs font-semibold text-foreground/80 select-none" />
             </TableRow>
           </TableHeader>
+          </Table>
+        </div>
+
+        <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden [&>div]:overflow-visible [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
+          <Table className="table-fixed w-full">
           <TableBody>
             {rows.length === 0 && (
-              <TableRow className="h-[520px]">
-                <TableCell colSpan={12} className="h-[520px] text-center text-sm text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={12} className="p-2 text-center text-sm text-muted-foreground">
                   {tr({ vi: "Chưa có tin tuyển dụng nào", en: "No job postings yet" })}
                 </TableCell>
               </TableRow>
             )}
             {rows.map((job, index) => (
-              <TableRow key={job.id} className="h-[52px]">
+              <TableRow key={job.id} className="hover:bg-muted/50 transition-colors">
                 <TableCell className="text-center tabular-nums text-muted-foreground">
                   {(page - 1) * PAGE_SIZE + index + 1}
                 </TableCell>
@@ -486,32 +491,11 @@ function AdminJobsPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {rows.length > 0 && rows.length < PAGE_SIZE &&
-              Array.from({ length: PAGE_SIZE - rows.length }).map((_, index) => (
-                <TableRow
-                  key={`empty-row-${index}`}
-                  aria-hidden
-                  className="h-[52px] border-b border-border/50 hover:bg-transparent pointer-events-none select-none"
-                >
-                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
-                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
-                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
-                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
-                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
-                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
-                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
-                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
-                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
-                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
-                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
-                  <TableCell className="px-4 py-3 text-transparent">&nbsp;</TableCell>
-                </TableRow>
-              ))}
           </TableBody>
-        </Table>
+          </Table>
         </div>
 
-        <div className="shrink-0 border-t border-border/70 bg-muted/30 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 select-none">
+        <div className="shrink-0 border-t border-border/70 bg-muted/30 px-4 py-3 flex items-center justify-between gap-3 select-none">
           {/* Phía trái: Đếm số dòng */}
           <div className="text-xs text-muted-foreground">
             {totalCount > 0 ? (
@@ -658,7 +642,7 @@ function AdminJobsPage() {
         >
           <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background">
             <DialogTitle>
-              {Boolean(isNew)
+              {isNew
                 ? (t("admin.jobs.new") || "Tạo mới tin tuyển dụng")
                 : (t("admin.jobs.edit") || "Chỉnh sửa tin tuyển dụng")}
             </DialogTitle>
@@ -879,7 +863,7 @@ function AdminJobsPage() {
                     )}
                     {isSaving
                       ? "Đang lưu..."
-                      : Boolean(isNew)
+                      : isNew
                         ? (t("admin.jobs.actions.save") || "Tạo mới")
                         : (t("common.save") || "Lưu thay đổi")}
                   </Button>

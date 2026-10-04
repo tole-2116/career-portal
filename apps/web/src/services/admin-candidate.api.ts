@@ -96,7 +96,7 @@ function mapApiCandidate(raw: ApiCandidate): Candidate {
     name: raw.name,
     email: raw.email,
     phone: raw.phone,
-    address: raw.address ?? undefined,
+    ...(raw.address ? { address: raw.address } : {}),
     location: asLocalized(raw.location),
     jobId: raw.jobId,
     jobTitle: asLocalized(raw.jobTitle),

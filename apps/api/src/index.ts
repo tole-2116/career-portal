@@ -8,6 +8,7 @@ import { db } from "@career-portal/database";
 import { ApplyJobSchema } from "@career-portal/types";
 import { adminJobsRoutes } from "./routes/admin-jobs.routes";
 import { adminCandidateRoutes } from "./routes/admin-candidates.routes";
+import { adminUserRoutes } from "./routes/admin-users.routes";
 import { authRoutes } from "./routes/auth.routes";
 
 const app = express();
@@ -72,6 +73,7 @@ app.use("/api/auth", authRoutes);
 // API Admin: Job CRUD routes
 app.use("/api/admin/jobs", adminJobsRoutes);
 app.use("/api/admin/candidates", adminCandidateRoutes);
+app.use("/api/admin/users", adminUserRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

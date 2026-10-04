@@ -209,7 +209,6 @@ function AdminCandidatesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [savingId, setSavingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editStage, setEditStage] = useState<Stage>("new");
@@ -289,29 +288,6 @@ function AdminCandidatesPage() {
     setEditStage(candidate.stage);
     setEditNoteBody("");
   };
-  const emptyRowsCount = candidates.length > 0 && candidates.length < PAGE_SIZE
-    ? PAGE_SIZE - candidates.length
-    : 0;
-
-  async function changeStage(id: string, stage: Stage) {
-    if (savingId) return;
-    const previous = candidates.find((candidate) => candidate.id === id)?.stage;
-    if (!previous || previous === stage) return;
-
-    setSavingId(id);
-    try {
-      const updated = await adminCandidateApi.updateStatus(id, stage);
-      setCandidates((prev) => prev.map((candidate) => (
-        candidate.id === id ? updated : candidate
-      )));
-      toast.success(t("admin.candidates.stageUpdated"));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("admin.candidates.stageUpdateFailed"));
-    } finally {
-      setSavingId(null);
-    }
-  }
-
   async function submitCandidate() {
     if (!selected || isSubmitting) return;
     setIsSubmitting(true);
@@ -320,7 +296,7 @@ function AdminCandidatesPage() {
         name: selected.name,
         email: selected.email,
         phone: selected.phone,
-        address: selected.address,
+        ...(selected.address ? { address: selected.address } : {}),
         cvFile: selected.cvFile,
         jobId: selected.jobId,
         status: editStage,
@@ -468,18 +444,18 @@ function AdminCandidatesPage() {
           </Table>
         </div>
 
-        <div className="relative min-h-0 flex-1 overflow-hidden [&>div]:h-full [&>div]:overflow-hidden">
-          <Table className="table-fixed h-full w-full">
-            <TableBody className="[&_tr]:h-[10%]">
+        <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden [&>div]:overflow-visible [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
+          <Table className="table-fixed w-full">
+            <TableBody>
               {isLoading && (
-                <TableRow className="h-full">
+                <TableRow>
                   <TableCell colSpan={7} className="p-2 text-center text-sm text-muted-foreground">
                     <Loader2 className="mx-auto h-5 w-5 animate-spin" />
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && candidates.length === 0 && (
-                <TableRow className="h-full">
+                <TableRow>
                   <TableCell colSpan={7} className="p-2 text-center text-sm text-muted-foreground">
                     {t("admin.candidates.empty")}
                   </TableCell>
@@ -547,22 +523,6 @@ function AdminCandidatesPage() {
                     </TableRow>
                   );
                 })}
-              {!isLoading && emptyRowsCount > 0 &&
-                Array.from({ length: emptyRowsCount }).map((_, index) => (
-                  <TableRow
-                    key={`empty-row-${index}`}
-                    aria-hidden
-                    className="border-b border-border/50 hover:bg-transparent pointer-events-none select-none"
-                  >
-                    <TableCell className="py-3 px-4 w-[60px] text-transparent">&nbsp;</TableCell>
-                    <TableCell className="py-3 px-4 w-[240px] text-transparent">&nbsp;</TableCell>
-                    <TableCell className="py-3 px-4 w-[200px] text-transparent">&nbsp;</TableCell>
-                    <TableCell className="py-3 px-4 w-[140px] text-transparent">&nbsp;</TableCell>
-                    <TableCell className="py-3 px-4 w-[130px] text-transparent">&nbsp;</TableCell>
-                    <TableCell className="py-3 px-4 w-[110px] text-transparent">&nbsp;</TableCell>
-                    <TableCell className="py-3 px-4 w-[100px] text-transparent">&nbsp;</TableCell>
-                  </TableRow>
-                ))}
             </TableBody>
           </Table>
         </div>
