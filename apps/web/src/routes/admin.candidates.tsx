@@ -414,7 +414,7 @@ function AdminCandidatesPage() {
         </Select>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
+      <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
         <div className="shrink-0 overflow-hidden rounded-t-xl border-b-2 border-border/80 bg-muted/60 backdrop-blur-sm">
           <Table className="table-fixed w-full">
             <TableHeader className="bg-transparent">
@@ -527,7 +527,7 @@ function AdminCandidatesPage() {
           </Table>
         </div>
 
-        <div className="shrink-0 border-t border-border/70 bg-muted/30 px-4 py-3 flex items-center justify-between gap-3 select-none">
+        <div className="h-10 min-h-10 shrink-0 border-t border-border/70 bg-muted/30 px-4 py-0 flex items-center justify-between gap-3 select-none">
           {/* Phía trái: Đếm số dòng */}
           <div className="text-xs text-muted-foreground">
             {totalCount > 0 ? (

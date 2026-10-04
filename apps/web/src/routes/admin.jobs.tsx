@@ -418,10 +418,26 @@ function AdminJobsPage() {
               <TableHead className="pr-4 text-xs font-semibold text-foreground/80 select-none" />
             </TableRow>
           </TableHeader>
+            <TableHeader className="bg-transparent">
+              <TableRow className="h-10 border-none hover:bg-transparent">
+                <TableHead className="w-14 pl-4 text-center text-xs font-semibold text-foreground/80 select-none"></TableHead>
+                <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.title")}</TableHead>
+                <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.department")}</TableHead>
+                <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.location")}</TableHead>
+                <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.field.workType")}</TableHead>
+                <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.field.salary")}</TableHead>
+                <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.field.experience")}</TableHead>
+                <TableHead className="text-right text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.applicants")}</TableHead>
+                <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.deadline")}</TableHead>
+                <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.featured")}</TableHead>
+                <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.status")}</TableHead>
+                <TableHead className="pr-4 text-xs font-semibold text-foreground/80 select-none" />
+              </TableRow>
+            </TableHeader>
           </Table>
         </div>
 
-        <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden [&>div]:overflow-visible [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
+        <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden [&>div]:overflow-visible [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
           <Table className="table-fixed w-full">
           <TableBody>
             {rows.length === 0 && (
@@ -495,7 +511,7 @@ function AdminJobsPage() {
           </Table>
         </div>
 
-        <div className="shrink-0 border-t border-border/70 bg-muted/30 px-4 py-3 flex items-center justify-between gap-3 select-none">
+        <div className="h-10 min-h-10 shrink-0 border-t border-border/70 bg-muted/30 px-4 py-0 flex items-center justify-between gap-3 select-none">
           {/* Phía trái: Đếm số dòng */}
           <div className="text-xs text-muted-foreground">
             {totalCount > 0 ? (

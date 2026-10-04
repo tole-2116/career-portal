@@ -46,3 +46,6 @@ packages/*/tsconfig.tsbuildinfo
 
 # Runtime temp dirs
 .tmp/
+
+# Uploaded files (served by API)
+apps/api/uploads/

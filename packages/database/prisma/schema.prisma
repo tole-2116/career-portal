@@ -138,6 +138,7 @@ model News {
   published      Boolean  @default(false)
   featured       Boolean  @default(false)
   excerpt        Json     @default("{}")
+  body           Json     @default("{}")
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
   usercreate_at  String?  @db.VarChar(255)
