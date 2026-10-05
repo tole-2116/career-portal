@@ -194,6 +194,15 @@ const dict = {
   "admin.jobs.col.status": { vi: "Trạng thái", en: "Status" },
   "admin.jobs.col.deadline": { vi: "Hạn nộp", en: "Deadline" },
   "admin.candidates.title": { vi: "Ứng viên", en: "Candidates" },
+  "admin.users.meta.title": { vi: "Người dùng — TalentHub HR", en: "Users — TalentHub HR" },
+  "admin.users.meta.description": {
+    vi: "Quản lý tài khoản quản trị viên và cộng tác viên cùng nhóm quyền truy cập.",
+    en: "Manage administrator and moderator accounts and their permission groups.",
+  },
+  "admin.users.meta.ogDescription": {
+    vi: "Tài khoản truy cập khu vực quản trị và nhóm quyền tương ứng.",
+    en: "Console accounts and their permission groups.",
+  },
   "admin.candidates.meta.title": { vi: "Ứng viên — TalentHub HR", en: "Candidates — TalentHub HR" },
   "admin.candidates.meta.description": {
     vi: "Danh sách ứng viên, hồ sơ chi tiết, CV, ghi chú nội bộ và giai đoạn tuyển dụng.",
