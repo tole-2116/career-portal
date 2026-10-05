@@ -58,7 +58,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { heroLibrary, cultureLibrary } from "@/data/media";
-import { useI18n } from "@/lib/i18n";
+import { translate, useI18n } from "@/lib/i18n";
 import { useLanguageConfig } from "@/lib/language-config";
 import {
   emptyArticle,
@@ -84,19 +84,38 @@ const RichTextEditor = lazy(() =>
   import("@/components/admin/RichTextEditor").then((m) => ({ default: m.RichTextEditor })),
 );
 
+const getSafeMetaText = (key: Parameters<typeof translate>[0], fallback: string) =>
+  translate(key, fallback) || fallback;
+
 export const Route = createFileRoute("/admin/news")({
   head: () => ({
     meta: [
-      { title: "Quản lý tin tức — TalentHub HR" },
+      {
+        title: getSafeMetaText(
+          "admin.news.meta.title",
+          "Quản lý tin tức — TalentHub HR",
+        ),
+      },
       {
         name: "description",
-        content:
+        content: getSafeMetaText(
+          "admin.news.meta.description",
           "Thêm, sửa, xuất bản bài viết tin tức và quản lý chuyên mục cho website tuyển dụng.",
+        ),
       },
-      { property: "og:title", content: "Quản lý tin tức — TalentHub HR" },
-      { property: "og:description", content: "Quản lý bài viết và chuyên mục tin tức." },
+      {
+        property: "og:title",
+        content: getSafeMetaText("admin.news.meta.title", "Quản lý tin tức — TalentHub HR"),
+      },
+      {
+        property: "og:description",
+        content: getSafeMetaText(
+          "admin.news.meta.ogDescription",
+          "Quản lý bài viết và chuyên mục tin tức.",
+        ),
+      },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "noindex" },
     ],
   }),

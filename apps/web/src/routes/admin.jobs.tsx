@@ -404,13 +404,10 @@ function AdminJobsPage() {
           <Table className="table-fixed w-full">
           <TableHeader className="bg-transparent">
             <TableRow className="h-10 border-none hover:bg-transparent">
-              <TableHead className="w-14 pl-4 text-center text-xs font-semibold text-foreground/80 select-none"></TableHead>
+              <TableHead className="w-[60px] text-center text-xs font-semibold text-foreground/80 select-none"></TableHead>
               <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.title")}</TableHead>
               <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.department")}</TableHead>
               <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.location")}</TableHead>
-              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.field.workType")}</TableHead>
-              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.field.salary")}</TableHead>
-              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.field.experience")}</TableHead>
               <TableHead className="text-right text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.applicants")}</TableHead>
               <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.deadline")}</TableHead>
               <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.featured")}</TableHead>
@@ -424,16 +421,23 @@ function AdminJobsPage() {
         <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden [&>div]:overflow-visible [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
           <Table className="table-fixed w-full">
           <TableBody>
-            {rows.length === 0 && (
-              <TableRow className="h-[520px]">
-                <TableCell colSpan={12} className="h-[520px] text-center text-sm text-muted-foreground">
+            {isLoading && (
+              <TableRow>
+                <TableCell colSpan={9} className="p-2 text-center text-sm text-muted-foreground">
+                  <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+                </TableCell>
+              </TableRow>
+            )}
+            {!isLoading && rows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={9} className="p-2 text-center text-sm text-muted-foreground">
                   {tr({ vi: "Chưa có tin tuyển dụng nào", en: "No job postings yet" })}
                 </TableCell>
               </TableRow>
             )}
-            {rows.map((job, index) => (
+            {!isLoading && rows.map((job, index) => (
               <TableRow key={job.id} className="h-[52px]">
-                <TableCell className="text-center tabular-nums text-muted-foreground">
+                <TableCell className="w-[60px] text-center tabular-nums text-muted-foreground">
                   {(page - 1) * PAGE_SIZE + index + 1}
                 </TableCell>
                 <TableCell className="font-medium">{tr(job.title)}</TableCell>
@@ -450,13 +454,6 @@ function AdminJobsPage() {
                       <span className="text-sm">—</span>
                     )}
                   </div>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{tr(job.workType)}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {job.salary.vi || job.salary.en ? tr(job.salary) : "—"}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {job.experience?.vi || job.experience?.en ? tr(job.experience) : "—"}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{job.applicants}</TableCell>
                 <TableCell className="text-muted-foreground">{job.deadline}</TableCell>
@@ -495,7 +492,7 @@ function AdminJobsPage() {
           </Table>
         </div>
 
-        <div className="shrink-0 border-t border-border/70 bg-muted/30 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 select-none">
+        <div className="h-10 min-h-10 shrink-0 border-t border-border/70 bg-muted/30 px-4 py-0 flex items-center justify-between gap-3 select-none">
           {/* Phía trái: Đếm số dòng */}
           <div className="text-xs text-muted-foreground">
             {totalCount > 0 ? (
