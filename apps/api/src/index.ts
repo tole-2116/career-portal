@@ -12,7 +12,9 @@ import { adminCandidateRoutes } from "./routes/admin-candidates.routes";
 import { adminUserRoutes } from "./routes/admin-users.routes";
 import { adminNewsRoutes } from "./routes/admin-news.routes";
 import { adminTaxonomyRoutes } from "./routes/admin-taxonomies.routes";
+import { adminFormConfigRoutes } from "./routes/admin-form-config.routes";
 import { adminTaxonomyService } from "./services/admin-taxonomy.service";
+import { adminFormConfigService } from "./services/admin-form-config.service";
 import { newsRoutes } from "./routes/news.routes";
 import { authRoutes } from "./routes/auth.routes";
 
@@ -85,6 +87,16 @@ app.get("/api/taxonomies", async (_req, res) => {
   }
 });
 
+// API: Form configuration (mở) — phục vụ trang ứng tuyển.
+app.get("/api/form-config", async (_req, res) => {
+  try {
+    res.json({ success: true, data: await adminFormConfigService.get() });
+  } catch (error) {
+    console.error("GET /api/form-config error:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch form configuration" });
+  }
+});
+
 // API Auth
 app.use("/api/auth", authRoutes);
 
@@ -94,6 +106,7 @@ app.use("/api/admin/candidates", adminCandidateRoutes);
 app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin/news", adminNewsRoutes);
 app.use("/api/admin/taxonomies", adminTaxonomyRoutes);
+app.use("/api/admin/form-config", adminFormConfigRoutes);
 
 // API public: published news
 app.use("/api/news", newsRoutes);

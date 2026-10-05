@@ -1,6 +1,5 @@
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -9,8 +8,6 @@ import {
 } from "react";
 
 import type { Localized } from "@/lib/i18n";
-
-const STORAGE_KEY = "talenthub-form-config";
 
 export const fieldTypes = [
   "text",
@@ -197,40 +194,45 @@ function isFormConfigLike(value: unknown): value is FormConfig {
 }
 
 type FormConfigValue = {
+  ready: boolean;
   formConfig: FormConfig;
-  saveFormConfig: (next: FormConfig) => void;
-  resetFormConfig: () => void;
 };
 
 const FormConfigContext = createContext<FormConfigValue | null>(null);
 
 export function FormConfigProvider({ children }: { children: ReactNode }) {
+  const [ready, setReady] = useState(false);
   const [formConfig, setFormConfig] = useState<FormConfig>(defaultFormConfig);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed: unknown = JSON.parse(raw);
-      if (isFormConfigLike(parsed)) setFormConfig({ ...defaultFormConfig, ...parsed });
-    } catch {
-      /* ignore malformed stored config */
-    }
-  }, []);
-
-  const saveFormConfig = useCallback((next: FormConfig) => {
-    setFormConfig(next);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  }, []);
-
-  const resetFormConfig = useCallback(() => {
-    setFormConfig(defaultFormConfig);
-    window.localStorage.removeItem(STORAGE_KEY);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/form-config");
+        const body = (await response.json()) as {
+          success: boolean;
+          data?: Partial<FormConfig>;
+          error?: string;
+        };
+        if (cancelled || !response.ok || body?.success === false || !body.data) return;
+        const parsed = body.data;
+        if (isFormConfigLike(parsed)) {
+          setFormConfig({ ...defaultFormConfig, ...parsed });
+        }
+      } catch {
+        /* API not available — keep defaults */
+      } finally {
+        if (!cancelled) setReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const value = useMemo<FormConfigValue>(
-    () => ({ formConfig, saveFormConfig, resetFormConfig }),
-    [formConfig, saveFormConfig, resetFormConfig],
+    () => ({ ready, formConfig }),
+    [ready, formConfig],
   );
 
   return <FormConfigContext.Provider value={value}>{children}</FormConfigContext.Provider>;

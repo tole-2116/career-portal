@@ -5,12 +5,13 @@ import {
   ExternalLink,
   Eye,
   GripVertical,
+  Loader2,
   Plus,
   RotateCcw,
   Save,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -31,7 +32,6 @@ import { jobs } from "@/data/jobs";
 import {
   createField,
   createSection,
-  defaultFormConfig,
   fieldTypeLabels,
   fieldTypes,
   useFormConfig,
@@ -41,22 +41,49 @@ import {
   type FormSection,
 } from "@/lib/form-config";
 import { LocalizedField } from "@/components/admin/LocalizedInput";
-import { useI18n, type Localized } from "@/lib/i18n";
+import { translate, useI18n, type Localized } from "@/lib/i18n";
+import {
+  fetchAdminFormConfig,
+  resetAdminFormConfig,
+  saveAdminFormConfig,
+} from "@/services/admin-form-config.api";
+
+const getSafeMetaText = (key: Parameters<typeof translate>[0], fallback: string) =>
+  translate(key, fallback) || fallback;
 
 export const Route = createFileRoute("/admin/forms")({
   head: () => ({
     meta: [
-      { title: "Cấu hình biểu mẫu ứng tuyển — TalentHub" },
+      {
+        title: getSafeMetaText(
+          "admin.forms.meta.title",
+          "Biểu mẫu ứng tuyển — TalentHub HR",
+        ),
+      },
       {
         name: "description",
-        content: "Tự thiết kế các phần và trường thông tin của biểu mẫu ứng tuyển.",
+        content: getSafeMetaText(
+          "admin.forms.meta.description",
+          "Tự thiết kế các phần và trường thông tin của biểu mẫu ứng tuyển.",
+        ),
       },
-      { name: "robots", content: "noindex" },
-      { property: "og:title", content: "Cấu hình biểu mẫu ứng tuyển — TalentHub" },
+      {
+        property: "og:title",
+        content: getSafeMetaText(
+          "admin.forms.meta.title",
+          "Biểu mẫu ứng tuyển — TalentHub HR",
+        ),
+      },
       {
         property: "og:description",
-        content: "Tự thiết kế các phần và trường thông tin của biểu mẫu ứng tuyển.",
+        content: getSafeMetaText(
+          "admin.forms.meta.ogDescription",
+          "Tự thiết kế các phần và trường thông tin của biểu mẫu ứng tuyển.",
+        ),
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "noindex" },
     ],
   }),
   component: FormBuilderPage,
@@ -249,8 +276,69 @@ function move<T>(items: T[], index: number, direction: -1 | 1): T[] {
 
 function FormBuilderPage() {
   const { tr } = useI18n();
-  const { formConfig, saveFormConfig, resetFormConfig } = useFormConfig();
+  const { formConfig } = useFormConfig();
   const [draft, setDraft] = useState<FormConfig>(formConfig);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const loadConfig = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const config = await fetchAdminFormConfig();
+      setDraft(config);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : tr({
+              vi: "Không tải được cấu hình biểu mẫu.",
+              en: "Failed to load form configuration.",
+            }),
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [tr]);
+
+  useEffect(() => {
+    void loadConfig();
+  }, [loadConfig]);
+
+  const save = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await saveAdminFormConfig(draft);
+      toast.success(tr(copy.saved));
+      await loadConfig();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : tr({ vi: "Không lưu được biểu mẫu.", en: "Failed to save form." }),
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const reset = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await resetAdminFormConfig();
+      toast.success(tr(copy.wasReset));
+      await loadConfig();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : tr({ vi: "Không khôi phục được biểu mẫu.", en: "Failed to restore form." }),
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const previewJob = jobs.find((job) => job.status === "open") ?? jobs[0]!;
 
@@ -273,20 +361,24 @@ function FormBuilderPage() {
               <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
             </Link>
           </Button>
-          <Button
-            size="sm"
-            onClick={() => {
-              saveFormConfig(draft);
-              toast.success(tr(copy.saved));
-            }}
-          >
-            <Save className="mr-1.5 h-4 w-4" />
+          <Button size="sm" onClick={() => void save()} disabled={isSaving || isLoading}>
+            {isSaving || isLoading ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-1.5 h-4 w-4" />
+            )}
             {tr(copy.save)}
           </Button>
         </div>
       }
     >
       <div className="mx-auto w-full max-w-4xl space-y-6">
+        {isLoading && (
+          <div className="flex items-center justify-center rounded-xl border border-dashed border-border p-8 text-sm text-muted-foreground">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            {tr({ vi: "Đang tải cấu hình...", en: "Loading configuration..." })}
+          </div>
+        )}
         {draft.sections.map((section, sectionIndex) => (
           <Card key={section.id}>
             <CardHeader className="gap-4">
@@ -447,24 +539,20 @@ function FormBuilderPage() {
         </Card>
 
         <div className="flex flex-wrap gap-2 pb-6">
-          <Button
-            onClick={() => {
-              saveFormConfig(draft);
-              toast.success(tr(copy.saved));
-            }}
-          >
-            <Save className="mr-1.5 h-4 w-4" />
+          <Button onClick={() => void save()} disabled={isSaving || isLoading}>
+            {isSaving || isLoading ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-1.5 h-4 w-4" />
+            )}
             {tr(copy.save)}
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              resetFormConfig();
-              setDraft(structuredClone(defaultFormConfig));
-              toast.success(tr(copy.wasReset));
-            }}
-          >
-            <RotateCcw className="mr-1.5 h-4 w-4" />
+          <Button variant="outline" onClick={() => void reset()} disabled={isSaving || isLoading}>
+            {isSaving || isLoading ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <RotateCcw className="mr-1.5 h-4 w-4" />
+            )}
             {tr(copy.reset)}
           </Button>
         </div>

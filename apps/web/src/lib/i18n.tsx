@@ -206,6 +206,15 @@ const dict = {
     vi: "Quản lý bài viết và chuyên mục tin tức.",
     en: "Manage articles and news categories.",
   },
+  "admin.forms.meta.title": { vi: "Biểu mẫu ứng tuyển — TalentHub HR", en: "Application form — TalentHub HR" },
+  "admin.forms.meta.description": {
+    vi: "Tự thiết kế các phần và trường thông tin của biểu mẫu ứng tuyển.",
+    en: "Design the sections and fields of the application form.",
+  },
+  "admin.forms.meta.ogDescription": {
+    vi: "Quản lý cấu trúc và nội dung biểu mẫu ứng tuyển.",
+    en: "Manage the structure and content of the application form.",
+  },
   "admin.users.meta.title": { vi: "Người dùng — TalentHub HR", en: "Users — TalentHub HR" },
   "admin.users.meta.description": {
     vi: "Quản lý tài khoản quản trị viên và cộng tác viên cùng nhóm quyền truy cập.",
