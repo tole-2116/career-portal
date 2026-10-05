@@ -1,6 +1,5 @@
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -9,8 +8,6 @@ import {
 } from "react";
 
 import type { Localized } from "@/lib/i18n";
-
-const STORAGE_KEY = "talenthub-taxonomies";
 
 export type TaxonomyKey =
   | "departments"
@@ -116,63 +113,15 @@ export function makeTaxonomyId(label: string, existing: TaxonomyItem[]): string 
 /** A catalogue group created by an admin, sitting beside the five built-ins. */
 export type CustomGroup = { key: string; label: Localized; items: TaxonomyItem[] };
 
-function normalizeGroups(value: unknown): CustomGroup[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((raw): CustomGroup | null => {
-      if (!raw || typeof raw !== "object") return null;
-      const g = raw as { key?: unknown; label?: { vi?: unknown; en?: unknown }; items?: unknown };
-      if (typeof g.key !== "string" || !g.key) return null;
-      return {
-        key: g.key,
-        label: {
-          vi: typeof g.label?.vi === "string" ? g.label.vi : "",
-          en: typeof g.label?.en === "string" ? g.label.en : "",
-        },
-        items: normalizeList(g.items, []).filter((item) => item.label.vi || item.label.en),
-      };
-    })
-    .filter((g): g is CustomGroup => g !== null);
-}
-
 type TaxonomyValue = {
   ready: boolean;
   taxonomies: Taxonomies;
   customGroups: CustomGroup[];
-  addItem: (key: string, label?: Localized) => void;
-  updateItem: (key: string, id: string, label: Localized) => void;
-  moveItem: (key: string, id: string, direction: -1 | 1) => void;
-  removeItem: (key: string, id: string) => void;
-  addGroup: (label: Localized) => void;
-  removeGroup: (key: string) => void;
-  resetTaxonomies: () => void;
 };
 
 const TaxonomyContext = createContext<TaxonomyValue | null>(null);
 
 type State = { taxonomies: Taxonomies; customGroups: CustomGroup[] };
-
-function isBuiltIn(key: string): key is TaxonomyKey {
-  return (taxonomyKeys as string[]).includes(key);
-}
-
-function listOf(state: State, key: string): TaxonomyItem[] {
-  return isBuiltIn(key)
-    ? state.taxonomies[key]
-    : (state.customGroups.find((group) => group.key === key)?.items ?? []);
-}
-
-function withList(state: State, key: string, items: TaxonomyItem[]): State {
-  if (isBuiltIn(key)) {
-    return { ...state, taxonomies: { ...state.taxonomies, [key]: items } };
-  }
-  return {
-    ...state,
-    customGroups: state.customGroups.map((group) =>
-      group.key === key ? { ...group, items } : group,
-    ),
-  };
-}
 
 export function TaxonomyProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -181,132 +130,55 @@ export function TaxonomyProvider({ children }: { children: ReactNode }) {
     customGroups: [],
   }));
 
+  // Tải danh mục từ API công khai; giữ bản mặc định khi lỗi để trang công khai vẫn dùng được.
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Partial<Record<TaxonomyKey, unknown>> & {
-        customGroups?: unknown;
-      };
-      setState({
-        taxonomies: {
-          departments: normalizeList(parsed.departments, defaultTaxonomies.departments),
-          workTypes: normalizeList(parsed.workTypes, defaultTaxonomies.workTypes),
-          salaries: normalizeList(parsed.salaries, defaultTaxonomies.salaries),
-          experiences: normalizeList(parsed.experiences, defaultTaxonomies.experiences),
-          locations: normalizeList(parsed.locations, defaultTaxonomies.locations),
-        },
-        customGroups: normalizeGroups(parsed.customGroups),
-      });
-    } catch {
-      /* ignore malformed storage */
-    } finally {
-      setReady(true);
-    }
-  }, []);
-
-  const update = useCallback((updater: (current: State) => State) => {
-    setState((current) => {
-      const next = updater(current);
+    let cancelled = false;
+    void (async () => {
       try {
-        window.localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({ ...next.taxonomies, customGroups: next.customGroups }),
-        );
+        const response = await fetch("/api/taxonomies");
+        const body = (await response.json()) as {
+          success: boolean;
+          data?: {
+            taxonomies?: Partial<Record<"department" | "workType" | "salary" | "experience" | "location", { id: string; label: Localized }[]>>;
+            customGroups?: { key: string; label: Localized; items: { id: string; label: Localized }[] }[];
+          };
+          error?: string;
+        };
+        if (cancelled || !response.ok || body?.success === false || !body.data) return;
+        const next = normalizeList(body.data.taxonomies?.department, defaultTaxonomies.departments);
+        if (!next.length) return;
+        setState({
+          taxonomies: {
+            departments: next,
+            workTypes: normalizeList(body.data.taxonomies?.workType, defaultTaxonomies.workTypes),
+            salaries: normalizeList(body.data.taxonomies?.salary, defaultTaxonomies.salaries),
+            experiences: normalizeList(body.data.taxonomies?.experience, defaultTaxonomies.experiences),
+            locations: normalizeList(body.data.taxonomies?.location, defaultTaxonomies.locations),
+          },
+          customGroups: (body.data.customGroups ?? []).map((group) => ({
+            key: group.key,
+            label: group.label,
+            items: normalizeList(group.items, []),
+          })),
+        });
       } catch {
-        /* ignore quota errors */
+        /* API chưa chạy — dùng mặc định */
+      } finally {
+        if (!cancelled) setReady(true);
       }
-      return next;
-    });
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  const addItem = useCallback(
-    (key: string, label?: Localized) =>
-      update((current) => {
-        const value = label ?? { vi: "", en: "" };
-        const list = listOf(current, key);
-        const id = makeTaxonomyId(value.en || value.vi || "muc-moi", list);
-        return withList(current, key, [...list, { id, label: value }]);
-      }),
-    [update],
-  );
-
-  const updateItem = useCallback(
-    (key: string, id: string, label: Localized) =>
-      update((current) =>
-        withList(
-          current,
-          key,
-          listOf(current, key).map((entry) => (entry.id === id ? { ...entry, label } : entry)),
-        ),
-      ),
-    [update],
-  );
-
-  const moveItem = useCallback(
-    (key: string, id: string, direction: -1 | 1) =>
-      update((current) => {
-        const list = [...listOf(current, key)];
-        const index = list.findIndex((entry) => entry.id === id);
-        const target = index + direction;
-        if (index < 0 || target < 0 || target >= list.length) return current;
-        const moved = list[index]!;
-        list[index] = list[target]!;
-        list[target] = moved;
-        return withList(current, key, list);
-      }),
-    [update],
-  );
-
-  const removeItem = useCallback(
-    (key: string, id: string) =>
-      update((current) =>
-        withList(
-          current,
-          key,
-          listOf(current, key).filter((entry) => entry.id !== id),
-        ),
-      ),
-    [update],
-  );
-
-  const addGroup = useCallback(
-    (label: Localized) =>
-      update((current) => {
-        const existing = current.customGroups.map((group) => ({ id: group.key, label: group.label }));
-        const key = makeTaxonomyId(label.en || label.vi || "nhom-moi", existing);
-        return { ...current, customGroups: [...current.customGroups, { key, label, items: [] }] };
-      }),
-    [update],
-  );
-
-  const removeGroup = useCallback(
-    (key: string) =>
-      update((current) => ({
-        ...current,
-        customGroups: current.customGroups.filter((group) => group.key !== key),
-      })),
-    [update],
-  );
-
-  const resetTaxonomies = useCallback(() => {
-    update(() => ({ taxonomies: structuredClone(defaultTaxonomies), customGroups: [] }));
-  }, [update]);
 
   const value = useMemo<TaxonomyValue>(
     () => ({
       ready,
       taxonomies: state.taxonomies,
       customGroups: state.customGroups,
-      addItem,
-      updateItem,
-      moveItem,
-      removeItem,
-      addGroup,
-      removeGroup,
-      resetTaxonomies,
     }),
-    [ready, state, addItem, updateItem, moveItem, removeItem, addGroup, removeGroup, resetTaxonomies],
+    [ready, state],
   );
 
   return <TaxonomyContext.Provider value={value}>{children}</TaxonomyContext.Provider>;
