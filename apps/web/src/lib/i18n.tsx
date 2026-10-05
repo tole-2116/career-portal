@@ -194,6 +194,18 @@ const dict = {
   "admin.jobs.col.status": { vi: "Trạng thái", en: "Status" },
   "admin.jobs.col.deadline": { vi: "Hạn nộp", en: "Deadline" },
   "admin.candidates.title": { vi: "Ứng viên", en: "Candidates" },
+  "admin.news.meta.title": {
+    vi: "Quản lý tin tức — TalentHub HR",
+    en: "News management — TalentHub HR",
+  },
+  "admin.news.meta.description": {
+    vi: "Thêm, sửa, xuất bản bài viết tin tức và quản lý chuyên mục cho website tuyển dụng.",
+    en: "Add, edit, publish news articles and manage categories for the recruitment website.",
+  },
+  "admin.news.meta.ogDescription": {
+    vi: "Quản lý bài viết và chuyên mục tin tức.",
+    en: "Manage articles and news categories.",
+  },
   "admin.users.meta.title": { vi: "Người dùng — TalentHub HR", en: "Users — TalentHub HR" },
   "admin.users.meta.description": {
     vi: "Quản lý tài khoản quản trị viên và cộng tác viên cùng nhóm quyền truy cập.",
