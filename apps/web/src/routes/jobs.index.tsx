@@ -115,7 +115,15 @@ function JobsPage() {
     setIsLoading(true);
     setError(false);
 
-    fetchPublicJobs({ limit: 1000 })
+    fetchPublicJobs({
+      limit: 1000,
+      search: keyword.trim() || undefined,
+      departmentId: department === ALL ? undefined : department,
+      locationIds: location === ALL ? undefined : location,
+      workTypeId: workType === ALL ? undefined : workType,
+      salaryId: salary === ALL ? undefined : salary,
+      experienceId: experience === ALL ? undefined : experience,
+    })
       .then((result) => {
         if (!cancelled) {
           setJobs(result.jobs.filter((job) => job.status === "open"));
@@ -131,31 +139,16 @@ function JobsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [keyword, department, location, workType, salary, experience]);
 
   const results = useMemo(() => {
-    const needle = keyword.trim().toLowerCase();
-    const filtered = jobs
-      .filter((job) =>
-        needle
-          ? `${job.title.vi} ${job.title.en} ${job.department.vi} ${job.department.en} ${job.summary.vi} ${job.summary.en}`
-              .toLowerCase()
-              .includes(needle)
-          : true,
-      )
-      .filter((job) => (department === ALL ? true : job.departmentId === department))
-      .filter((job) => (location === ALL ? true : job.locationIds?.includes(location)))
-      .filter((job) => (workType === ALL ? true : job.workTypeId === workType))
-      .filter((job) => (salary === ALL ? true : job.salaryId === salary))
-      .filter((job) => (experience === ALL ? true : job.experienceId === experience));
-
-    if (sort === "newest") return [...filtered].sort((a, b) => (a.posted < b.posted ? 1 : -1));
+    if (sort === "newest") return [...jobs].sort((a, b) => (a.posted < b.posted ? 1 : -1));
     if (sort === "salaryDesc")
-      return [...filtered].sort((a, b) => salaryValue(b.salary) - salaryValue(a.salary));
+      return [...jobs].sort((a, b) => salaryValue(b.salary) - salaryValue(a.salary));
     if (sort === "salaryAsc")
-      return [...filtered].sort((a, b) => salaryValue(a.salary) - salaryValue(b.salary));
-    return [...filtered].sort((a, b) => Number(b.featured) - Number(a.featured));
-  }, [jobs, keyword, department, location, workType, salary, experience, sort]);
+      return [...jobs].sort((a, b) => salaryValue(a.salary) - salaryValue(b.salary));
+    return [...jobs].sort((a, b) => Number(b.featured) - Number(a.featured));
+  }, [jobs, sort]);
 
   useEffect(() => {
     setVisible(page.pageSize);
