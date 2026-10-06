@@ -15,8 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { getJob, type DynamicField } from "@/data/jobs";
-import { useFormConfig, type FormField } from "@/lib/form-config";
+import { getJob } from "@/data/jobs";
+import { resolveFormSections, useFormConfig, type FormField } from "@/lib/form-config";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/jobs/$jobId/apply")({
@@ -49,19 +49,6 @@ export const Route = createFileRoute("/jobs/$jobId/apply")({
 
 const MAX_SIZE = 5 * 1024 * 1024;
 const ACCEPTED = [".pdf", ".doc", ".docx"];
-
-/** Turns a job's role-specific question into the shared form field shape. */
-function fromDynamicField(field: DynamicField): FormField {
-  return {
-    id: field.id,
-    type: field.type,
-    label: field.label,
-    ...(field.placeholder ? { placeholder: field.placeholder } : {}),
-    required: field.required,
-    fullWidth: field.type === "textarea",
-    ...(field.options ? { options: field.options } : {}),
-  };
-}
 
 function ApplyPage() {
   const { job } = Route.useLoaderData();
@@ -294,14 +281,7 @@ function ApplyPage() {
     );
   }
 
-  const sections = formConfig.sections
-    .map((section) => ({
-      ...section,
-      resolved: section.includeJobFields
-        ? [...section.fields, ...job.extraFields.map(fromDynamicField)]
-        : section.fields,
-    }))
-    .filter((section) => section.resolved.length > 0);
+  const sections = resolveFormSections(formConfig, job);
 
   return (
     <SiteLayout>

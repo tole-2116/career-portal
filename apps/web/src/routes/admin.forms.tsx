@@ -1,13 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowDown,
   ArrowUp,
-  ExternalLink,
   Eye,
   GripVertical,
   Loader2,
   Plus,
-  RotateCcw,
+  RefreshCw,
   Save,
   Trash2,
 } from "lucide-react";
@@ -15,9 +14,17 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { FormPreview } from "@/components/admin/FormPreview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -44,7 +51,6 @@ import { LocalizedField } from "@/components/admin/LocalizedInput";
 import { translate, useI18n, type Localized } from "@/lib/i18n";
 import {
   fetchAdminFormConfig,
-  resetAdminFormConfig,
   saveAdminFormConfig,
 } from "@/services/admin-form-config.api";
 
@@ -96,8 +102,15 @@ const copy = {
     en: "Add, edit and reorder the sections and questions of the application form.",
   },
   save: { vi: "Lưu biểu mẫu", en: "Save form" },
-  reset: { vi: "Khôi phục mặc định", en: "Restore default" },
   preview: { vi: "Xem biểu mẫu", en: "Preview form" },
+  previewTitle: { vi: "Xem trước biểu mẫu ứng tuyển", en: "Application form preview" },
+  previewDesc: {
+    vi: "Cấu hình đang được lưu trên hệ thống, sau khi ứng viên xem vị trí.",
+    en: "The configuration currently saved on the system, as candidates see it.",
+  },
+  previewLoading: { vi: "Đang tải bản xem trước...", en: "Loading preview..." },
+  previewFailed: { vi: "Không tải được bản xem trước.", en: "Failed to load the preview." },
+  previewRetry: { vi: "Thử lại", en: "Retry" },
   addSection: { vi: "Thêm phần", en: "Add section" },
   addField: { vi: "Thêm câu hỏi", en: "Add question" },
   sectionTitle: { vi: "Tên phần", en: "Section title" },
@@ -122,7 +135,6 @@ const copy = {
   en: { vi: "Tiếng Anh", en: "English" },
   noFields: { vi: "Chưa có câu hỏi nào trong phần này.", en: "No questions in this section yet." },
   saved: { vi: "Đã lưu biểu mẫu ứng tuyển.", en: "Application form saved." },
-  wasReset: { vi: "Đã khôi phục biểu mẫu mặc định.", en: "Default form restored." },
   autoFields: { vi: "Câu hỏi theo vị trí", en: "Role questions" },
   general: { vi: "Thông tin chung", en: "General" },
 } satisfies Record<string, Localized>;
@@ -280,6 +292,10 @@ function FormBuilderPage() {
   const [draft, setDraft] = useState<FormConfig>(formConfig);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewConfig, setPreviewConfig] = useState<FormConfig | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   const loadConfig = useCallback(async () => {
     setIsLoading(true);
@@ -322,21 +338,19 @@ function FormBuilderPage() {
     }
   };
 
-  const reset = async () => {
-    if (isSaving) return;
-    setIsSaving(true);
+  const openPreview = async () => {
+    setIsPreviewOpen(true);
+    setIsPreviewLoading(true);
+    setPreviewConfig(null);
+    setPreviewError(null);
     try {
-      await resetAdminFormConfig();
-      toast.success(tr(copy.wasReset));
-      await loadConfig();
+      setPreviewConfig(await fetchAdminFormConfig());
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : tr({ vi: "Không khôi phục được biểu mẫu.", en: "Failed to restore form." }),
+      setPreviewError(
+        error instanceof Error ? error.message : tr(copy.previewFailed),
       );
     } finally {
-      setIsSaving(false);
+      setIsPreviewLoading(false);
     }
   };
 
@@ -354,12 +368,9 @@ function FormBuilderPage() {
       description={tr(copy.subtitle)}
       action={
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link to="/jobs/$jobId/apply" params={{ jobId: previewJob.id }}>
-              <Eye className="mr-1.5 h-4 w-4" />
-              <span className="hidden sm:inline">{tr(copy.preview)}</span>
-              <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-            </Link>
+          <Button variant="outline" size="sm" onClick={() => void openPreview()}>
+            <Eye className="mr-1.5 h-4 w-4" />
+            <span className="hidden sm:inline">{tr(copy.preview)}</span>
           </Button>
           <Button size="sm" onClick={() => void save()} disabled={isSaving || isLoading}>
             {isSaving || isLoading ? (
@@ -372,7 +383,7 @@ function FormBuilderPage() {
         </div>
       }
     >
-      <div className="mx-auto w-full max-w-4xl space-y-6">
+      <div className="relative mx-auto min-h-0 w-full max-w-4xl flex-1 space-y-6 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
         {isLoading && (
           <div className="flex items-center justify-center rounded-xl border border-dashed border-border p-8 text-sm text-muted-foreground">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -547,16 +558,37 @@ function FormBuilderPage() {
             )}
             {tr(copy.save)}
           </Button>
-          <Button variant="outline" onClick={() => void reset()} disabled={isSaving || isLoading}>
-            {isSaving || isLoading ? (
-              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-            ) : (
-              <RotateCcw className="mr-1.5 h-4 w-4" />
-            )}
-            {tr(copy.reset)}
-          </Button>
         </div>
       </div>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col overflow-hidden p-0">
+          <DialogHeader className="shrink-0 border-b border-border px-6 py-5 pr-12">
+            <DialogTitle>{tr(copy.previewTitle)}</DialogTitle>
+            <DialogDescription>{tr(copy.previewDesc)}</DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
+            {isPreviewLoading && (
+              <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                {tr(copy.previewLoading)}
+              </div>
+            )}
+            {!isPreviewLoading && previewError && (
+              <div className="flex min-h-48 flex-col items-center justify-center gap-4 text-center">
+                <p className="text-sm text-destructive">{previewError}</p>
+                <Button type="button" variant="outline" size="sm" onClick={() => void openPreview()}>
+                  <RefreshCw className="mr-1.5 h-4 w-4" />
+                  {tr(copy.previewRetry)}
+                </Button>
+              </div>
+            )}
+            {!isPreviewLoading && !previewError && previewConfig && (
+              <FormPreview config={previewConfig} job={previewJob} />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

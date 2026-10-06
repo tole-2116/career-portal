@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 
+import type { DynamicField, Job } from "@/data/jobs";
 import type { Localized } from "@/lib/i18n";
 
 export const fieldTypes = [
@@ -185,6 +186,39 @@ export function createSection(): FormSection {
     includeJobFields: false,
     fields: [],
   };
+}
+
+/** Turns a job's role-specific question into the shared form field shape. */
+export function fromDynamicField(field: DynamicField): FormField {
+  return {
+    id: field.id,
+    type: field.type,
+    label: field.label,
+    ...(field.placeholder ? { placeholder: field.placeholder } : {}),
+    required: field.required,
+    fullWidth: field.type === "textarea",
+    ...(field.options ? { options: field.options } : {}),
+  };
+}
+
+/**
+ * Resolves the sections shown on the apply form: role-specific questions are
+ * appended to the section with `includeJobFields`, then empty sections are
+ * dropped. Shared by the public apply page and the admin preview dialog so
+ * both always render the same structure.
+ */
+export function resolveFormSections(
+  config: FormConfig,
+  job: Pick<Job, "extraFields">,
+): (FormSection & { resolved: FormField[] })[] {
+  return config.sections
+    .map((section) => ({
+      ...section,
+      resolved: section.includeJobFields
+        ? [...section.fields, ...job.extraFields.map(fromDynamicField)]
+        : section.fields,
+    }))
+    .filter((section) => section.resolved.length > 0);
 }
 
 function isFormConfigLike(value: unknown): value is FormConfig {
