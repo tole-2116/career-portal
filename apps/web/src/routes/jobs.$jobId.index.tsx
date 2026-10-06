@@ -15,14 +15,13 @@ import {
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getJob } from "@/data/jobs";
 import { useI18n, type Localized } from "@/lib/i18n";
-import { useJobs } from "@/lib/jobs-store";
 import { useSiteConfig } from "@/lib/site-config";
 import { useTaxonomies } from "@/lib/taxonomy-store";
+import { fetchPublicJob } from "@/services/jobs.api";
 
 export const Route = createFileRoute("/jobs/$jobId/")({
-  loader: ({ params }) => ({ job: getJob(params.jobId) ?? null }),
+  loader: async ({ params }) => ({ job: await fetchPublicJob(params.jobId) }),
   head: ({ loaderData }) => {
     const job = loaderData?.job;
     if (!job) {
@@ -47,13 +46,10 @@ export const Route = createFileRoute("/jobs/$jobId/")({
 });
 
 function JobDetailPage() {
-  const { job: staticJob } = Route.useLoaderData();
-  const { jobId } = Route.useParams();
-  const { jobs } = useJobs();
+  const { job } = Route.useLoaderData();
   const { taxonomies } = useTaxonomies();
   const { config } = useSiteConfig();
   const { t, tr } = useI18n();
-  const job = jobs.find((item) => item.id === jobId) ?? staticJob;
 
   if (!job) {
     return (

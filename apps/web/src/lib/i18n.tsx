@@ -93,6 +93,11 @@ const dict = {
     vi: "Không có vị trí nào khớp với bộ lọc hiện tại.",
     en: "No roles match the current filters.",
   },
+  "jobs.loading": { vi: "Đang tải vị trí…", en: "Loading roles…" },
+  "jobs.error": {
+    vi: "Không tải được danh sách vị trí. Vui lòng thử lại sau.",
+    en: "Unable to load roles. Please try again later.",
+  },
   "jobs.detail": { vi: "Xem chi tiết", en: "View details" },
   "jobs.deadline": { vi: "Hạn nộp", en: "Deadline" },
   "jobs.posted": { vi: "Đăng ngày", en: "Posted" },

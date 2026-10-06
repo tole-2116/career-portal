@@ -142,8 +142,8 @@ function toDateString(value: unknown): string {
   return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
 }
 
-/** Map ApiJob -> Job (frontend). */
-function mapApiJob(raw: ApiJob): Job {
+/** Map ApiJob -> Job (frontend). Dùng chung cho cả API admin và API public. */
+export function mapApiJob(raw: ApiJob): Job {
   // Fallback: column -> legacy alias -> info object id (for mixed/older API shapes).
   const departmentId = raw.departmentId ?? raw.department ?? raw.departmentInfo?.id ?? undefined;
   const locationIdsValue = raw.locationIds ?? raw.location ?? raw.locationInfo?.id ?? undefined;

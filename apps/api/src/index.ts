@@ -15,6 +15,7 @@ import { adminNewsRoutes } from "./routes/admin-news.routes";
 import { adminTaxonomyRoutes } from "./routes/admin-taxonomies.routes";
 import { adminFormConfigRoutes } from "./routes/admin-form-config.routes";
 import { adminSiteConfigRoutes } from "./routes/admin-site-config.routes";
+import { publicJobsRoutes } from "./routes/public-jobs.routes";
 import { adminTaxonomyService } from "./services/admin-taxonomy.service";
 import { adminFormConfigService } from "./services/admin-form-config.service";
 import { adminSiteConfigService } from "./services/admin-site-config.service";
@@ -40,19 +41,8 @@ app.use(express.json());
 // Phục vụ ảnh bìa tin tức đã upload (apps/api/uploads).
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
-// API: Lấy danh sách jobs (mở)
-app.get("/api/jobs", async (req, res) => {
-  try {
-    const jobs = await db.job.findMany({
-      where: { status: "OPEN" },
-      orderBy: { posted: "desc" },
-    });
-    res.json(jobs);
-  } catch (error) {
-    console.error("GET /api/jobs error:", error);
-    res.status(500).json({ error: "Failed to fetch jobs" });
-  }
-});
+// API: Jobs công khai (mở) — danh sách job đang tuyển + chi tiết, không cần đăng nhập.
+app.use("/api/jobs", publicJobsRoutes);
 
 // API: Nộp hồ sơ ứng tuyển
 app.post("/api/jobs/:jobId/apply", async (req, res) => {

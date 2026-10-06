@@ -15,10 +15,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useI18n, type Localized } from "@/lib/i18n";
-import { useJobs } from "@/lib/jobs-store";
+import type { Job } from "@/data/jobs";
 import { useTaxonomies, type TaxonomyItem } from "@/lib/taxonomy-store";
 import { useSiteConfig } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
+import { fetchPublicJobs } from "@/services/jobs.api";
 
 type JobSearch = { q?: string | undefined };
 
@@ -92,13 +93,13 @@ function FacetSelect({
 function JobsPage() {
   const { q } = Route.useSearch();
   const { t, tr } = useI18n();
-  const { jobs } = useJobs();
   const { taxonomies } = useTaxonomies();
   const { config } = useSiteConfig();
   const page = config.jobsPage;
 
-  /** Paused and closed postings never appear on the public site. */
-  const publicJobs = useMemo(() => jobs.filter((job) => job.status === "open"), [jobs]);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const [keyword, setKeyword] = useState(q ?? "");
   const [department, setDepartment] = useState(ALL);
@@ -109,9 +110,32 @@ function JobsPage() {
   const [sort, setSort] = useState<SortKey>("relevant");
   const [visible, setVisible] = useState(page.pageSize);
 
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setError(false);
+
+    fetchPublicJobs({ limit: 1000 })
+      .then((result) => {
+        if (!cancelled) {
+          setJobs(result.jobs.filter((job) => job.status === "open"));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const results = useMemo(() => {
     const needle = keyword.trim().toLowerCase();
-    const filtered = publicJobs
+    const filtered = jobs
       .filter((job) =>
         needle
           ? `${job.title.vi} ${job.title.en} ${job.department.vi} ${job.department.en} ${job.summary.vi} ${job.summary.en}`
@@ -131,7 +155,7 @@ function JobsPage() {
     if (sort === "salaryAsc")
       return [...filtered].sort((a, b) => salaryValue(a.salary) - salaryValue(b.salary));
     return [...filtered].sort((a, b) => Number(b.featured) - Number(a.featured));
-  }, [publicJobs, keyword, department, location, workType, salary, experience, sort]);
+  }, [jobs, keyword, department, location, workType, salary, experience, sort]);
 
   useEffect(() => {
     setVisible(page.pageSize);
@@ -243,7 +267,15 @@ function JobsPage() {
         </div>
       </div>
 
-      {results.length === 0 ? (
+      {isLoading ? (
+        <p className="mt-6 rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+          {t("jobs.loading")}
+        </p>
+      ) : error ? (
+        <p className="mt-6 rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+          {t("jobs.error")}
+        </p>
+      ) : results.length === 0 ? (
         <p className="mt-6 rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
           {t("jobs.empty")}
         </p>

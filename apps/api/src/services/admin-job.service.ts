@@ -330,6 +330,20 @@ export class AdminJobService {
     return withTaxonomyInfo(job);
   }
 
+  /** Public listings only expose live jobs and include resolved taxonomy labels. */
+  async findPublic(query: Omit<JobModelQuery, "status"> = {}) {
+    return this.findMany({ ...query, status: "OPEN" });
+  }
+
+  /** Public detail only exposes an open, non-deleted job. */
+  async findPublicById(id: string) {
+    const job = await db.job.findFirst({
+      where: { id, status: "OPEN" },
+    });
+
+    return job ? withTaxonomyInfo(job) : null;
+  }
+
   async create(data: JobModel) {
     // Xác thực ID rồi gán trực tiếp vào 3 cột trên bảng Job.
     const departmentId = data.departmentId
