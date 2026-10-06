@@ -15,8 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { activity, candidates, stageLabels, stageOrder, weeklyApplications } from "@/data/candidates";
 import { jobs } from "@/data/jobs";
 import { useI18n } from "@/lib/i18n";
+import { requireAdminSession } from "@/lib/admin-route-guard";
 
 export const Route = createFileRoute("/admin/")({
+  beforeLoad: ({ location }) => requireAdminSession(location.pathname),
   head: () => ({
     meta: [
       { title: "Tổng quan tuyển dụng — TalentHub HR" },

@@ -1,10 +1,10 @@
 import { Router, type Router as RouterType } from "express";
 import { adminNewsController } from "../controllers/admin-news.controller";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireRole } from "../middleware/auth";
 import { uploadCover } from "../middleware/upload";
 
 export const adminNewsRoutes: RouterType = Router();
-adminNewsRoutes.use(requireAuth);
+adminNewsRoutes.use(requireAuth, requireRole("ADMIN", "RECRUITER"));
 
 // GET /api/admin/news — danh sách bài viết (phân trang, lọc, tìm kiếm)
 adminNewsRoutes.get("/", adminNewsController.getPaginated);

@@ -10,6 +10,7 @@
 
 import type { Job, JobStatus } from "@/data/jobs";
 import type { Localized } from "@/lib/i18n";
+import { apiRequest } from "@/lib/api/request";
 
 const API_BASE = "/api/admin/jobs";
 
@@ -84,13 +85,6 @@ export interface ApiJob {
   workTypeInfo?: ApiTaxonomyInfo | null;
   salaryInfo?: ApiTaxonomyInfo | null;
   experienceInfo?: ApiTaxonomyInfo | null;
-}
-
-/** Envelope `{ success, data }` do AdminJobController trả về. */
-interface ApiEnvelope<T> {
-  success: boolean;
-  data: T;
-  error?: string;
 }
 
 /* ---------- status ---------- */
@@ -236,27 +230,9 @@ export function toApiPayload(job: Job, statusOverride?: JobStatus): ApiJobPayloa
   return payload;
 }
 
-/** Fetch wrapper: unwrap `{ success, data }`, ném lỗi kèm message từ backend. */
+/** Shared authenticated wrapper; automatically handles expired sessions. */
 async function request<T>(input: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(input, {
-    headers: { "Content-Type": "application/json" },
-    ...init,
-  });
-
-  let body: ApiEnvelope<T> | null = null;
-  try {
-    body = (await response.json()) as ApiEnvelope<T>;
-  } catch {
-    // Không phải JSON (lỗi proxy/mạng) — dùng thông báo chung bên dưới.
-  }
-
-  if (!response.ok) {
-    throw new Error(body?.error || `Request failed with status ${response.status}`);
-  }
-  if (body && body.success === false) {
-    throw new Error(body.error || "Request failed");
-  }
-  return body?.data as T;
+  return apiRequest<T>(input, init);
 }
 
 /* ---------- Public API ---------- */

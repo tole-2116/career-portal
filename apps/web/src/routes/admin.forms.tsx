@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { requireAdminSession } from "@/lib/admin-route-guard";
 import { FormPreview } from "@/components/admin/FormPreview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ const getSafeMetaText = (key: Parameters<typeof translate>[0], fallback: string)
   translate(key, fallback) || fallback;
 
 export const Route = createFileRoute("/admin/forms")({
+  beforeLoad: ({ location }) => requireAdminSession(location.pathname),
   head: () => ({
     meta: [
       {

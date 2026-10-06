@@ -1,9 +1,9 @@
 import { Router, type Router as RouterType } from "express";
 import { adminCandidateController } from "../controllers/admin-candidate.controller";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 export const adminCandidateRoutes: RouterType = Router();
-adminCandidateRoutes.use(requireAuth);
+adminCandidateRoutes.use(requireAuth, requireRole("ADMIN"));
 
 // GET /api/admin/candidates — danh sách ứng viên (phân trang, lọc, tìm kiếm)
 adminCandidateRoutes.get("/", adminCandidateController.getPaginated);

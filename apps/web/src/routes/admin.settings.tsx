@@ -24,6 +24,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { requireAdminSession } from "@/lib/admin-route-guard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -204,6 +205,7 @@ function BrandPreviewJobs({ primary, accent, tr }: { primary: string; accent: st
 }
 
 export const Route = createFileRoute("/admin/settings")({
+  beforeLoad: ({ location }) => requireAdminSession(location.pathname),
   head: () => ({
     meta: [
       { title: "Cấu hình giao diện — TalentHub HR" },

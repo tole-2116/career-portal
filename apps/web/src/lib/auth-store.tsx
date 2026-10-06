@@ -44,6 +44,15 @@ export function getApiToken(): string | null {
   }
 }
 
+export function setApiToken(token: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+  } catch {
+    /* ignore storage failures */
+  }
+}
+
 /** Xóa token + session khi API trả 401 để bắt buộc đăng nhập lại lấy JWT mới. */
 export function clearApiAuth(): void {
   if (typeof window === "undefined") return;
@@ -52,6 +61,19 @@ export function clearApiAuth(): void {
     window.localStorage.removeItem(AUTH_TOKEN_KEY);
   } catch {
     /* ignore */
+  }
+}
+
+function decodeTokenExpiry(token: string): number | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const decoded = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/"))) as {
+      exp?: unknown;
+    };
+    return typeof decoded.exp === "number" ? decoded.exp * 1000 : null;
+  } catch {
+    return null;
   }
 }
 
@@ -79,22 +101,113 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
   const [ready, setReady] = useState(false);
 
-  // Restore session from localStorage on mount
+  // Restore + validate session on mount
   useEffect(() => {
-    try {
-      const sessionData = window.localStorage.getItem(SESSION_KEY);
-      const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+    let cancelled = false;
 
-      // Session cũ (trước khi có JWT) không kèm token → xóa để buộc login lại
-      if (sessionData && !token) {
-        window.localStorage.removeItem(SESSION_KEY);
-      } else if (sessionData && token) {
-        setCurrentUser(JSON.parse(sessionData) as AdminUser);
+    const finish = () => {
+      if (!cancelled) setReady(true);
+    };
+
+    const restore = async () => {
+      let sessionData: string | null = null;
+      let token: string | null = null;
+      try {
+        sessionData = window.localStorage.getItem(SESSION_KEY);
+        token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+      } catch {
+        finish();
+        return;
       }
-    } catch {
-      /* ignore malformed storage */
-    }
-    setReady(true);
+
+      // Session cũ (không kèm token) → xóa để buộc login lại
+      if (!sessionData || !token) {
+        if (sessionData) {
+          try {
+            window.localStorage.removeItem(SESSION_KEY);
+          } catch {
+            /* ignore */
+          }
+        }
+        finish();
+        return;
+      }
+
+      // Token hết hạn rõ ràng → xóa ngay, không cần gọi API
+      const expiresAt = decodeTokenExpiry(token);
+      if (expiresAt !== null && expiresAt <= Date.now()) {
+        clearApiAuth();
+        finish();
+        return;
+      }
+
+      // Xác thực với server; nếu access token đã hết hạn, /me trả 401 nhưng
+      // refresh cookie có thể còn hạn nên thử refresh qua /api/auth/refresh.
+      try {
+        let response = await fetch("/api/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: "include",
+        });
+        if (response.status === 401) {
+          const refreshed = await fetch("/api/auth/refresh", {
+            method: "POST",
+            credentials: "include",
+          });
+          if (refreshed.ok) {
+            const body = (await refreshed.json()) as {
+              success?: boolean;
+              data?: { token?: string };
+            };
+            if (body.success && body.data?.token) {
+              setApiToken(body.data.token);
+              response = await fetch("/api/auth/me", {
+                headers: { Authorization: `Bearer ${body.data.token}` },
+                credentials: "include",
+              });
+            }
+          }
+        }
+
+        if (response.ok) {
+          const body = (await response.json()) as { data?: { user?: ApiAuthUser } };
+          const normalized = body.data?.user ? normalizeApiUser(body.data.user) : null;
+          if (normalized) {
+            window.localStorage.setItem(SESSION_KEY, JSON.stringify(normalized));
+            if (!cancelled) setCurrentUser(normalized);
+          } else {
+            clearApiAuth();
+          }
+        } else if (response.status === 401 || response.status === 403) {
+          clearApiAuth();
+        } else {
+          // Server lỗi/không sẵn sàng → giữ session đã lưu
+          const cached = JSON.parse(sessionData) as AdminUser;
+          if (!cancelled) setCurrentUser(cached);
+        }
+      } catch {
+        // Network error → dùng session đã lưu để app vẫn hoạt động
+        try {
+          const cached = JSON.parse(sessionData) as AdminUser;
+          if (!cancelled) setCurrentUser(cached);
+        } catch {
+          clearApiAuth();
+        }
+      } finally {
+        finish();
+      }
+    };
+
+    void restore();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Session bị vô hiệu hoá (401 + refresh thất bại) → xoá state
+  useEffect(() => {
+    const handler = () => setCurrentUser(null);
+    window.addEventListener("career-portal:auth-expired", handler);
+    return () => window.removeEventListener("career-portal:auth-expired", handler);
   }, []);
 
   const login = useCallback<AuthValue["login"]>(async (username, password) => {
@@ -102,6 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Gọi API xác thực — nguồn chân thực duy nhất
       const response = await fetch("/api/auth/login", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: username.trim(), password }),
       });
@@ -123,8 +237,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { token } = body.data;
 
-      // Lưu JWT và user info
-      window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+      // Lưu access token và user info; refresh token nằm trong HttpOnly cookie.
+      setApiToken(token);
       window.localStorage.setItem(SESSION_KEY, JSON.stringify(normalized));
       setCurrentUser(normalized);
 
@@ -136,13 +250,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    // Revoke refresh session server-side, but never block local cleanup/navigation.
+    void fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    }).catch(() => undefined);
     setCurrentUser(null);
-    try {
-      window.localStorage.removeItem(SESSION_KEY);
-      window.localStorage.removeItem(AUTH_TOKEN_KEY);
-    } catch {
-      /* ignore */
-    }
+    clearApiAuth();
   }, []);
 
   const can = useCallback(

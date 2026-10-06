@@ -58,8 +58,10 @@ const getSafeMetaText = (key: Parameters<typeof translate>[0], fallback: string)
 import { emptyJob } from "@/lib/jobs-store";
 import { useTaxonomies, type TaxonomyKey } from "@/lib/taxonomy-store";
 import { fetchJobs, createJob, updateJob, deleteJob, toApiPayload, fetchJobTaxonomies } from "@/lib/api/jobs";
+import { requireAdminSession } from "@/lib/admin-route-guard";
 
 export const Route = createFileRoute("/admin/jobs")({
+  beforeLoad: ({ location }) => requireAdminSession(location.pathname),
   head: () => ({
     meta: [
       {

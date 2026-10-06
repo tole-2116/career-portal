@@ -1,9 +1,11 @@
 import { Router, type Router as RouterType } from "express";
 import { AdminJobController } from "../controllers/admin-job.controller";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 const adminJobController = new AdminJobController();
 
 export const adminJobsRoutes: RouterType = Router();
+adminJobsRoutes.use(requireAuth, requireRole("ADMIN", "RECRUITER"));
 
 // GET /api/admin/jobs — danh sách jobs (phân trang, lọc, tìm kiếm)
 adminJobsRoutes.get("/", adminJobController.getPaginated);

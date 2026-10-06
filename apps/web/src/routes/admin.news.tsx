@@ -17,6 +17,7 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { requireAdminSession } from "@/lib/admin-route-guard";
 import { LanguageTabs, LocalizedField } from "@/components/admin/LocalizedInput";
 import {
   AlertDialog,
@@ -88,6 +89,7 @@ const getSafeMetaText = (key: Parameters<typeof translate>[0], fallback: string)
   translate(key, fallback) || fallback;
 
 export const Route = createFileRoute("/admin/news")({
+  beforeLoad: ({ location }) => requireAdminSession(location.pathname),
   head: () => ({
     meta: [
       {
