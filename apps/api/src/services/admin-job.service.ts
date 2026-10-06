@@ -1,4 +1,4 @@
-import { db } from "@career-portal/database";
+import { db, Prisma } from "@career-portal/database";
 import type { JobModel, JobModelQuery, JobStatus, LocaleStringModel } from "../types/job";
 
 // Taxonomy type codes. Seed lưu dạng thường ("department", "workType", "level", "location", "newsCategory"),
@@ -124,12 +124,12 @@ function toLocalizedObj(locale: LocaleStringModel): { en: string; vi: string } {
 }
 
 /** Chuẩn hoá một field đa ngữ về JSON nullable { en, vi }. */
-function formatLocalizedField(value: unknown): { en: string; vi: string } | null {
-  if (value === null || value === undefined) return null;
+function formatLocalizedField(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  if (value === null || value === undefined) return Prisma.JsonNull;
 
   if (typeof value === "string") {
     const text = value.trim();
-    return text ? { en: text, vi: text } : null;
+    return text ? { en: text, vi: text } : Prisma.JsonNull;
   }
 
   if (Array.isArray(value)) {
@@ -140,7 +140,7 @@ function formatLocalizedField(value: unknown): { en: string; vi: string } | null
         vi: typeof item.vi === "string" ? item.vi.trim() : "",
       }))
       .filter((item) => item.en || item.vi);
-    if (!items.length) return null;
+    if (!items.length) return Prisma.JsonNull;
     return {
       en: items.map((item) => item.en || item.vi).join("\\n"),
       vi: items.map((item) => item.vi || item.en).join("\\n"),
@@ -151,10 +151,10 @@ function formatLocalizedField(value: unknown): { en: string; vi: string } | null
     const item = value as { en?: unknown; vi?: unknown };
     const en = typeof item.en === "string" ? item.en.trim() : "";
     const vi = typeof item.vi === "string" ? item.vi.trim() : "";
-    return en || vi ? { en: en || vi, vi: vi || en } : null;
+    return en || vi ? { en: en || vi, vi: vi || en } : Prisma.JsonNull;
   }
 
-  return null;
+  return Prisma.JsonNull;
 }
 
 function normalizeHeadcount(value: number | string | null | undefined): number | null {
@@ -280,10 +280,10 @@ export class AdminJobService {
 
     // Gom toàn bộ taxonomy ID của trang kết quả rồi truy vấn 1 lần.
     const taxMap = await loadTaxonomyMap(
-      jobs.flatMap((job: JobModel & { departmentId: string | null; locationIds: string | null; workTypeId: string | null; salaryId: string | null; experienceId: string | null }) => [job.departmentId, ...splitIds(job.locationIds), job.workTypeId, job.salaryId, job.experienceId]),
+      jobs.flatMap((job) => [job.departmentId, ...splitIds(job.locationIds), job.workTypeId, job.salaryId, job.experienceId]),
     );
 
-    const formattedJobs = jobs.map((job: JobModel & { departmentId: string | null; locationIds: string | null; workTypeId: string | null; salaryId: string | null; experienceId: string | null }) => {
+    const formattedJobs = jobs.map((job) => {
       const departmentId = job.departmentId ?? undefined;
       const workTypeId = job.workTypeId ?? undefined;
       const salaryId = job.salaryId ?? undefined;
@@ -358,8 +358,12 @@ export class AdminJobService {
         description: formatLocalizedField(data.description),
         requirements: formatLocalizedField(data.requirements),
         benefits: formatLocalizedField(data.benefits),
-        level: data.level ? toLocalizedObj(typeof data.level === "string" ? { en: data.level, vi: data.level } : data.level) : null,
-        languages: data.languages ? toLocalizedObj(typeof data.languages === "string" ? { en: data.languages, vi: data.languages } : data.languages) : null,
+        level: data.level
+          ? toLocalizedObj(typeof data.level === "string" ? { en: data.level, vi: data.level } : data.level)
+          : Prisma.JsonNull,
+        languages: data.languages
+          ? toLocalizedObj(typeof data.languages === "string" ? { en: data.languages, vi: data.languages } : data.languages)
+          : Prisma.JsonNull,
         applicants: 0,
         featured: data.isFeatured ?? false,
         headcount: normalizeHeadcount(data.headcount),

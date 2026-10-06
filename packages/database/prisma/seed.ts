@@ -31,6 +31,63 @@ const audit = {
   isdelete: false,
 };
 
+const siteConfigSeed = {
+  code: "site-config",
+  layout: "classic",
+  paletteId: "navy",
+  primary: "#1b2a41",
+  accent: "#e8a33d",
+  surfaceTone: "tinted",
+  images: { hero: "", heroImages: [] as string[], culture: "", logo: "" },
+  copy: {
+    brand: { vi: "TalentHub", en: "TalentHub" },
+    tagline: { vi: "Tuyển dụng & Nhân sự", en: "Talent & People" },
+    eyebrow: { vi: "Chúng tôi đang tuyển", en: "We are hiring" },
+    title: {
+      vi: "Nơi những người giỏi nhất xây dựng điều đáng giá",
+      en: "Where great people build things that matter",
+    },
+    subtitle: {
+      vi: "Hơn 400 đồng nghiệp tại Hà Nội, Đà Nẵng và TP. Hồ Chí Minh đang cùng nhau tạo ra sản phẩm phục vụ hàng triệu người dùng mỗi ngày.",
+      en: "More than 400 colleagues across Hanoi, Da Nang and Ho Chi Minh City are building products used by millions every day.",
+    },
+    ctaLabel: { vi: "Tìm việc làm", en: "Search jobs" },
+  },
+  sections: {},
+  company: {
+    intro: {
+      vi: "Chúng tôi xây dựng các sản phẩm số giúp doanh nghiệp vận hành hiệu quả hơn.",
+      en: "We build digital products that help businesses run better.",
+    },
+    locations: [],
+    email: "careers@talenthub.vn",
+    phone: "+84 28 1234 5678",
+    website: "",
+    legalName: "",
+    taxId: "",
+    social: { facebook: "", linkedin: "", youtube: "", github: "", zalo: "", tiktok: "" },
+    copyright: { vi: "", en: "" },
+  },
+  about: {},
+  jobsPage: {
+    filterLayout: "sidebar",
+    filters: {
+      department: true,
+      location: true,
+      workType: true,
+      level: true,
+      status: true,
+      salary: true,
+      experience: true,
+    },
+    card: { salary: true, deadline: true, featuredBadge: true },
+    pageSize: 8,
+    title: { vi: "Vị trí đang tuyển", en: "Open positions" },
+    subtitle: { vi: "Chọn bộ lọc để tìm vị trí phù hợp.", en: "Use the filters to find a role that fits." },
+  },
+  modules: { news: true, openApplication: true },
+};
+
 /* ------------------------------------------------------------------ *
  * In-memory FK mapping Maps: old mock code -> newly generated UUID.
  * --------------------------------------------------------------- */
@@ -170,7 +227,13 @@ async function main() {
       console.log("ℹ️  Super Admin already exists, skipping creation.");
     }
 
-    console.log("[PRODUCTION] Essential admin seeded. Skipping mock test data.");
+    await prisma.site_configs.upsert({
+      where: { code: siteConfigSeed.code },
+      update: { ...siteConfigSeed, ...audit },
+      create: { ...siteConfigSeed, ...audit },
+    });
+    console.log("✅ Default SiteConfig seeded.");
+    console.log("[PRODUCTION] Essential data seeded. Skipping mock test data.");
     return; // KHÔNG chèn dữ liệu mock/Test nào vào DB ở production
   }
 
@@ -492,6 +555,14 @@ async function main() {
       create: { code: formConfigCode, name: formConfigName, ...defaultFormConfig, ...audit },
     });
     console.log("Seeded 1 application FormConfig (upsert by code)");
+
+    /* ---- 7. Site configuration (idempotent singleton) ---- */
+    await tx.site_configs.upsert({
+      where: { code: siteConfigSeed.code },
+      update: { ...siteConfigSeed, ...audit },
+      create: { ...siteConfigSeed, ...audit },
+    });
+    console.log("Seeded 1 SiteConfig (upsert by code)");
   });
 
   console.log("✅ Seed complete!");

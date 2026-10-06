@@ -1354,6 +1354,7 @@ function AdminSettings() {
   const { t, tr } = useI18n();
   const { config, save, reset } = useSiteConfig();
   const [draft, setDraft] = useState<SiteConfig>(config);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setDraft(config);
@@ -1479,10 +1480,36 @@ function AdminSettings() {
     );
   };
 
-  const saveDraft = () => {
-    const ok = save(draft);
-    if (ok) toast.success(t("settings.saved"));
-    else toast.error(t("settings.brand.quota"));
+  const saveDraft = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const ok = await save(draft);
+      if (ok) {
+        toast.success(t("settings.saved"));
+      } else {
+        toast.error(
+          tr({
+            vi: "Không thể lưu lên máy chủ. Thay đổi chỉ được giữ trong phiên hiện tại.",
+            en: "Could not save to the server. Changes are only kept for this session.",
+          }),
+        );
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const resetDraft = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await reset();
+      setDraft(defaultSiteConfig);
+      toast.success(t("settings.resetDone"));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const onLogoFile = (file: File) => {
@@ -1515,7 +1542,7 @@ function AdminSettings() {
               <span className="hidden sm:inline">{t("settings.preview")}</span>
             </Link>
           </Button>
-          <Button size="sm" onClick={saveDraft}>
+          <Button size="sm" onClick={() => void saveDraft()} disabled={isSaving}>
             <Save className="h-4 w-4" />
             <span className="hidden sm:inline">{t("common.save")}</span>
           </Button>
@@ -2592,16 +2619,15 @@ function AdminSettings() {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
+              disabled={isSaving}
               onClick={() => {
-                reset();
-                setDraft(defaultSiteConfig);
-                toast.success(t("settings.resetDone"));
+                void resetDraft();
               }}
             >
               <RotateCcw className="h-4 w-4" />
               {t("settings.reset")}
             </Button>
-            <Button onClick={saveDraft}>
+            <Button onClick={() => void saveDraft()} disabled={isSaving}>
               <Save className="h-4 w-4" />
               {t("common.save")}
             </Button>

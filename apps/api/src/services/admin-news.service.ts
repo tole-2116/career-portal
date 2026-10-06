@@ -105,20 +105,7 @@ export class AdminNewsService {
       categories.map((c: { id: string; code: string; type: string; name: unknown }) => [c.code, { id: c.id, code: c.code, type: c.type, label: readLocalized(c.name) }]),
     );
 
-    const formatted: NewsListItem[] = news.map((item: {
-      id: string;
-      code: string;
-      slug: string;
-      categoryId: string;
-      coverUrl: string | null;
-      date: Date;
-      author: { name: string };
-      published: boolean;
-      featured: boolean;
-      title: unknown;
-      excerpt: unknown;
-      body: unknown;
-    }) => ({
+    const formatted: NewsListItem[] = news.map((item) => ({
       id: item.id,
       code: item.code,
       slug: item.slug,

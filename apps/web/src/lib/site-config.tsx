@@ -9,6 +9,11 @@ import {
 } from "react";
 
 import { defaultMedia } from "@/data/media";
+import {
+  fetchSiteConfig,
+  resetAdminSiteConfig,
+  saveAdminSiteConfig,
+} from "@/services/site-config.api";
 import type { Localized } from "@/lib/i18n";
 
 const STORAGE_KEY = "talenthub-site-config";
@@ -981,8 +986,8 @@ function mergeConfig(stored: SiteConfig): SiteConfig {
 
 type SiteConfigValue = {
   config: SiteConfig;
-  save: (next: SiteConfig) => boolean;
-  reset: () => void;
+  save: (next: SiteConfig) => Promise<boolean>;
+  reset: () => Promise<void>;
 };
 
 const SiteConfigContext = createContext<SiteConfigValue | null>(null);
@@ -990,6 +995,7 @@ const SiteConfigContext = createContext<SiteConfigValue | null>(null);
 export function SiteConfigProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<SiteConfig>(defaultSiteConfig);
 
+  // Bộ nhớ cục bộ chỉ là fallback hiển thị tức thời; API vẫn là nguồn chính.
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -1003,23 +1009,60 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Cấu hình từ database (công khai) ghi đè fallback cục bộ khi có phản hồi.
+  useEffect(() => {
+    let cancelled = false;
+    fetchSiteConfig()
+      .then((data) => {
+        if (!cancelled && isConfigLike(data)) setConfig(mergeConfig(data));
+      })
+      .catch(() => {
+        /* API chưa sẵn sàng: giữ cấu hình mặc định/localStorage */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     applyPalette(config);
   }, [config]);
 
-  const save = useCallback((next: SiteConfig) => {
-    setConfig(next);
+  const save = useCallback(async (next: SiteConfig) => {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      const saved = await saveAdminSiteConfig(next);
+      const merged = mergeConfig(saved);
+      setConfig(merged);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      } catch {
+        /* cache cục bộ không khả dụng — không chặn lưu server */
+      }
       return true;
     } catch {
+      // Không lưu được lên server (mất kết nối/chưa đăng nhập) — chỉ áp dụng cục bộ.
+      setConfig(next);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* localStorage đầy — vẫn áp dụng cho phiên hiện tại */
+      }
       return false;
     }
   }, []);
 
-  const reset = useCallback(() => {
-    setConfig(defaultSiteConfig);
-    window.localStorage.removeItem(STORAGE_KEY);
+  const reset = useCallback(async () => {
+    try {
+      const saved = await resetAdminSiteConfig();
+      setConfig(mergeConfig(saved));
+    } catch {
+      setConfig(defaultSiteConfig);
+    }
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const value = useMemo<SiteConfigValue>(() => ({ config, save, reset }), [config, save, reset]);
@@ -1030,8 +1073,8 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
 /** Read-only fallback so a stale module instance never blanks the screen. */
 const fallbackValue: SiteConfigValue = {
   config: defaultSiteConfig,
-  save: () => false,
-  reset: () => {},
+  save: async () => false,
+  reset: async () => {},
 };
 
 export function useSiteConfig() {

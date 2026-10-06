@@ -167,19 +167,27 @@ model form_configs {
 }
 
 model site_configs {
-  id          String @id
-  layout      String
-  paletteId   String
-  primary     String
-  accent      String
-  surfaceTone String
-  images      Json
-  copy        Json
-  sections    Json
-  company     Json
-  about       Json
-  jobsPage    Json
-  modules     Json
+  id             String    @id @default(uuid())
+  code           String?   @unique @db.VarChar(100)
+  layout         String
+  paletteId      String
+  primary        String
+  accent         String
+  surfaceTone    String
+  images         Json
+  copy           Json
+  sections       Json
+  company        Json
+  about          Json
+  jobsPage       Json
+  modules        Json
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  usercreate_at  String?   @db.VarChar(255)
+  userupdated_at String?   @db.VarChar(255)
+  isdelete       Boolean   @default(false)
+
+  @@map("site_configs")
 }
 
 enum Role {
