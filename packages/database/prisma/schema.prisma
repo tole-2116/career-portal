@@ -21,8 +21,28 @@ model User {
   isdelete       Boolean       @default(false)
   candidates     Candidate[]
   news           News[]
+  refreshTokens  RefreshToken[]
 
   @@map("users")
+}
+
+model RefreshToken {
+  id            String    @id @default(uuid())
+  tokenHash     String    @unique
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  replacedById  String?
+  replacedBy    RefreshToken?  @relation("TokenReplacement", fields: [replacedById], references: [id])
+  replacedFrom  RefreshToken[] @relation("TokenReplacement")
+  createdAt     DateTime  @default(now())
+  lastUsedAt    DateTime  @default(now())
+  userAgent     String?   @db.VarChar(500)
+  ipAddress     String?   @db.VarChar(45)
+
+  @@index([userId, revokedAt])
+  @@map("refresh_tokens")
 }
 
 model Taxonomy {

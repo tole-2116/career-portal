@@ -1,15 +1,9 @@
 import type { Article, NewsCategory } from "@/lib/news-store";
-import { getApiToken } from "@/lib/auth-store";
+import { apiRequest } from "@/lib/api/request";
 import type { Localized } from "@/lib/i18n";
 
 const ADMIN_BASE = "/api/admin/news";
 const PUBLIC_BASE = "/api/news";
-
-interface ApiEnvelope<T> {
-  success: boolean;
-  data: T;
-  error?: string;
-}
 
 interface ApiCategory {
   id: string;
@@ -71,25 +65,7 @@ function mapArticle(raw: ApiNews): Article {
 }
 
 async function request<T>(input: string, init?: RequestInit, authenticated = true): Promise<T> {
-  const token = authenticated ? getApiToken() : null;
-  const response = await fetch(input, {
-    ...init,
-    headers: {
-      ...(init?.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers ?? {}),
-    },
-  });
-
-  let body: ApiEnvelope<T> | null = null;
-  try {
-    body = (await response.json()) as ApiEnvelope<T>;
-  } catch {
-    // Proxy/network errors may return a non-JSON response.
-  }
-  if (!response.ok) throw new Error(body?.error || `Request failed with status ${response.status}`);
-  if (body?.success === false) throw new Error(body.error || "Request failed");
-  return body?.data as T;
+  return apiRequest<T>(input, { ...init, authenticated });
 }
 
 function toPayload(article: Article) {

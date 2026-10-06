@@ -33,8 +33,10 @@ import {
   moveTaxonomyItem,
   updateTaxonomyItem,
 } from "@/services/admin-taxonomies.api";
+import { requireAdminSession } from "@/lib/admin-route-guard";
 
 export const Route = createFileRoute("/admin/taxonomies")({
+  beforeLoad: ({ location }) => requireAdminSession(location.pathname),
   head: () => ({
     meta: [
       { title: "Danh mục tuyển dụng — TalentHub HR" },

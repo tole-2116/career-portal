@@ -76,8 +76,19 @@ export function AdminLayout({
   const section = sectionForPath(pathname);
 
   useEffect(() => {
-    if (ready && !currentUser) void navigate({ to: "/admin/login" });
-  }, [ready, currentUser, navigate]);
+    if (ready && !currentUser) {
+      void navigate({ to: "/admin/login", search: { returnTo: pathname } });
+    }
+  }, [ready, currentUser, navigate, pathname]);
+
+  // 401 từ bất kỳ API admin nào (sau khi refresh thất bại) → buộc đăng nhập lại.
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      void navigate({ to: "/admin/login", search: { returnTo: pathname } });
+    };
+    window.addEventListener("career-portal:auth-expired", handleAuthExpired);
+    return () => window.removeEventListener("career-portal:auth-expired", handleAuthExpired);
+  }, [navigate, pathname]);
 
   if (!ready || !currentUser) return null;
 
@@ -155,7 +166,7 @@ export function AdminLayout({
             type="button"
             onClick={() => {
               logout();
-              void navigate({ to: "/admin/login" });
+              void navigate({ to: "/admin/login", search: { returnTo: pathname } });
             }}
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-sidebar-foreground/65 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
@@ -203,7 +214,7 @@ export function AdminLayout({
                 aria-label={tr({ vi: "Đăng xuất", en: "Sign out" })}
                 onClick={() => {
                   logout();
-                  void navigate({ to: "/admin/login" });
+                  void navigate({ to: "/admin/login", search: { returnTo: pathname } });
                 }}
               >
                 <LogOut className="h-4 w-4" />

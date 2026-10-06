@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { requireAdminSession } from "@/lib/admin-route-guard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,6 +70,7 @@ const getSafeMetaText = (key: Parameters<typeof translate>[0], fallback: string)
   translate(key, fallback) || fallback;
 
 export const Route = createFileRoute("/admin/users")({
+  beforeLoad: ({ location }) => requireAdminSession(location.pathname),
   head: () => ({
     meta: [
       {

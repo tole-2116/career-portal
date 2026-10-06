@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -11,6 +11,10 @@ import { useI18n } from "@/lib/i18n";
 import { useSiteConfig } from "@/lib/site-config";
 
 export const Route = createFileRoute("/admin/login")({
+  validateSearch: (search: Record<string, unknown>): { returnTo?: string } => {
+    const returnTo = search["returnTo"];
+    return typeof returnTo === "string" && returnTo ? { returnTo } : {};
+  },
   head: () => ({
     meta: [
       { title: "Đăng nhập quản trị — TalentHub HR" },
@@ -33,6 +37,10 @@ function AdminLoginPage() {
   const { config } = useSiteConfig();
   const { login, currentUser } = useAuth();
   const navigate = useNavigate();
+  const { returnTo } = useSearch({ from: "/admin/login" });
+
+  const safeReturnTo =
+    returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/admin";
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -42,8 +50,8 @@ function AdminLoginPage() {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (currentUser) void navigate({ to: "/admin" });
-  }, [currentUser, navigate]);
+    if (currentUser) void navigate({ to: safeReturnTo });
+  }, [currentUser, navigate, safeReturnTo]);
 
   useEffect(() => {
     if (!lockedUntil) return;
@@ -77,7 +85,7 @@ function AdminLoginPage() {
       setFails(0);
       setLockedUntil(0);
       toast.success(tr({ vi: "Đăng nhập thành công.", en: "Signed in." }));
-      void navigate({ to: "/admin" });
+      void navigate({ to: safeReturnTo });
       return;
     }
     const next = fails + 1;

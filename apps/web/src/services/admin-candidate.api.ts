@@ -10,7 +10,7 @@
 
 import type { Candidate, Stage } from "@/data/candidates";
 import type { Localized } from "@/lib/i18n";
-import { getApiToken } from "@/lib/auth-store";
+import { apiRequest } from "@/lib/api/request";
 
 const API_BASE = "/api/admin/candidates";
 
@@ -47,12 +47,6 @@ interface ApiCandidate {
   experience: ApiLocalizedText;
   highlights: ApiLocalizedText[];
   notes: CandidateNote[];
-}
-
-interface ApiEnvelope<T> {
-  success: boolean;
-  data: T;
-  error?: string;
 }
 
 /* ---------- status mapping ---------- */
@@ -115,32 +109,9 @@ function mapApiCandidate(raw: ApiCandidate): Candidate {
   };
 }
 
-/** Fetch wrapper: unwrap `{ success, data }`, ném lỗi kèm message từ backend. */
+/** Shared authenticated wrapper; automatically handles expired sessions. */
 async function request<T>(input: string, init?: RequestInit): Promise<T> {
-  const token = getApiToken();
-  const response = await fetch(input, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers ?? {}),
-    },
-    ...init,
-  });
-
-  let body: ApiEnvelope<T> | null = null;
-  try {
-    body = (await response.json()) as ApiEnvelope<T>;
-  } catch {
-    // Không phải JSON (lỗi proxy/mạng) — dùng thông báo chung bên dưới.
-  }
-
-  if (!response.ok) {
-    throw new Error(body?.error || `Request failed with status ${response.status}`);
-  }
-  if (body && body.success === false) {
-    throw new Error(body.error || "Request failed");
-  }
-  return body?.data as T;
+  return apiRequest<T>(input, init);
 }
 
 /* ---------- Public API ---------- */

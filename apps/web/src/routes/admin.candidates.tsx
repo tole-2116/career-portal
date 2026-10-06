@@ -68,8 +68,10 @@ import { useInbox } from "@/lib/inbox-store";
 import { useJobs } from "@/lib/jobs-store";
 import type { TaxonomyItem } from "@/lib/taxonomy-store";
 import { cn } from "@/lib/utils";
+import { requireAdminSession } from "@/lib/admin-route-guard";
 
 export const Route = createFileRoute("/admin/candidates")({
+  beforeLoad: ({ location }) => requireAdminSession(location.pathname),
   head: () => ({
     meta: [
       {

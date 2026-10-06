@@ -1,9 +1,8 @@
-import { getApiToken } from "@/lib/auth-store";
+import { apiRequest } from "@/lib/api/request";
 import type { UserRole } from "@/lib/permissions";
 
 const BASE = "/api/admin/users";
 
-type ApiEnvelope<T> = { success: boolean; data: T; error?: string };
 type ApiRole = "ADMIN" | "RECRUITER";
 
 type ApiUser = {
@@ -48,26 +47,7 @@ function mapUser(user: ApiUser): AdminManagedUser {
 }
 
 async function request<T>(input: string, init?: RequestInit): Promise<T> {
-  const token = getApiToken();
-  const response = await fetch(input, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers ?? {}),
-    },
-  });
-
-  let body: ApiEnvelope<T> | null = null;
-  try {
-    body = (await response.json()) as ApiEnvelope<T>;
-  } catch {
-    // Non-JSON proxy/network response.
-  }
-  if (!response.ok || body?.success === false) {
-    throw new Error(body?.error || `Request failed with status ${response.status}`);
-  }
-  return body?.data as T;
+  return apiRequest<T>(input, init);
 }
 
 function roleToApi(role: UserRole): ApiRole {

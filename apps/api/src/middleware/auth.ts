@@ -1,16 +1,21 @@
+import crypto from "node:crypto";
 import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { type JwtPayload } from "jsonwebtoken";
 import { db } from "@career-portal/database";
+import { env } from "../config/env";
 
-/** Secret từ env cho production; fallback dev local để dev server chạy được. */
-const JWT_SECRET = process.env.JWT_SECRET || "career-portal-dev-secret";
-const TOKEN_TTL = "8h";
+const ACCESS_TOKEN_PURPOSE = "access" as const;
 
 export interface AuthUser {
   id: string;
+  email?: string;
   name: string;
   role: string;
 }
+
+type AccessTokenPayload = JwtPayload & {
+  purpose?: string;
+};
 
 declare global {
   namespace Express {
@@ -20,51 +25,90 @@ declare global {
   }
 }
 
-export function signToken(userId: string): string {
-  return jwt.sign({ sub: userId }, JWT_SECRET, { expiresIn: TOKEN_TTL });
+export function signAccessToken(userId: string): string {
+  return jwt.sign(
+    { sub: userId, purpose: ACCESS_TOKEN_PURPOSE },
+    env.jwtSecret,
+    {
+      algorithm: "HS256",
+      expiresIn: env.jwtAccessTtl as jwt.SignOptions["expiresIn"],
+      issuer: env.jwtIssuer,
+    },
+  );
 }
 
-/** Xác thực Bearer token, load user active từ DB, gắn vào req.user. */
-export function requireRole(...roles: string[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ success: false, error: "Forbidden" });
-    }
-    return next();
-  };
+/** @deprecated Use signAccessToken for new sessions. */
+export const signToken = signAccessToken;
+
+export function createRefreshToken(): string {
+  return crypto.randomBytes(32).toString("base64url");
 }
 
+export function hashToken(token: string): string {
+  return crypto.createHash("sha256").update(token, "utf8").digest("hex");
+}
+
+function authError(
+  res: Response,
+  status: number,
+  error: string,
+  code: string,
+) {
+  return res.status(status).json({ success: false, error, code });
+}
+
+/** Xác thực access token Bearer, sau đó luôn tải role mới nhất từ DB. */
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const header = req.headers.authorization;
+  const token = header?.startsWith("Bearer ") ? header.slice(7).trim() : "";
+  if (!token) return authError(res, 401, "Authentication required", "TOKEN_MISSING");
+
+  let userId: string;
   try {
-    const header = req.headers.authorization;
-    const token = header?.startsWith("Bearer ") ? header.slice(7).trim() : "";
-    if (!token) {
-      return res.status(401).json({ success: false, error: "Missing bearer token" });
+    const decoded = jwt.verify(token, env.jwtSecret, {
+      algorithms: ["HS256"],
+      issuer: env.jwtIssuer,
+    });
+    if (typeof decoded === "string") {
+      return authError(res, 401, "Invalid token", "TOKEN_INVALID");
     }
 
-    let userId: string;
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      userId = typeof decoded === "string" ? decoded : String(decoded.sub ?? "");
-    } catch {
-      return res.status(401).json({ success: false, error: "Invalid or expired token" });
+    const payload = decoded as AccessTokenPayload;
+    if (
+      typeof payload.sub !== "string" ||
+      !payload.sub ||
+      payload.purpose !== ACCESS_TOKEN_PURPOSE
+    ) {
+      return authError(res, 401, "Invalid token", "TOKEN_INVALID");
     }
-    if (!userId) {
-      return res.status(401).json({ success: false, error: "Invalid token payload" });
+    userId = payload.sub;
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      return authError(res, 401, "Token expired", "TOKEN_EXPIRED");
     }
+    return authError(res, 401, "Invalid token", "TOKEN_INVALID");
+  }
 
+  try {
     const user = await db.user.findFirst({
       where: { id: userId, isdelete: false },
-      select: { id: true, name: true, role: true },
+      select: { id: true, email: true, name: true, role: true },
     });
-    if (!user) {
-      return res.status(401).json({ success: false, error: "User not found or inactive" });
-    }
+    if (!user) return authError(res, 401, "User is inactive or not found", "USER_INACTIVE");
 
-    req.user = { id: user.id, name: user.name, role: user.role };
+    req.user = { id: user.id, email: user.email, name: user.name, role: user.role };
     return next();
   } catch (error) {
     console.error("auth middleware error:", error);
-    return res.status(500).json({ success: false, error: "Authentication failed" });
+    return res.status(500).json({ success: false, error: "Authentication failed", code: "AUTH_ERROR" });
   }
+}
+
+export function requireRole(...roles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return authError(res, 403, "Forbidden", "FORBIDDEN");
+    }
+    return next();
+  };
 }
