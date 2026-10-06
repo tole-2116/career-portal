@@ -65,8 +65,8 @@ function slugify(value: string): string {
 }
 
 function readItem(raw: { id: string; code: string; type: string; name: unknown }): TaxonomyItemDto {
-  // The UI uses the stable taxonomy code as its item id (jobs store references codes).
-  return { id: raw.code, code: raw.code, type: raw.type, label: localized(raw.name) };
+  // Public consumers use the database ID stored on Job taxonomy fields; code remains the stable slug.
+  return { id: raw.id, code: raw.code, type: raw.type, label: localized(raw.name) };
 }
 
 function emptyTaxonomies(): Record<TaxonomyType, TaxonomyItemDto[]> {

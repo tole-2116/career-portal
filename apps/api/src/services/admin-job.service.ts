@@ -80,7 +80,11 @@ async function assertValidTaxonomyId(
   expectedType: "department" | "location" | "workType" | "salary" | "experience",
   fieldName: string,
 ): Promise<string> {
-  const tax = await db.taxonomy.findFirst({ where: { id: taxonomyId } });
+  const tax = await db.taxonomy.findFirst({
+    where: {
+      OR: [{ id: taxonomyId }, { code: taxonomyId }],
+    },
+  });
 
   if (!tax) {
     throw new Error(`Invalid ${fieldName}: Taxonomy with id "${taxonomyId}" not found`);
@@ -241,8 +245,12 @@ export class AdminJobService {
     }
 
     if (query.locationIds) {
+      // Public taxonomy trả `code`, còn Job lưu taxonomy UUID; chuẩn hóa trước khi lọc.
+      const locationIds = await Promise.all(
+        splitIds(query.locationIds).map((id) => assertValidTaxonomyId(id, "location", "locationIds")),
+      );
       // locationIds lưu nhiều id nối bằng dấu phẩy -> lọc bằng contains trên chuỗi.
-      where.locationIds = { contains: query.locationIds };
+      where.locationIds = locationIds.length ? { contains: locationIds[0] } : undefined;
     }
 
     if (query.workTypeId) {

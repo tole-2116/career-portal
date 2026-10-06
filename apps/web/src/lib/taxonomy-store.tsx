@@ -28,53 +28,9 @@ export const taxonomyKeys: TaxonomyKey[] = [
   "locations",
 ];
 
-function item(id: string, vi: string, en: string): TaxonomyItem {
-  return { id, label: { vi, en } };
-}
-
-export const defaultTaxonomies: Taxonomies = {
-  departments: [
-    item("engineering", "Công nghệ", "Engineering"),
-    item("design", "Thiết kế", "Design"),
-    item("people", "Nhân sự", "People"),
-    item("sales", "Kinh doanh", "Sales"),
-    item("marketing", "Marketing", "Marketing"),
-    item("operations", "Vận hành", "Operations"),
-  ],
-  workTypes: [
-    item("full-time", "Toàn thời gian", "Full-time"),
-    item("part-time", "Bán thời gian", "Part-time"),
-    item("hybrid", "Kết hợp từ xa", "Hybrid"),
-    item("remote", "Làm việc từ xa", "Remote"),
-    item("internship", "Thực tập", "Internship"),
-    item("contract", "Hợp đồng thời vụ", "Contract"),
-  ],
-  salaries: [
-    item("negotiable", "Thỏa thuận", "Negotiable"),
-    item("s-10-15", "10 – 15 triệu VNĐ", "10 – 15M VND"),
-    item("s-15-25", "15 – 25 triệu VNĐ", "15 – 25M VND"),
-    item("s-25-40", "25 – 40 triệu VNĐ", "25 – 40M VND"),
-    item("s-40-60", "40 – 60 triệu VNĐ", "40 – 60M VND"),
-    item("s-60-plus", "Trên 60 triệu VNĐ", "Above 60M VND"),
-  ],
-  experiences: [
-    item("none", "Chưa yêu cầu kinh nghiệm", "No experience required"),
-    item("under-1", "Dưới 1 năm", "Less than 1 year"),
-    item("1-3", "1 – 3 năm", "1 – 3 years"),
-    item("3-5", "3 – 5 năm", "3 – 5 years"),
-    item("over-5", "Trên 5 năm", "More than 5 years"),
-  ],
-  locations: [
-    item("hanoi", "Hà Nội", "Hanoi"),
-    item("hcmc", "TP. Hồ Chí Minh", "Ho Chi Minh City"),
-    item("danang", "Đà Nẵng", "Da Nang"),
-    item("remote-vn", "Toàn quốc / Từ xa", "Nationwide / Remote"),
-  ],
-};
-
-function normalizeList(value: unknown, fallback: TaxonomyItem[]): TaxonomyItem[] {
-  if (!Array.isArray(value)) return structuredClone(fallback);
-  const next = value
+function normalizeList(value: unknown): TaxonomyItem[] {
+  if (!Array.isArray(value)) return [];
+  return value
     .map((raw): TaxonomyItem | null => {
       if (!raw || typeof raw !== "object") return null;
       const r = raw as { id?: unknown; label?: { vi?: unknown; en?: unknown } };
@@ -88,7 +44,6 @@ function normalizeList(value: unknown, fallback: TaxonomyItem[]): TaxonomyItem[]
       };
     })
     .filter((v): v is TaxonomyItem => v !== null);
-  return next.length ? next : structuredClone(fallback);
 }
 
 export function makeTaxonomyId(label: string, existing: TaxonomyItem[]): string {
@@ -126,11 +81,17 @@ type State = { taxonomies: Taxonomies; customGroups: CustomGroup[] };
 export function TaxonomyProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<State>(() => ({
-    taxonomies: structuredClone(defaultTaxonomies),
+    taxonomies: {
+      departments: [],
+      workTypes: [],
+      salaries: [],
+      experiences: [],
+      locations: [],
+    },
     customGroups: [],
   }));
 
-  // Tải danh mục từ API công khai; giữ bản mặc định khi lỗi để trang công khai vẫn dùng được.
+  // Tải danh mục từ API công khai; không có fallback — danh sách rỗng nếu API không khả dụng.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -145,24 +106,22 @@ export function TaxonomyProvider({ children }: { children: ReactNode }) {
           error?: string;
         };
         if (cancelled || !response.ok || body?.success === false || !body.data) return;
-        const next = normalizeList(body.data.taxonomies?.department, defaultTaxonomies.departments);
-        if (!next.length) return;
         setState({
           taxonomies: {
-            departments: next,
-            workTypes: normalizeList(body.data.taxonomies?.workType, defaultTaxonomies.workTypes),
-            salaries: normalizeList(body.data.taxonomies?.salary, defaultTaxonomies.salaries),
-            experiences: normalizeList(body.data.taxonomies?.experience, defaultTaxonomies.experiences),
-            locations: normalizeList(body.data.taxonomies?.location, defaultTaxonomies.locations),
+            departments: normalizeList(body.data.taxonomies?.department),
+            workTypes: normalizeList(body.data.taxonomies?.workType),
+            salaries: normalizeList(body.data.taxonomies?.salary),
+            experiences: normalizeList(body.data.taxonomies?.experience),
+            locations: normalizeList(body.data.taxonomies?.location),
           },
           customGroups: (body.data.customGroups ?? []).map((group) => ({
             key: group.key,
             label: group.label,
-            items: normalizeList(group.items, []),
+            items: normalizeList(group.items),
           })),
         });
       } catch {
-        /* API chưa chạy — dùng mặc định */
+        /* API không khả dụng — giữ danh sách rỗng */
       } finally {
         if (!cancelled) setReady(true);
       }
