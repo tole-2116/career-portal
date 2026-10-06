@@ -1549,8 +1549,8 @@ function AdminSettings() {
         </div>
       }
     >
-      <div className="grid gap-6">
-        <Tabs defaultValue="brand">
+      <div className="flex min-h-0 flex-1 flex-col gap-6">
+        <Tabs defaultValue="brand" className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
             <TabsTrigger value="brand">{t("settings.tab.brand")}</TabsTrigger>
             <TabsTrigger value="layout">{t("settings.tab.layout")}</TabsTrigger>
@@ -1562,7 +1562,7 @@ function AdminSettings() {
             <TabsTrigger value="modules">{tr({ vi: "Mô-đun", en: "Modules" })}</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="brand" className="mt-5">
+          <TabsContent value="brand" className="mt-5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
               <section className="rounded-lg border border-border bg-card p-5">
                 <h2 className="font-display text-base font-semibold">
@@ -1849,7 +1849,7 @@ function AdminSettings() {
             </div>
           </TabsContent>
 
-          <TabsContent value="layout" className="mt-5">
+          <TabsContent value="layout" className="mt-5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
             <section className="rounded-lg border border-border bg-card p-5">
               <h2 className="font-display text-base font-semibold">{t("settings.layout.title")}</h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -1888,7 +1888,7 @@ function AdminSettings() {
             </section>
           </TabsContent>
 
-          <TabsContent value="jobsPage" className="mt-5">
+          <TabsContent value="jobsPage" className="mt-5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
             <section className="space-y-5 rounded-lg border border-border bg-card p-5">
               <h2 className="font-display text-base font-semibold">{t("settings.tab.jobsPage")}</h2>
 
@@ -2067,7 +2067,7 @@ function AdminSettings() {
             </section>
           </TabsContent>
 
-          <TabsContent value="palette" className="mt-5">
+          <TabsContent value="palette" className="mt-5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
             <section className="rounded-lg border border-border bg-card p-5">
               <h2 className="font-display text-base font-semibold">
                 {t("settings.palette.title")}
@@ -2180,7 +2180,7 @@ function AdminSettings() {
             </section>
           </TabsContent>
 
-          <TabsContent value="images" className="mt-5">
+          <TabsContent value="images" className="mt-5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
             <section className="rounded-lg border border-border bg-card p-5">
               <h2 className="font-display text-base font-semibold">{t("settings.images.title")}</h2>
               <div className="mt-4 grid gap-6 lg:grid-cols-3">
@@ -2273,7 +2273,7 @@ function AdminSettings() {
             </section>
           </TabsContent>
 
-          <TabsContent value="about" className="mt-5">
+          <TabsContent value="about" className="mt-5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
             <AboutPanel
               about={draft.about}
               onChange={(about) => update({ about })}
@@ -2281,7 +2281,7 @@ function AdminSettings() {
             />
           </TabsContent>
 
-          <TabsContent value="modules" className="mt-5">
+          <TabsContent value="modules" className="mt-5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
             <section className="rounded-lg border border-border bg-card p-5">
               <h2 className="font-display text-base font-semibold">
                 {tr({ vi: "Mô-đun theo dự án", en: "Project modules" })}
@@ -2323,7 +2323,7 @@ function AdminSettings() {
             </section>
           </TabsContent>
 
-          <TabsContent value="content" className="mt-5">
+          <TabsContent value="content" className="mt-5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
             <p className="mb-4 text-xs text-muted-foreground">
               {tr({
                 vi: "Kéo tay nắm để sắp xếp thứ tự các khối trên trang chủ, bật/tắt và chỉnh bố cục từng khối.",
@@ -2614,24 +2614,23 @@ function AdminSettings() {
           </TabsContent>
         </Tabs>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-5">
-          <p className="text-xs text-muted-foreground">{t("settings.storageNote")}</p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              disabled={isSaving}
-              onClick={() => {
-                void resetDraft();
-              }}
-            >
-              <RotateCcw className="h-4 w-4" />
-              {t("settings.reset")}
-            </Button>
-            <Button onClick={() => void saveDraft()} disabled={isSaving}>
-              <Save className="h-4 w-4" />
-              {t("common.save")}
-            </Button>
-          </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 rounded-lg border border-border bg-surface p-3">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={isSaving}
+            onClick={() => {
+              void resetDraft();
+            }}
+          >
+            <RotateCcw className="h-4 w-4" />
+            {t("settings.reset")}
+          </Button>
+          <Button type="button" size="sm" onClick={() => void saveDraft()} disabled={isSaving}>
+            <Save className="h-4 w-4" />
+            {t("common.save")}
+          </Button>
         </div>
       </div>
     </AdminLayout>
