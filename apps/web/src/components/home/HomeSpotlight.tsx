@@ -24,7 +24,20 @@ function spotlightTone(tone: AboutWidgetStyle["tone"]): string {
 }
 
 export function HomeSpotlight() {
-  const { config, copy, featured, stats, sections, order, enabled, styleOf, tr } = useHomeData();
+  const {
+    config,
+    copy,
+    featured,
+    stats,
+    sections,
+    order,
+    enabled,
+    styleOf,
+    tr,
+    t,
+    isLoading,
+    jobsError,
+  } = useHomeData();
   const { culture, benefits, jobs: jobsSection, cta } = sections;
 
   const widgets: Record<HomeWidgetKey, (s: AboutWidgetStyle) => ReactNode> = {
@@ -103,34 +116,48 @@ export function HomeSpotlight() {
               {tr(jobsSection.allLabel)} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className={cn("mt-8 grid gap-4", s.layout === "list" ? "" : "md:grid-cols-3")}>
-            {featured.map((job) => (
-              <Link
-                key={job.id}
-                to="/jobs/$jobId"
-                params={{ jobId: job.id }}
-                className="group block rounded-xl border border-primary-foreground/12 bg-primary-foreground/5 p-5 transition-colors hover:border-accent/60 hover:bg-primary-foreground/10"
-              >
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs uppercase tracking-wide text-primary-foreground/50">
-                      {tr(job.department)}
-                    </p>
-                    <h3 className="mt-1 font-display text-lg font-semibold leading-snug">
-                      {tr(job.title)}
-                    </h3>
+          {isLoading ? (
+            <p className="mt-8 rounded-xl border border-dashed border-primary-foreground/25 p-8 text-center text-sm text-primary-foreground/70">
+              {t("jobs.loading")}
+            </p>
+          ) : jobsError ? (
+            <p className="mt-8 rounded-xl border border-dashed border-primary-foreground/25 p-8 text-center text-sm text-primary-foreground/70">
+              {t("jobs.error")}
+            </p>
+          ) : featured.length === 0 ? (
+            <p className="mt-8 rounded-xl border border-dashed border-primary-foreground/25 p-8 text-center text-sm text-primary-foreground/70">
+              {t("jobs.empty")}
+            </p>
+          ) : (
+            <div className={cn("mt-8 grid gap-4", s.layout === "list" ? "" : "md:grid-cols-3")}>
+              {featured.map((job) => (
+                <Link
+                  key={job.id}
+                  to="/jobs/$jobId"
+                  params={{ jobId: job.id }}
+                  className="group block rounded-xl border border-primary-foreground/12 bg-primary-foreground/5 p-5 transition-colors hover:border-accent/60 hover:bg-primary-foreground/10"
+                >
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs uppercase tracking-wide text-primary-foreground/50">
+                        {tr(job.department)}
+                      </p>
+                      <h3 className="mt-1 font-display text-lg font-semibold leading-snug">
+                        {tr(job.title)}
+                      </h3>
+                    </div>
+                    <ArrowUpRight className="mt-1 h-5 w-5 shrink-0 text-primary-foreground/50 group-hover:text-accent" />
                   </div>
-                  <ArrowUpRight className="mt-1 h-5 w-5 shrink-0 text-primary-foreground/50 group-hover:text-accent" />
-                </div>
-                <p className="mt-2 line-clamp-2 text-sm text-primary-foreground/60">
-                  {tr(job.summary)}
-                </p>
-                <p className="mt-4 text-xs text-primary-foreground/50">
-                  {job.locations.map(tr).join(", ")} · {tr(job.salary)}
-                </p>
-              </Link>
-            ))}
-          </div>
+                  <p className="mt-2 line-clamp-2 text-sm text-primary-foreground/60">
+                    {tr(job.summary)}
+                  </p>
+                  <p className="mt-4 text-xs text-primary-foreground/50">
+                    {job.locations.map(tr).join(", ")} · {tr(job.salary)}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     ),

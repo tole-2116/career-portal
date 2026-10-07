@@ -16,7 +16,20 @@ import type { AboutWidgetStyle, HomeWidgetKey } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
 export function HomeEditorial() {
-  const { config, copy, featured, stats, sections, order, enabled, styleOf, tr } = useHomeData();
+  const {
+    config,
+    copy,
+    featured,
+    stats,
+    sections,
+    order,
+    enabled,
+    styleOf,
+    tr,
+    t,
+    isLoading,
+    jobsError,
+  } = useHomeData();
   const { culture, benefits, jobs: jobsSection, cta } = sections;
 
   const widgets: Record<HomeWidgetKey, (s: AboutWidgetStyle) => ReactNode> = {
@@ -112,27 +125,41 @@ export function HomeEditorial() {
               {tr(jobsSection.eyebrow)}
             </h2>
             <div className="min-w-0">
-              <ul className="border-t border-border">
-                {featured.map((job) => (
-                  <li key={job.id}>
-                    <Link
-                      to="/jobs/$jobId"
-                      params={{ jobId: job.id }}
-                      className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border py-6 transition-colors hover:text-accent"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-xs uppercase tracking-wide opacity-60">
-                          {tr(job.department)} · {job.locations.map(tr).join(", ")}
-                        </p>
-                        <h3 className="mt-1 truncate font-display text-xl font-semibold">
-                          {tr(job.title)}
-                        </h3>
-                      </div>
-                      <ArrowUpRight className="h-5 w-5 shrink-0" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              {isLoading ? (
+                <p className="rounded-lg border border-dashed border-border p-8 text-center text-sm opacity-70">
+                  {t("jobs.loading")}
+                </p>
+              ) : jobsError ? (
+                <p className="rounded-lg border border-dashed border-border p-8 text-center text-sm opacity-70">
+                  {t("jobs.error")}
+                </p>
+              ) : featured.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-border p-8 text-center text-sm opacity-70">
+                  {t("jobs.empty")}
+                </p>
+              ) : (
+                <ul className="border-t border-border">
+                  {featured.map((job) => (
+                    <li key={job.id}>
+                      <Link
+                        to="/jobs/$jobId"
+                        params={{ jobId: job.id }}
+                        className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border py-6 transition-colors hover:text-accent"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs uppercase tracking-wide opacity-60">
+                            {tr(job.department)} · {job.locations.map(tr).join(", ")}
+                          </p>
+                          <h3 className="mt-1 truncate font-display text-xl font-semibold">
+                            {tr(job.title)}
+                          </h3>
+                        </div>
+                        <ArrowUpRight className="h-5 w-5 shrink-0" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <Link
                 to="/jobs"
                 className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium hover:text-accent"

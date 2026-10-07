@@ -1,11 +1,11 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Facebook, Github, Linkedin, MessageCircle, Music2, Search, Youtube } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { Job } from "@/data/jobs";
 import { useI18n } from "@/lib/i18n";
-import { isPublicJob, useJobs } from "@/lib/jobs-store";
 import {
   homeWidgetKeys,
   useSiteConfig,
@@ -15,6 +15,7 @@ import {
   type HomeWidgetKey,
 } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
+import { fetchPublicJobs } from "@/services/jobs.api";
 
 const fallbackStyle: AboutWidgetStyle = { layout: "default", tone: "white", spacing: "normal" };
 
@@ -43,13 +44,39 @@ export function useHomeData() {
   const { t, tr } = useI18n();
   const { config } = useSiteConfig();
   const sections = config.sections;
-  const { jobs } = useJobs();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [openCount, setOpenCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  const liveJobs = jobs.filter(isPublicJob);
-  const openCount = liveJobs.length;
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setError(false);
+
+    fetchPublicJobs({ limit: 1000 })
+      .then((result) => {
+        if (!cancelled) {
+          const liveJobs = result.jobs.filter((job) => job.status === "open");
+          setJobs(liveJobs);
+          setOpenCount(result.total);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const count = Math.min(Math.max(sections.jobs.count || 3, 1), 6);
-  const featuredList = liveJobs.filter((job) => job.featured);
-  const featured = (featuredList.length ? featuredList : liveJobs).slice(0, count);
+  const featuredList = jobs.filter((job) => job.featured);
+  const featured = (featuredList.length ? featuredList : jobs).slice(0, count);
 
   const stats = (sections.stats.items ?? []).map((stat) => ({
     id: stat.id,
@@ -74,6 +101,8 @@ export function useHomeData() {
     sections,
     featured,
     openCount,
+    isLoading,
+    jobsError: error,
     stats,
     copy: config.copy,
     order,

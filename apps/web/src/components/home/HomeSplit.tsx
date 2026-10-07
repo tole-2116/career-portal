@@ -18,7 +18,20 @@ import type { AboutWidgetStyle, HomeWidgetKey } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
 export function HomeSplit() {
-  const { config, copy, featured, stats, sections, order, enabled, styleOf, tr } = useHomeData();
+  const {
+    config,
+    copy,
+    featured,
+    stats,
+    sections,
+    order,
+    enabled,
+    styleOf,
+    tr,
+    t,
+    isLoading,
+    jobsError,
+  } = useHomeData();
   const { culture, benefits, jobs: jobsSection, cta } = sections;
 
   const widgets: Record<HomeWidgetKey, (s: AboutWidgetStyle) => ReactNode> = {
@@ -92,11 +105,25 @@ export function HomeSplit() {
               {tr(jobsSection.allLabel)} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className={cn("mt-8 grid gap-4", s.layout === "list" ? "" : "md:grid-cols-3")}>
-            {featured.map((job) => (
-              <JobCard key={job.id} job={job} />
-            ))}
-          </div>
+          {isLoading ? (
+            <p className="mt-8 rounded-lg border border-dashed border-border p-8 text-center text-sm opacity-70">
+              {t("jobs.loading")}
+            </p>
+          ) : jobsError ? (
+            <p className="mt-8 rounded-lg border border-dashed border-border p-8 text-center text-sm opacity-70">
+              {t("jobs.error")}
+            </p>
+          ) : featured.length === 0 ? (
+            <p className="mt-8 rounded-lg border border-dashed border-border p-8 text-center text-sm opacity-70">
+              {t("jobs.empty")}
+            </p>
+          ) : (
+            <div className={cn("mt-8 grid gap-4", s.layout === "list" ? "" : "md:grid-cols-3")}>
+              {featured.map((job) => (
+                <JobCard key={job.id} job={job} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     ),
