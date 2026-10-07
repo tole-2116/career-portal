@@ -7,6 +7,7 @@ export const ApplyJobSchema = z.object({
   phone: z.string().min(8, "Số điện thoại không hợp lệ"),
   address: z.string().max(500, "Địa chỉ quá dài").optional(),
   coverLetter: z.string().optional(),
+  formData: z.record(z.union([z.string(), z.boolean()])).optional(),
 });
 
 export type ApplyJobInput = z.infer<typeof ApplyJobSchema>;

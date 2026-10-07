@@ -3,6 +3,7 @@
 import "dotenv/config";
 
 import express from "express";
+import type { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import path from "node:path";
@@ -21,6 +22,8 @@ import { adminFormConfigService } from "./services/admin-form-config.service";
 import { adminSiteConfigService } from "./services/admin-site-config.service";
 import { newsRoutes } from "./routes/news.routes";
 import { authRoutes } from "./routes/auth.routes";
+import { uploadCv } from "./middleware/upload";
+import multer from "multer";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -44,11 +47,42 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 // API: Jobs công khai (mở) — danh sách job đang tuyển + chi tiết, không cần đăng nhập.
 app.use("/api/jobs", publicJobsRoutes);
 
+const applyCvUpload = (req: Request, res: Response, next: NextFunction) => {
+  uploadCv.single("cv")(req, res, (error: unknown) => {
+    if (!error) {
+      next();
+      return;
+    }
+    if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+      res.status(400).json({ success: false, error: "CV file must not exceed 5MB" });
+      return;
+    }
+    res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Invalid CV file",
+    });
+  });
+};
+
 // API: Nộp hồ sơ ứng tuyển
-app.post("/api/jobs/:jobId/apply", async (req, res) => {
+app.post("/api/jobs/:jobId/apply", applyCvUpload, async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: "CV file is required" });
+    }
+
+    let formData: unknown = req.body.formData;
+    if (typeof formData === "string") {
+      try {
+        formData = JSON.parse(formData);
+      } catch {
+        return res.status(400).json({ success: false, error: "Invalid form data" });
+      }
+    }
+
     const validation = ApplyJobSchema.safeParse({
       ...req.body,
+      formData,
       jobId: req.params.jobId,
     });
 
@@ -67,16 +101,16 @@ app.post("/api/jobs/:jobId/apply", async (req, res) => {
         phone,
         address: address || null,
         coverLetter,
-        cvFile: "uploads/sample-resume.pdf",
-        formData: {},
+        cvFile: `/uploads/${req.file.filename}`,
+        formData: validation.data.formData ?? {},
         usercreate_at: "candidate_public",
       },
     });
 
-    res.status(201).json({ success: true, candidate });
+    return res.status(201).json({ success: true, candidate });
   } catch (error) {
     console.error("POST apply error:", error);
-    res.status(500).json({ error: "Failed to submit application" });
+    return res.status(500).json({ error: "Failed to submit application" });
   }
 });
 

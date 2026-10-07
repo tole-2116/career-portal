@@ -108,6 +108,13 @@ export const Route = createFileRoute("/admin/candidates")({
 
 const ALL = "__all__";
 
+function getCvUrl(value: string): string {
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  const apiOrigin = import.meta.env.VITE_API_URL ?? "";
+  return `${apiOrigin}${value.startsWith("/") ? value : `/${value}`}`;
+}
+
 function Rating({ value }: { value: number }) {
   return (
     <span className="flex items-center gap-0.5">
@@ -497,13 +504,26 @@ function AdminCandidatesPage() {
                           variant="ghost"
                           size="sm"
                           className="h-8 px-2"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            toast.info(candidate.cvFile || t("admin.candidates.cv"));
-                          }}
+                          onClick={(event) => event.stopPropagation()}
+                          disabled={!candidate.cvFile}
+                          asChild={Boolean(candidate.cvFile)}
                         >
-                          <FileText className="mr-1 h-3.5 w-3.5" />
-                          {t("admin.candidates.cv")}
+                          {candidate.cvFile ? (
+                            <a
+                              href={getCvUrl(candidate.cvFile)}
+                              target="_blank"
+                              rel="noreferrer"
+                              download
+                            >
+                              <FileText className="mr-1 h-3.5 w-3.5" />
+                              {t("admin.candidates.cv")}
+                            </a>
+                          ) : (
+                            <span>
+                              <FileText className="mr-1 h-3.5 w-3.5" />
+                              {t("admin.candidates.cv")}
+                            </span>
+                          )}
                         </Button>
                       </TableCell>
                       <TableCell className="w-[100px] pr-4">
@@ -700,9 +720,23 @@ function AdminCandidatesPage() {
                     variant="outline"
                     size="sm"
                     className="shrink-0"
-                    onClick={() => toast.info(t("admin.demoNote"))}
+                    disabled={!selected.cvFile}
+                    asChild={Boolean(selected.cvFile)}
                   >
-                    <Download className="mr-1.5 h-3.5 w-3.5" /> {t("common.download")}
+                    {selected.cvFile ? (
+                      <a
+                        href={getCvUrl(selected.cvFile)}
+                        target="_blank"
+                        rel="noreferrer"
+                        download
+                      >
+                        <Download className="mr-1.5 h-3.5 w-3.5" /> {t("common.download")}
+                      </a>
+                    ) : (
+                      <span>
+                        <Download className="mr-1.5 h-3.5 w-3.5" /> {t("common.download")}
+                      </span>
+                    )}
                   </Button>
                 </div>
               </div>

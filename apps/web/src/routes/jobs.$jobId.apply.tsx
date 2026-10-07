@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, CheckCircle2, FileText, Info, UploadCloud, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, Loader2, UploadCloud, X } from "lucide-react";
 import { useRef, useState, type DragEvent } from "react";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
@@ -15,12 +15,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { getJob } from "@/data/jobs";
 import { resolveFormSections, useFormConfig, type FormField } from "@/lib/form-config";
 import { useI18n } from "@/lib/i18n";
+import { fetchPublicJob, submitJobApplication, type JobApplicationPayload } from "@/services/jobs.api";
+import { ApiError } from "@/lib/api/request";
 
 export const Route = createFileRoute("/jobs/$jobId/apply")({
-  loader: ({ params }) => ({ job: getJob(params.jobId) ?? null }),
+  loader: async ({ params }) => {
+    const job = await fetchPublicJob(params.jobId);
+    return { job };
+  },
   head: ({ loaderData }) => {
     const job = loaderData?.job;
     if (!job) {
@@ -58,10 +62,13 @@ function ApplyPage() {
 
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [fileErrors, setFileErrors] = useState<Record<string, string | null>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
   const [dragging, setDragging] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
   const [checks, setChecks] = useState<Record<string, boolean>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   if (!job) {
     return (
@@ -196,18 +203,24 @@ function ApplyPage() {
 
     if (field.type === "checkbox") {
       return (
-        <div key={field.id} className="flex items-start gap-3">
-          <Checkbox
-            id={field.id}
-            checked={checks[field.id] ?? false}
-            onCheckedChange={(next) =>
-              setChecks((prev) => ({ ...prev, [field.id]: next === true }))
-            }
-          />
-          <Label htmlFor={field.id} className="text-sm leading-snug font-normal">
-            {tr(field.label)}
-            {field.required && <span className="ml-1 text-destructive">*</span>}
-          </Label>
+        <div key={field.id} className="space-y-2">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id={field.id}
+              checked={checks[field.id] ?? false}
+              onCheckedChange={(next) => {
+                setChecks((prev) => ({ ...prev, [field.id]: next === true }));
+                setFieldErrors((prev) => ({ ...prev, [field.id]: null }));
+              }}
+            />
+            <Label htmlFor={field.id} className="text-sm leading-snug font-normal">
+              {tr(field.label)}
+              {field.required && <span className="ml-1 text-destructive">*</span>}
+            </Label>
+          </div>
+          {fieldErrors[field.id] && (
+            <p className="text-sm text-destructive">{fieldErrors[field.id]}</p>
+          )}
         </div>
       );
     }
@@ -281,39 +294,117 @@ function ApplyPage() {
     );
   }
 
-  const sections = resolveFormSections(formConfig, job);
+  // Captured so the closures below keep the non-null narrowing of `job`.
+  const activeJob = job;
+
+  const sections = resolveFormSections(formConfig, activeJob);
+
+  /** Maps form field ids/types onto the backend application contract. */
+  function buildPayload(): JobApplicationPayload {
+    const allFields = sections.flatMap((section) => section.resolved);
+    const findId = (predicate: (field: FormField) => boolean): string | undefined =>
+      allFields.find(predicate)?.id;
+
+    const nameId =
+      findId((field) => field.id === "fullName") ??
+      findId((field) => field.type === "text" && field.id.toLowerCase().includes("name")) ??
+      findId((field) => field.type === "text");
+    const emailId = findId((field) => field.type === "email");
+    const phoneId = findId((field) => field.type === "tel");
+    const addressId =
+      findId((field) => field.id === "address") ??
+      findId((field) => field.id === "city") ??
+      findId((field) => field.id.toLowerCase().includes("address"));
+    const coverLetterId =
+      findId((field) => field.id === "coverLetter") ??
+      findId((field) => field.type === "textarea");
+
+    const formData: Record<string, string | boolean> = {};
+    for (const field of allFields) {
+      if (field.type === "file") {
+        const file = files[field.id];
+        formData[field.id] = file ? file.name : "";
+      } else if (field.type === "checkbox") {
+        formData[field.id] = checks[field.id] ?? false;
+      } else {
+        formData[field.id] = values[field.id] ?? "";
+      }
+    }
+
+    const read = (id: string | undefined): string => (id ? (values[id] ?? "").trim() : "");
+
+    const cvField = allFields.find((field) => field.type === "file" && files[field.id]);
+    const cv = cvField ? files[cvField.id] : null;
+    if (!cv) throw new Error(t("apply.cv.required"));
+
+    return {
+      name: read(nameId),
+      email: read(emailId),
+      phone: read(phoneId),
+      ...(read(addressId) ? { address: read(addressId) } : {}),
+      ...(read(coverLetterId) ? { coverLetter: read(coverLetterId) } : {}),
+      formData,
+      cv,
+    };
+  }
+
+  async function submit() {
+    if (isSubmitting) return;
+    setSubmitError(null);
+
+    const allFields = sections.flatMap((section) => section.resolved);
+    const errors: Record<string, string | null> = {};
+
+    for (const field of allFields) {
+      if (!field.required) continue;
+      if (field.type === "checkbox") {
+        if (!checks[field.id]) errors[field.id] = t("apply.required");
+      } else if (field.type === "file") {
+        if (!files[field.id]) errors[field.id] = t("apply.cv.required");
+      } else if (!(values[field.id] ?? "").trim()) {
+        errors[field.id] = t("apply.required");
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setFileErrors(errors);
+      return;
+    }
+
+    setFieldErrors({});
+    setFileErrors({});
+    setIsSubmitting(true);
+    try {
+      await submitJobApplication(activeJob.id, buildPayload());
+      setSubmitted(true);
+    } catch (error) {
+      setSubmitError(error instanceof ApiError ? error.message : t("apply.error"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <SiteLayout>
       <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
         <Link
           to="/jobs/$jobId"
-          params={{ jobId: job.id }}
+          params={{ jobId: activeJob.id }}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" /> {tr(job.title)}
+          <ArrowLeft className="h-4 w-4" /> {tr(activeJob.title)}
         </Link>
 
         <h1 className="mt-6 font-display text-3xl font-bold">
-          {t("apply.title")}: {tr(job.title)}
+          {t("apply.title")}: {tr(activeJob.title)}
         </h1>
-        <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <Info className="h-3.5 w-3.5" /> {t("apply.demoNote")}
-        </p>
 
         <form
           className="mt-10 space-y-10"
           onSubmit={(event) => {
             event.preventDefault();
-            const requiredFiles = sections
-              .flatMap((section) => section.resolved)
-              .filter((field) => field.type === "file" && field.required);
-            const missing = requiredFiles.find((field) => !files[field.id]);
-            if (missing) {
-              setFileErrors((prev) => ({ ...prev, [missing.id]: t("apply.cv.required") }));
-              return;
-            }
-            setSubmitted(true);
+            void submit();
           }}
         >
           {sections.map((section, index) => (
@@ -337,8 +428,15 @@ function ApplyPage() {
             </section>
           ))}
 
-          <Button type="submit" size="lg" className="w-full sm:w-auto">
-            {tr(formConfig.submitLabel)}
+          {submitError && (
+            <p className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+              {submitError}
+            </p>
+          )}
+
+          <Button type="submit" size="lg" disabled={isSubmitting} className="w-full sm:w-auto">
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting ? t("apply.submitting") : tr(formConfig.submitLabel)}
           </Button>
         </form>
       </div>

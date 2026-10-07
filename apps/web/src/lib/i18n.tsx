@@ -141,6 +141,11 @@ const dict = {
   },
   "apply.cv.required": { vi: "Vui lòng tải lên CV.", en: "Please upload your CV." },
   "apply.submit": { vi: "Gửi hồ sơ ứng tuyển", en: "Submit application" },
+  "apply.submitting": { vi: "Đang gửi hồ sơ...", en: "Submitting application..." },
+  "apply.error": {
+    vi: "Không thể gửi hồ sơ. Vui lòng thử lại.",
+    en: "Failed to submit application. Please try again.",
+  },
   "apply.required": { vi: "Bắt buộc", en: "Required" },
   "apply.success.title": { vi: "Đã nhận hồ sơ của bạn", en: "Application received" },
   "apply.success.body": {
@@ -148,10 +153,6 @@ const dict = {
     en: "Thank you. Our recruiting team will respond within 5 working days.",
   },
   "apply.success.more": { vi: "Xem các vị trí khác", en: "Browse other roles" },
-  "apply.demoNote": {
-    vi: "Đây là bản giao diện mẫu — hồ sơ chưa được lưu trữ.",
-    en: "This is a design preview — applications are not stored yet.",
-  },
 
   "about.title": { vi: "Về chúng tôi", en: "About us" },
   "about.subtitle": {

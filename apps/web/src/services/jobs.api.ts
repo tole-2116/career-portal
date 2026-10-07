@@ -12,14 +12,14 @@ type PublicJobListResponse = {
 };
 
 export type PublicJobListParams = {
-  page?: number;
-  limit?: number;
-  search?: string;
-  departmentId?: string;
-  locationIds?: string;
-  workTypeId?: string;
-  salaryId?: string;
-  experienceId?: string;
+  page?: number | undefined;
+  limit?: number | undefined;
+  search?: string | undefined;
+  departmentId?: string | undefined;
+  locationIds?: string | undefined;
+  workTypeId?: string | undefined;
+  salaryId?: string | undefined;
+  experienceId?: string | undefined;
 };
 
 function queryString(params: PublicJobListParams): string {
@@ -58,4 +58,37 @@ export async function fetchPublicJob(id: string): Promise<Job | null> {
     if (error instanceof ApiError && error.status === 404) return null;
     throw error;
   }
+}
+
+export type JobApplicationPayload = {
+  name: string;
+  email: string;
+  phone: string;
+  address?: string;
+  coverLetter?: string;
+  formData: Record<string, string | boolean>;
+  cv: File;
+};
+
+export async function submitJobApplication(
+  jobId: string,
+  payload: JobApplicationPayload,
+): Promise<{ id: string }> {
+  const form = new FormData();
+  form.append("name", payload.name);
+  form.append("email", payload.email);
+  form.append("phone", payload.phone);
+  if (payload.address) form.append("address", payload.address);
+  if (payload.coverLetter) form.append("coverLetter", payload.coverLetter);
+  form.append("formData", JSON.stringify(payload.formData));
+  form.append("cv", payload.cv, payload.cv.name);
+
+  return apiRequest<{ id: string }>(
+    `${PUBLIC_BASE}/${encodeURIComponent(jobId)}/apply`,
+    {
+      authenticated: false,
+      method: "POST",
+      body: form,
+    },
+  );
 }
