@@ -15,9 +15,13 @@ import {
   saveAdminSiteConfig,
 } from "@/services/site-config.api";
 import type { Localized } from "@/lib/i18n";
-import { setCachedSiteConfig } from "@/lib/site-config-cache";
+import {
+  getCachedSiteConfig,
+  getInitialSiteConfig,
+  setCachedSiteConfig,
+} from "@/lib/site-config-cache";
 
-const STORAGE_KEY = "talenthub-site-config";
+const STORAGE_KEY = "career-portal-site-config";
 
 export const layoutIds = ["classic", "split", "bento", "editorial", "spotlight"] as const;
 export type LayoutId = (typeof layoutIds)[number];
@@ -994,21 +998,20 @@ type SiteConfigValue = {
 const SiteConfigContext = createContext<SiteConfigValue | null>(null);
 
 export function SiteConfigProvider({ children }: { children: ReactNode }) {
-  const [config, setConfig] = useState<SiteConfig>(defaultSiteConfig);
+  const initialConfig = getInitialSiteConfig();
+  const [config, setConfig] = useState<SiteConfig>(() =>
+    initialConfig && isConfigLike(initialConfig) ? mergeConfig(initialConfig) : defaultSiteConfig,
+  );
 
   // Bộ nhớ cục bộ chỉ là fallback hiển thị tức thời; API vẫn là nguồn chính.
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed: unknown = JSON.parse(raw);
-      if (isConfigLike(parsed)) {
-        const merged = mergeConfig(parsed);
-        setConfig(merged);
-        setCachedSiteConfig(merged);
-      }
-    } catch {
-      /* ignore malformed stored config */
+    // Root loader/cache may already contain the authoritative API config.
+    if (getCachedSiteConfig()) return;
+    const stored = getInitialSiteConfig();
+    if (stored && isConfigLike(stored)) {
+      const merged = mergeConfig(stored);
+      setConfig(merged);
+      setCachedSiteConfig(merged);
     }
   }, []);
 

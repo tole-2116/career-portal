@@ -1,6 +1,10 @@
 import type { TranslationKey } from "@/lib/i18n";
 import { translate } from "@/lib/i18n";
-import { brandFromConfig, getCachedSiteConfig } from "@/lib/site-config-cache";
+import {
+  brandFromConfig,
+  getCachedSiteConfig,
+  getFaviconLink,
+} from "@/lib/site-config-cache";
 
 export { setCachedSiteConfig } from "@/lib/site-config-cache";
 
@@ -72,7 +76,7 @@ export function createRouteMeta(options: RouteMetaOptions) {
       meta.push({ name: "robots", content: "noindex" });
     }
 
-    return { meta };
+    return { meta, links: [getFaviconLink()] };
   };
 }
 
@@ -133,7 +137,7 @@ export function createDynamicRouteMeta<TData>(options: DynamicRouteMetaOptions<T
       meta.push({ name: "robots", content: "noindex" });
     }
 
-    return { meta };
+    return { meta, links: [getFaviconLink()] };
   };
 }
 
@@ -151,4 +155,14 @@ export function refreshDocumentBrand(): void {
 
   document.title = fullTitle;
   document.querySelector('meta[property="og:title"]')?.setAttribute("content", fullTitle);
+
+  const favicon = getFaviconLink();
+  const iconLinks = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]'));
+  const iconLink = iconLinks[0] ?? document.createElement("link");
+  iconLink.rel = favicon.rel;
+  iconLink.href = favicon.href;
+  if (favicon.type) iconLink.type = favicon.type;
+  else iconLink.removeAttribute("type");
+  if (!iconLink.parentNode) document.head.appendChild(iconLink);
+  iconLinks.slice(1).forEach((link) => link.remove());
 }

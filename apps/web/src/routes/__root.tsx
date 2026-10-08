@@ -22,6 +22,7 @@ import { AuthProvider } from "@/lib/auth-store";
 import { Toaster } from "@/components/ui/sonner";
 import { fetchSiteConfig } from "@/services/site-config.api";
 import { getSiteBrand, setCachedSiteConfig } from "@/lib/route-meta";
+import { getFaviconLink, getInitialSiteConfig } from "@/lib/site-config-cache";
 import { translate } from "@/lib/i18n";
 
 function NotFoundComponent() {
@@ -87,7 +88,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       setCachedSiteConfig(config);
       return { siteConfig: config };
     } catch {
-      return { siteConfig: null };
+      const fallback = getInitialSiteConfig();
+      if (fallback) setCachedSiteConfig(fallback);
+      return { siteConfig: fallback };
     }
   },
   head: () => ({
@@ -115,7 +118,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Space+Grotesk:wght@500;600;700&display=swap",
       },
-      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      getFaviconLink(),
     ],
   }),
   shellComponent: RootShell,
