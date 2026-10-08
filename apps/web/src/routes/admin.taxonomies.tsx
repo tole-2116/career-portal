@@ -34,26 +34,15 @@ import {
   updateTaxonomyItem,
 } from "@/services/admin-taxonomies.api";
 import { requireAdminSession } from "@/lib/admin-route-guard";
+import { createRouteMeta } from "@/lib/route-meta";
 
 export const Route = createFileRoute("/admin/taxonomies")({
   beforeLoad: ({ location }) => requireAdminSession(location.pathname),
-  head: () => ({
-    meta: [
-      { title: "Danh mục tuyển dụng — TalentHub HR" },
-      {
-        name: "description",
-        content:
-          "Khai báo danh mục hình thức làm việc, mức lương, kinh nghiệm và nơi làm việc dùng chung cho tin tuyển dụng.",
-      },
-      { property: "og:title", content: "Danh mục tuyển dụng — TalentHub HR" },
-      {
-        property: "og:description",
-        content: "Quản lý danh mục hình thức, mức lương, kinh nghiệm và nơi làm việc.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "robots", content: "noindex" },
-    ],
+  head: createRouteMeta({
+    titleKey: "admin.taxonomies.meta.title",
+    descriptionKey: "admin.taxonomies.meta.description",
+    ogDescriptionKey: "admin.taxonomies.meta.ogDescription",
+    noIndex: true,
   }),
   component: AdminTaxonomiesPage,
 });

@@ -79,6 +79,7 @@ import {
   type SiteSections,
   type SurfaceTone,
 } from "@/lib/site-config";
+import { refreshDocumentBrand } from "@/lib/route-meta";
 import { cn } from "@/lib/utils";
 
 type Tr = (value: Localized) => string;
@@ -204,23 +205,15 @@ function BrandPreviewJobs({ primary, accent, tr }: { primary: string; accent: st
   );
 }
 
+import { createRouteMeta } from "@/lib/route-meta";
+
 export const Route = createFileRoute("/admin/settings")({
   beforeLoad: ({ location }) => requireAdminSession(location.pathname),
-  head: () => ({
-    meta: [
-      { title: "Cấu hình giao diện — TalentHub HR" },
-      {
-        name: "description",
-        content:
-          "Chọn bố cục trang chủ, bảng màu, hình ảnh và nội dung hiển thị cho cổng việc làm.",
-      },
-      { property: "og:title", content: "Cấu hình giao diện — TalentHub HR" },
-      {
-        property: "og:description",
-        content: "Chọn bố cục trang chủ, bảng màu, hình ảnh và nội dung hiển thị.",
-      },
-      { name: "robots", content: "noindex" },
-    ],
+  head: createRouteMeta({
+    titleKey: "admin.settings.meta.title",
+    descriptionKey: "admin.settings.meta.description",
+    ogDescriptionKey: "admin.settings.meta.ogDescription",
+    noIndex: true,
   }),
   component: AdminSettings,
 });
@@ -1499,6 +1492,7 @@ function AdminSettings() {
       }
     } finally {
       setIsSaving(false);
+      refreshDocumentBrand();
     }
   };
 
@@ -1511,6 +1505,7 @@ function AdminSettings() {
       toast.success(t("settings.resetDone"));
     } finally {
       setIsSaving(false);
+      refreshDocumentBrand();
     }
   };
 

@@ -19,29 +19,15 @@ import { useI18n, type Localized } from "@/lib/i18n";
 import { useSiteConfig } from "@/lib/site-config";
 import { useTaxonomies } from "@/lib/taxonomy-store";
 import { fetchPublicJob } from "@/services/jobs.api";
+import { createDynamicRouteMeta } from "@/lib/route-meta";
 
 export const Route = createFileRoute("/jobs/$jobId/")({
   loader: async ({ params }) => ({ job: await fetchPublicJob(params.jobId) }),
-  head: ({ loaderData }) => {
-    const job = loaderData?.job;
-    if (!job) {
-      return {
-        meta: [
-          { title: "Không tìm thấy vị trí — TalentHub" },
-          { name: "robots", content: "noindex" },
-        ],
-      };
-    }
-    const title = `${job.title.vi} — TalentHub | ${job.title.en}`;
-    return {
-      meta: [
-        { title },
-        { name: "description", content: job.summary.vi },
-        { property: "og:title", content: title },
-        { property: "og:description", content: job.summary.vi },
-      ],
-    };
-  },
+  head: createDynamicRouteMeta<{ job: Awaited<ReturnType<typeof fetchPublicJob>> }>({
+    title: (data) => (data?.job ? data.job.title.vi : "Không tìm thấy vị trí"),
+    description: (data) => (data?.job ? data.job.summary.vi : ""),
+    noIndex: (data) => !data?.job,
+  }),
   component: JobDetailPage,
 });
 

@@ -20,6 +20,9 @@ import { NewsProvider } from "@/lib/news-store";
 import { InboxProvider } from "@/lib/inbox-store";
 import { AuthProvider } from "@/lib/auth-store";
 import { Toaster } from "@/components/ui/sonner";
+import { fetchSiteConfig } from "@/services/site-config.api";
+import { getSiteBrand, setCachedSiteConfig } from "@/lib/route-meta";
+import { translate } from "@/lib/i18n";
 
 function NotFoundComponent() {
   return (
@@ -78,19 +81,28 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  loader: async () => {
+    try {
+      const config = await fetchSiteConfig();
+      setCachedSiteConfig(config);
+      return { siteConfig: config };
+    } catch {
+      return { siteConfig: null };
+    }
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "TalentHub — Tuyển dụng & Quản lý ứng viên" },
+      { title: `${translate("page.home.title")} — ${getSiteBrand()}` },
       {
         name: "description",
-        content: "Cổng thông tin việc làm và bảng điều khiển tuyển dụng dành cho doanh nghiệp.",
+        content: translate("page.home.description"),
       },
-      { property: "og:title", content: "TalentHub — Tuyển dụng & Quản lý ứng viên" },
+      { property: "og:title", content: `${translate("page.home.title")} — ${getSiteBrand()}` },
       {
         property: "og:description",
-        content: "Cổng thông tin việc làm và bảng điều khiển tuyển dụng dành cho doanh nghiệp.",
+        content: translate("page.home.description"),
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

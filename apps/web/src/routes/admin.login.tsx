@@ -9,25 +9,19 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/lib/i18n";
 import { useSiteConfig } from "@/lib/site-config";
+import { createRouteMeta } from "@/lib/route-meta";
 
 export const Route = createFileRoute("/admin/login")({
   validateSearch: (search: Record<string, unknown>): { returnTo?: string } => {
     const returnTo = search["returnTo"];
     return typeof returnTo === "string" && returnTo ? { returnTo } : {};
   },
-  head: () => ({
-    meta: [
-      { title: "Đăng nhập quản trị — TalentHub HR" },
-      {
-        name: "description",
-        content: "Đăng nhập vào bảng điều khiển tuyển dụng TalentHub dành cho quản trị viên.",
-      },
-      { property: "og:title", content: "Đăng nhập quản trị — TalentHub HR" },
-      { property: "og:description", content: "Khu vực quản trị nội bộ." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "robots", content: "noindex" },
-    ],
+  head: createRouteMeta({
+    titleKey: "admin.login.meta.title",
+    descriptionKey: "admin.login.meta.description",
+    ogDescriptionKey: "admin.login.meta.ogDescription",
+    twitterCard: "summary",
+    noIndex: true,
   }),
   component: AdminLoginPage,
 });

@@ -19,35 +19,19 @@ import { resolveFormSections, useFormConfig, type FormField } from "@/lib/form-c
 import { useI18n } from "@/lib/i18n";
 import { fetchPublicJob, submitJobApplication, type JobApplicationPayload } from "@/services/jobs.api";
 import { ApiError } from "@/lib/api/request";
+import { createDynamicRouteMeta } from "@/lib/route-meta";
 
 export const Route = createFileRoute("/jobs/$jobId/apply")({
   loader: async ({ params }) => {
     const job = await fetchPublicJob(params.jobId);
     return { job };
   },
-  head: ({ loaderData }) => {
-    const job = loaderData?.job;
-    if (!job) {
-      return {
-        meta: [{ title: "Ứng tuyển — TalentHub" }, { name: "robots", content: "noindex" }],
-      };
-    }
-    const title = `Ứng tuyển ${job.title.vi} — TalentHub | Apply`;
-    return {
-      meta: [
-        { title },
-        {
-          name: "description",
-          content: `Điền biểu mẫu ứng tuyển vị trí ${job.title.vi} và tải lên CV của bạn.`,
-        },
-        { property: "og:title", content: title },
-        {
-          property: "og:description",
-          content: `Điền biểu mẫu ứng tuyển vị trí ${job.title.vi} và tải lên CV của bạn.`,
-        },
-      ],
-    };
-  },
+  head: createDynamicRouteMeta<{ job: Awaited<ReturnType<typeof fetchPublicJob>> }>({
+    title: (data) => (data?.job ? `Ứng tuyển ${data.job.title.vi}` : "Ứng tuyển"),
+    description: (data) =>
+      data?.job ? `Điền biểu mẫu ứng tuyển vị trí ${data.job.title.vi} và tải lên CV của bạn.` : "",
+    noIndex: (data) => !data?.job,
+  }),
   component: ApplyPage,
 });
 

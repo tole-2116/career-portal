@@ -9,24 +9,12 @@ import { useI18n } from "@/lib/i18n";
 import { useNews } from "@/lib/news-store";
 import { useSiteConfig } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
+import { createRouteMeta } from "@/lib/route-meta";
 
 export const Route = createFileRoute("/news/")({
-  head: () => ({
-    meta: [
-      { title: "Tin tức — TalentHub | Company news" },
-      {
-        name: "description",
-        content:
-          "Tin tức, hoạt động công ty, văn hóa và sự kiện mới nhất của TalentHub dành cho ứng viên và đối tác.",
-      },
-      { property: "og:title", content: "Tin tức — TalentHub" },
-      {
-        property: "og:description",
-        content: "Hoạt động công ty, văn hóa và sự kiện mới nhất của TalentHub.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
+  head: createRouteMeta({
+    titleKey: "page.news.title",
+    descriptionKey: "page.news.description",
   }),
   component: NewsListPage,
 });

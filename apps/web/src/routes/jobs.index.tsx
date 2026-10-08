@@ -20,6 +20,7 @@ import { useTaxonomies, type TaxonomyItem } from "@/lib/taxonomy-store";
 import { useSiteConfig } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 import { fetchPublicJobs } from "@/services/jobs.api";
+import { createRouteMeta } from "@/lib/route-meta";
 
 type JobSearch = { q?: string | undefined };
 
@@ -27,22 +28,9 @@ export const Route = createFileRoute("/jobs/")({
   validateSearch: (search: Record<string, unknown>): JobSearch => ({
     q: typeof search["q"] === "string" ? (search["q"] as string) : undefined,
   }),
-  head: () => ({
-    meta: [
-      { title: "Vị trí đang tuyển — TalentHub | Open positions" },
-      {
-        name: "description",
-        content:
-          "Danh sách vị trí đang tuyển tại TalentHub. Lọc theo ngành nghề, nơi làm việc, hình thức và kinh nghiệm.",
-      },
-      { property: "og:title", content: "Vị trí đang tuyển — TalentHub" },
-      {
-        property: "og:description",
-        content: "Lọc theo ngành nghề, nơi làm việc, hình thức và kinh nghiệm để tìm vị trí phù hợp.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
+  head: createRouteMeta({
+    titleKey: "page.jobs.title",
+    descriptionKey: "page.jobs.description",
   }),
   component: JobsPage,
 });

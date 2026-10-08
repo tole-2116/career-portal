@@ -15,6 +15,7 @@ import {
   saveAdminSiteConfig,
 } from "@/services/site-config.api";
 import type { Localized } from "@/lib/i18n";
+import { setCachedSiteConfig } from "@/lib/site-config-cache";
 
 const STORAGE_KEY = "talenthub-site-config";
 
@@ -1002,7 +1003,9 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
       if (!raw) return;
       const parsed: unknown = JSON.parse(raw);
       if (isConfigLike(parsed)) {
-        setConfig(mergeConfig(parsed));
+        const merged = mergeConfig(parsed);
+        setConfig(merged);
+        setCachedSiteConfig(merged);
       }
     } catch {
       /* ignore malformed stored config */
@@ -1014,7 +1017,11 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     fetchSiteConfig()
       .then((data) => {
-        if (!cancelled && isConfigLike(data)) setConfig(mergeConfig(data));
+        if (!cancelled && isConfigLike(data)) {
+          const merged = mergeConfig(data);
+          setConfig(merged);
+          setCachedSiteConfig(merged);
+        }
       })
       .catch(() => {
         /* API chưa sẵn sàng: giữ cấu hình mặc định/localStorage */
@@ -1033,6 +1040,7 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
       const saved = await saveAdminSiteConfig(next);
       const merged = mergeConfig(saved);
       setConfig(merged);
+      setCachedSiteConfig(merged);
       try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
       } catch {
@@ -1042,6 +1050,7 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
     } catch {
       // Không lưu được lên server (mất kết nối/chưa đăng nhập) — chỉ áp dụng cục bộ.
       setConfig(next);
+      setCachedSiteConfig(next);
       try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       } catch {
@@ -1054,9 +1063,12 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
   const reset = useCallback(async () => {
     try {
       const saved = await resetAdminSiteConfig();
-      setConfig(mergeConfig(saved));
+      const merged = mergeConfig(saved);
+      setConfig(merged);
+      setCachedSiteConfig(merged);
     } catch {
       setConfig(defaultSiteConfig);
+      setCachedSiteConfig(defaultSiteConfig);
     }
     try {
       window.localStorage.removeItem(STORAGE_KEY);

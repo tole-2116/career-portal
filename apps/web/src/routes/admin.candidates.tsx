@@ -57,12 +57,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getJob } from "@/data/jobs";
 import { fetchJobs } from "@/lib/api/jobs";
-import { translate, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { adminCandidateApi } from "@/services/admin-candidate.api";
+import { createRouteMeta } from "@/lib/route-meta";
 
 const PAGE_SIZE = 10;
-const getSafeMetaText = (key: Parameters<typeof translate>[0], fallback: string) =>
-  translate(key, fallback) || fallback;
 
 import { useInbox } from "@/lib/inbox-store";
 import { useJobs } from "@/lib/jobs-store";
@@ -72,36 +71,11 @@ import { requireAdminSession } from "@/lib/admin-route-guard";
 
 export const Route = createFileRoute("/admin/candidates")({
   beforeLoad: ({ location }) => requireAdminSession(location.pathname),
-  head: () => ({
-    meta: [
-      {
-        title: getSafeMetaText(
-          "admin.candidates.meta.title",
-          "Ứng viên — TalentHub HR",
-        ),
-      },
-      {
-        name: "description",
-        content: getSafeMetaText(
-          "admin.candidates.meta.description",
-          "Danh sách ứng viên, hồ sơ chi tiết, CV, ghi chú nội bộ và giai đoạn tuyển dụng.",
-        ),
-      },
-      {
-        property: "og:title",
-        content: getSafeMetaText("admin.candidates.meta.title", "Ứng viên — TalentHub HR"),
-      },
-      {
-        property: "og:description",
-        content: getSafeMetaText(
-          "admin.candidates.meta.ogDescription",
-          "Hồ sơ ứng viên, CV, ghi chú nội bộ và giai đoạn tuyển dụng.",
-        ),
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "robots", content: "noindex" },
-    ],
+  head: createRouteMeta({
+    titleKey: "admin.candidates.meta.title",
+    descriptionKey: "admin.candidates.meta.description",
+    ogDescriptionKey: "admin.candidates.meta.ogDescription",
+    noIndex: true,
   }),
   component: AdminCandidatesPage,
 });
@@ -111,7 +85,7 @@ const ALL = "__all__";
 function getCvUrl(value: string): string {
   if (!value) return "";
   if (/^https?:\/\//i.test(value)) return value;
-  const apiOrigin = import.meta.env.VITE_API_URL ?? "";
+  const apiOrigin = import.meta.env["VITE_API_URL"] ?? "";
   return `${apiOrigin}${value.startsWith("/") ? value : `/${value}`}`;
 }
 
@@ -205,7 +179,7 @@ function OpenApplicationsPanel() {
 }
 
 function AdminCandidatesPage() {
-  const { t, tr, lang } = useI18n();
+  const { t, tr } = useI18n();
   const { openApplications } = useInbox();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [filterJobs, setFilterJobs] = useState<import("@/data/jobs").Job[]>([]);
@@ -222,10 +196,6 @@ function AdminCandidatesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editStage, setEditStage] = useState<Stage>("new");
   const [editNoteBody, setEditNoteBody] = useState("");
-
-  useEffect(() => {
-    document.title = getSafeMetaText("admin.candidates.meta.title", "Ứng viên — TalentHub HR");
-  }, [lang]);
 
   // Dropdown lọc cần jobId dạng UUID của database để khớp Candidate.jobId.
   useEffect(() => {

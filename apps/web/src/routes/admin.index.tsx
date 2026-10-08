@@ -16,23 +16,14 @@ import { activity, candidates, stageLabels, stageOrder, weeklyApplications } fro
 import { jobs } from "@/data/jobs";
 import { useI18n } from "@/lib/i18n";
 import { requireAdminSession } from "@/lib/admin-route-guard";
+import { createRouteMeta } from "@/lib/route-meta";
 
 export const Route = createFileRoute("/admin/")({
   beforeLoad: ({ location }) => requireAdminSession(location.pathname),
-  head: () => ({
-    meta: [
-      { title: "Tổng quan tuyển dụng — TalentHub HR" },
-      {
-        name: "description",
-        content: "Bảng điều khiển HR: số liệu tuyển dụng, lượt ứng tuyển theo tuần và phễu ứng viên.",
-      },
-      { property: "og:title", content: "Tổng quan tuyển dụng — TalentHub HR" },
-      {
-        property: "og:description",
-        content: "Số liệu tuyển dụng, lượt ứng tuyển theo tuần và phễu ứng viên.",
-      },
-      { name: "robots", content: "noindex" },
-    ],
+  head: createRouteMeta({
+    titleKey: "admin.dashboard.meta.title",
+    descriptionKey: "admin.dashboard.meta.description",
+    noIndex: true,
   }),
   component: AdminOverview,
 });
