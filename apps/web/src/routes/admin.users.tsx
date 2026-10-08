@@ -56,7 +56,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/lib/auth-store";
-import { translate, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import {
   createAdminUser,
   deleteAdminUser,
@@ -65,42 +65,15 @@ import {
   type AdminManagedUser,
 } from "@/services/admin-users.api";
 import type { UserRole } from "@/lib/permissions";
-
-const getSafeMetaText = (key: Parameters<typeof translate>[0], fallback: string) =>
-  translate(key, fallback) || fallback;
+import { createRouteMeta } from "@/lib/route-meta";
 
 export const Route = createFileRoute("/admin/users")({
   beforeLoad: ({ location }) => requireAdminSession(location.pathname),
-  head: () => ({
-    meta: [
-      {
-        title: getSafeMetaText(
-          "admin.users.meta.title",
-          "Người dùng — TalentHub HR",
-        ),
-      },
-      {
-        name: "description",
-        content: getSafeMetaText(
-          "admin.users.meta.description",
-          "Quản lý tài khoản quản trị viên và cộng tác viên cùng nhóm quyền truy cập.",
-        ),
-      },
-      {
-        property: "og:title",
-        content: getSafeMetaText("admin.users.meta.title", "Người dùng — TalentHub HR"),
-      },
-      {
-        property: "og:description",
-        content: getSafeMetaText(
-          "admin.users.meta.ogDescription",
-          "Tài khoản truy cập khu vực quản trị và nhóm quyền tương ứng.",
-        ),
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "robots", content: "noindex" },
-    ],
+  head: createRouteMeta({
+    titleKey: "admin.users.meta.title",
+    descriptionKey: "admin.users.meta.description",
+    ogDescriptionKey: "admin.users.meta.ogDescription",
+    noIndex: true,
   }),
   component: AdminUsersPage,
 });

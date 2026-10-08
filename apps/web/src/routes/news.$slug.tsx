@@ -9,23 +9,13 @@ import { useI18n } from "@/lib/i18n";
 import DOMPurify from "dompurify";
 import { toHtml, useNews } from "@/lib/news-store";
 import { useSiteConfig } from "@/lib/site-config";
+import { createRouteMeta } from "@/lib/route-meta";
 
 export const Route = createFileRoute("/news/$slug")({
-  head: () => ({
-    meta: [
-      { title: "Bài viết — TalentHub | Article" },
-      {
-        name: "description",
-        content: "Bài viết tin tức, hoạt động và văn hóa doanh nghiệp tại TalentHub.",
-      },
-      { property: "og:title", content: "Bài viết — TalentHub" },
-      {
-        property: "og:description",
-        content: "Bài viết tin tức, hoạt động và văn hóa doanh nghiệp tại TalentHub.",
-      },
-      { property: "og:type", content: "article" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
+  head: createRouteMeta({
+    titleKey: "page.newsArticle.title",
+    descriptionKey: "page.newsArticle.description",
+    ogType: "article",
   }),
   component: ArticlePage,
 });

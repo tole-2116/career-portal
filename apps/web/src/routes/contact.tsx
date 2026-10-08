@@ -13,24 +13,12 @@ import { useI18n } from "@/lib/i18n";
 import { useSiteConfig } from "@/lib/site-config";
 import { ApiError } from "@/lib/api/request";
 import { submitContact } from "@/services/contact.api";
+import { createRouteMeta } from "@/lib/route-meta";
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({
-    meta: [
-      { title: "Liên hệ — TalentHub | Contact us" },
-      {
-        name: "description",
-        content:
-          "Gửi câu hỏi tới đội ngũ tuyển dụng TalentHub, xem địa chỉ văn phòng, email và số điện thoại liên hệ.",
-      },
-      { property: "og:title", content: "Liên hệ — TalentHub" },
-      {
-        property: "og:description",
-        content: "Địa chỉ văn phòng, email, điện thoại và biểu mẫu gửi liên hệ tới TalentHub.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
+  head: createRouteMeta({
+    titleKey: "page.contact.title",
+    descriptionKey: "page.contact.description",
   }),
   component: ContactPage,
 });

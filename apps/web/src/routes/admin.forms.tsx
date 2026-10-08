@@ -49,50 +49,20 @@ import {
   type FormSection,
 } from "@/lib/form-config";
 import { LocalizedField } from "@/components/admin/LocalizedInput";
-import { translate, useI18n, type Localized } from "@/lib/i18n";
+import { useI18n, type Localized } from "@/lib/i18n";
 import {
   fetchAdminFormConfig,
   saveAdminFormConfig,
 } from "@/services/admin-form-config.api";
-
-const getSafeMetaText = (key: Parameters<typeof translate>[0], fallback: string) =>
-  translate(key, fallback) || fallback;
+import { createRouteMeta } from "@/lib/route-meta";
 
 export const Route = createFileRoute("/admin/forms")({
   beforeLoad: ({ location }) => requireAdminSession(location.pathname),
-  head: () => ({
-    meta: [
-      {
-        title: getSafeMetaText(
-          "admin.forms.meta.title",
-          "Biểu mẫu ứng tuyển — TalentHub HR",
-        ),
-      },
-      {
-        name: "description",
-        content: getSafeMetaText(
-          "admin.forms.meta.description",
-          "Tự thiết kế các phần và trường thông tin của biểu mẫu ứng tuyển.",
-        ),
-      },
-      {
-        property: "og:title",
-        content: getSafeMetaText(
-          "admin.forms.meta.title",
-          "Biểu mẫu ứng tuyển — TalentHub HR",
-        ),
-      },
-      {
-        property: "og:description",
-        content: getSafeMetaText(
-          "admin.forms.meta.ogDescription",
-          "Tự thiết kế các phần và trường thông tin của biểu mẫu ứng tuyển.",
-        ),
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "robots", content: "noindex" },
-    ],
+  head: createRouteMeta({
+    titleKey: "admin.forms.meta.title",
+    descriptionKey: "admin.forms.meta.description",
+    ogDescriptionKey: "admin.forms.meta.ogDescription",
+    noIndex: true,
   }),
   component: FormBuilderPage,
 });

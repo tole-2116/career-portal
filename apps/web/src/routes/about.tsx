@@ -7,17 +7,12 @@ import { getIcon } from "@/data/homeContent";
 import { useI18n } from "@/lib/i18n";
 import { useSiteConfig, type AboutWidgetKey, type AboutWidgetStyle } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
+import { createRouteMeta } from "@/lib/route-meta";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({
-    meta: [
-      { title: "Về chúng tôi — TalentHub | About us" },
-      { name: "description", content: "Câu chuyện, cột mốc, giá trị và đội ngũ dẫn dắt tại TalentHub." },
-      { property: "og:title", content: "Về chúng tôi — TalentHub | About us" },
-      { property: "og:description", content: "Câu chuyện, cột mốc, giá trị và môi trường làm việc tại TalentHub." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
+  head: createRouteMeta({
+    titleKey: "page.about.title",
+    descriptionKey: "page.about.description",
   }),
   component: AboutPage,
 });

@@ -180,7 +180,74 @@ const dict = {
   "admin.funnel.title": { vi: "Phễu tuyển dụng", en: "Hiring funnel" },
   "admin.activity.title": { vi: "Hoạt động gần đây", en: "Recent activity" },
   "admin.jobs.title": { vi: "Tin tuyển dụng", en: "Job postings" },
-  "admin.jobs.meta.title": { vi: "Tin tuyển dụng — TalentHub HR", en: "Job Postings — TalentHub HR" },
+  "admin.jobs.meta.title": { vi: "Tin tuyển dụng", en: "Job Postings" },
+  "admin.dashboard.meta.title": { vi: "Tổng quan tuyển dụng", en: "Recruitment overview" },
+  "admin.dashboard.meta.description": {
+    vi: "Bảng điều khiển HR: số liệu tuyển dụng, lượt ứng tuyển theo tuần và phễu ứng viên.",
+    en: "HR dashboard: recruitment metrics, weekly applications, and candidate funnel.",
+  },
+  "admin.login.meta.title": { vi: "Đăng nhập quản trị", en: "Admin login" },
+  "admin.login.meta.description": {
+    vi: "Đăng nhập vào bảng điều khiển tuyển dụng dành cho quản trị viên.",
+    en: "Sign in to the recruitment dashboard for administrators.",
+  },
+  "admin.login.meta.ogDescription": {
+    vi: "Khu vực quản trị nội bộ.",
+    en: "Internal admin area.",
+  },
+  "admin.settings.meta.title": { vi: "Cấu hình giao diện", en: "Site settings" },
+  "admin.settings.meta.description": {
+    vi: "Chọn bố cục trang chủ, bảng màu, hình ảnh và nội dung hiển thị cho cổng việc làm.",
+    en: "Choose the homepage layout, color palette, images, and content for the careers portal.",
+  },
+  "admin.settings.meta.ogDescription": {
+    vi: "Chọn bố cục trang chủ, bảng màu, hình ảnh và nội dung hiển thị.",
+    en: "Choose the homepage layout, color palette, images, and content.",
+  },
+  "admin.taxonomies.meta.title": { vi: "Danh mục tuyển dụng", en: "Recruitment categories" },
+  "admin.taxonomies.meta.description": {
+    vi: "Khai báo danh mục hình thức làm việc, mức lương, kinh nghiệm và nơi làm việc dùng chung cho tin tuyển dụng.",
+    en: "Define shared work types, salary ranges, experience levels, and locations for job postings.",
+  },
+  "admin.taxonomies.meta.ogDescription": {
+    vi: "Quản lý danh mục hình thức, mức lương, kinh nghiệm và nơi làm việc.",
+    en: "Manage work type, salary, experience, and location categories.",
+  },
+  "page.home.title": { vi: "Cơ hội nghề nghiệp", en: "Careers" },
+  "page.home.description": {
+    vi: "Khám phá vị trí đang tuyển, văn hóa làm việc và phúc lợi. Ứng tuyển trực tuyến chỉ trong vài phút.",
+    en: "Explore open positions, workplace culture, and benefits. Apply online in minutes.",
+  },
+  "page.about.title": { vi: "Về chúng tôi", en: "About us" },
+  "page.about.description": {
+    vi: "Câu chuyện, cột mốc, giá trị và đội ngũ dẫn dắt.",
+    en: "Our story, milestones, values, and leadership team.",
+  },
+  "page.contact.title": { vi: "Liên hệ", en: "Contact us" },
+  "page.contact.description": {
+    vi: "Gửi câu hỏi tới đội ngũ tuyển dụng và xem thông tin liên hệ.",
+    en: "Send a question to the recruitment team and find our contact details.",
+  },
+  "page.apply.title": { vi: "Gửi hồ sơ tự do", en: "Open application" },
+  "page.apply.description": {
+    vi: "Gửi hồ sơ tự do để đội ngũ tuyển dụng liên hệ khi có cơ hội phù hợp.",
+    en: "Submit an open application so the recruitment team can contact you about future opportunities.",
+  },
+  "page.jobs.title": { vi: "Vị trí đang tuyển", en: "Open positions" },
+  "page.jobs.description": {
+    vi: "Danh sách vị trí đang tuyển. Lọc theo ngành nghề, nơi làm việc và kinh nghiệm.",
+    en: "Browse open positions and filter by industry, location, and experience.",
+  },
+  "page.news.title": { vi: "Tin tức", en: "Company news" },
+  "page.news.description": {
+    vi: "Tin tức, hoạt động công ty, văn hóa và sự kiện mới nhất.",
+    en: "The latest company news, culture, activities, and events.",
+  },
+  "page.newsArticle.title": { vi: "Bài viết", en: "Article" },
+  "page.newsArticle.description": {
+    vi: "Bài viết tin tức, hoạt động và văn hóa doanh nghiệp.",
+    en: "News, activities, and company culture articles.",
+  },
   "admin.jobs.meta.description": {
     vi: "Quản lý tin tuyển dụng: tạo, chỉnh sửa và theo dõi trạng thái từng vị trí.",
     en: "Manage job postings: create, edit, and track statuses of every position.",
@@ -200,10 +267,7 @@ const dict = {
   "admin.jobs.col.status": { vi: "Trạng thái", en: "Status" },
   "admin.jobs.col.deadline": { vi: "Hạn nộp", en: "Deadline" },
   "admin.candidates.title": { vi: "Ứng viên", en: "Candidates" },
-  "admin.news.meta.title": {
-    vi: "Quản lý tin tức — TalentHub HR",
-    en: "News management — TalentHub HR",
-  },
+  "admin.news.meta.title": { vi: "Quản lý tin tức", en: "News management" },
   "admin.news.meta.description": {
     vi: "Thêm, sửa, xuất bản bài viết tin tức và quản lý chuyên mục cho website tuyển dụng.",
     en: "Add, edit, publish news articles and manage categories for the recruitment website.",
@@ -212,7 +276,7 @@ const dict = {
     vi: "Quản lý bài viết và chuyên mục tin tức.",
     en: "Manage articles and news categories.",
   },
-  "admin.forms.meta.title": { vi: "Biểu mẫu ứng tuyển — TalentHub HR", en: "Application form — TalentHub HR" },
+  "admin.forms.meta.title": { vi: "Biểu mẫu ứng tuyển", en: "Application form" },
   "admin.forms.meta.description": {
     vi: "Tự thiết kế các phần và trường thông tin của biểu mẫu ứng tuyển.",
     en: "Design the sections and fields of the application form.",
@@ -221,7 +285,7 @@ const dict = {
     vi: "Quản lý cấu trúc và nội dung biểu mẫu ứng tuyển.",
     en: "Manage the structure and content of the application form.",
   },
-  "admin.users.meta.title": { vi: "Người dùng — TalentHub HR", en: "Users — TalentHub HR" },
+  "admin.users.meta.title": { vi: "Người dùng", en: "Users" },
   "admin.users.meta.description": {
     vi: "Quản lý tài khoản quản trị viên và cộng tác viên cùng nhóm quyền truy cập.",
     en: "Manage administrator and moderator accounts and their permission groups.",
@@ -230,7 +294,7 @@ const dict = {
     vi: "Tài khoản truy cập khu vực quản trị và nhóm quyền tương ứng.",
     en: "Console accounts and their permission groups.",
   },
-  "admin.candidates.meta.title": { vi: "Ứng viên — TalentHub HR", en: "Candidates — TalentHub HR" },
+  "admin.candidates.meta.title": { vi: "Ứng viên", en: "Candidates" },
   "admin.candidates.meta.description": {
     vi: "Danh sách ứng viên, hồ sơ chi tiết, CV, ghi chú nội bộ và giai đoạn tuyển dụng.",
     en: "Candidate list, detailed profiles, CVs, internal notes, and hiring stages.",

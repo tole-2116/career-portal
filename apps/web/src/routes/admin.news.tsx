@@ -59,7 +59,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { heroLibrary, cultureLibrary } from "@/data/media";
-import { translate, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { useLanguageConfig } from "@/lib/language-config";
 import {
   emptyArticle,
@@ -80,46 +80,19 @@ import {
   uploadNewsCover,
 } from "@/services/admin-news.api";
 import { useSiteConfig } from "@/lib/site-config";
+import { createRouteMeta } from "@/lib/route-meta";
 
 const RichTextEditor = lazy(() =>
   import("@/components/admin/RichTextEditor").then((m) => ({ default: m.RichTextEditor })),
 );
 
-const getSafeMetaText = (key: Parameters<typeof translate>[0], fallback: string) =>
-  translate(key, fallback) || fallback;
-
 export const Route = createFileRoute("/admin/news")({
   beforeLoad: ({ location }) => requireAdminSession(location.pathname),
-  head: () => ({
-    meta: [
-      {
-        title: getSafeMetaText(
-          "admin.news.meta.title",
-          "Quản lý tin tức — TalentHub HR",
-        ),
-      },
-      {
-        name: "description",
-        content: getSafeMetaText(
-          "admin.news.meta.description",
-          "Thêm, sửa, xuất bản bài viết tin tức và quản lý chuyên mục cho website tuyển dụng.",
-        ),
-      },
-      {
-        property: "og:title",
-        content: getSafeMetaText("admin.news.meta.title", "Quản lý tin tức — TalentHub HR"),
-      },
-      {
-        property: "og:description",
-        content: getSafeMetaText(
-          "admin.news.meta.ogDescription",
-          "Quản lý bài viết và chuyên mục tin tức.",
-        ),
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "robots", content: "noindex" },
-    ],
+  head: createRouteMeta({
+    titleKey: "admin.news.meta.title",
+    descriptionKey: "admin.news.meta.description",
+    ogDescriptionKey: "admin.news.meta.ogDescription",
+    noIndex: true,
   }),
   component: AdminNewsPage,
 });

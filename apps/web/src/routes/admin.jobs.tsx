@@ -51,47 +51,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Job, JobStatus } from "@/data/jobs";
-import { translate, useI18n, type Localized } from "@/lib/i18n";
+import { useI18n, type Localized } from "@/lib/i18n";
 
-const getSafeMetaText = (key: Parameters<typeof translate>[0], fallback: string) =>
-  translate(key, fallback) || fallback;
 import { emptyJob } from "@/lib/jobs-store";
 import { useTaxonomies, type TaxonomyKey } from "@/lib/taxonomy-store";
 import { fetchJobs, createJob, updateJob, deleteJob, toApiPayload, fetchJobTaxonomies } from "@/lib/api/jobs";
 import { requireAdminSession } from "@/lib/admin-route-guard";
+import { createRouteMeta } from "@/lib/route-meta";
 
 export const Route = createFileRoute("/admin/jobs")({
   beforeLoad: ({ location }) => requireAdminSession(location.pathname),
-  head: () => ({
-    meta: [
-      {
-        title: getSafeMetaText(
-          "admin.jobs.meta.title",
-          "Tin tuyển dụng — TalentHub HR",
-        ),
-      },
-      {
-        name: "description",
-        content: getSafeMetaText(
-          "admin.jobs.meta.description",
-          "Quản lý tin tuyển dụng: tạo, chỉnh sửa và theo dõi trạng thái từng vị trí.",
-        ),
-      },
-      {
-        property: "og:title",
-        content: getSafeMetaText("admin.jobs.meta.title", "Tin tuyển dụng — TalentHub HR"),
-      },
-      {
-        property: "og:description",
-        content: getSafeMetaText(
-          "admin.jobs.meta.ogDescription",
-          "Tạo, chỉnh sửa và theo dõi trạng thái từng tin tuyển dụng.",
-        ),
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "robots", content: "noindex" },
-    ],
+  head: createRouteMeta({
+    titleKey: "admin.jobs.meta.title",
+    descriptionKey: "admin.jobs.meta.description",
+    ogDescriptionKey: "admin.jobs.meta.ogDescription",
+    noIndex: true,
   }),
   component: AdminJobsPage,
 });
@@ -203,14 +177,9 @@ function LocationsField({
 }
 
 function AdminJobsPage() {
-  const { t, tr, lang } = useI18n();
+  const { t, tr } = useI18n();
   const { taxonomies } = useTaxonomies();
 
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      document.title = getSafeMetaText("admin.jobs.meta.title", "Tin tuyển dụng — TalentHub HR");
-    }
-  }, [lang]);
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState<string>(ALL);
   const [page, setPage] = useState(1);

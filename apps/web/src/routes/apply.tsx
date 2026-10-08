@@ -11,24 +11,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/lib/i18n";
 import { useInbox } from "@/lib/inbox-store";
 import { useSiteConfig } from "@/lib/site-config";
+import { createRouteMeta } from "@/lib/route-meta";
 
 export const Route = createFileRoute("/apply")({
-  head: () => ({
-    meta: [
-      { title: "Gửi hồ sơ tự do — TalentHub | Open application" },
-      {
-        name: "description",
-        content:
-          "Chưa thấy vị trí phù hợp? Gửi hồ sơ tự do để đội ngũ tuyển dụng TalentHub liên hệ khi có cơ hội mới.",
-      },
-      { property: "og:title", content: "Gửi hồ sơ tự do — TalentHub" },
-      {
-        property: "og:description",
-        content: "Gửi CV không gắn vị trí cụ thể, chúng tôi sẽ liên hệ khi có cơ hội phù hợp.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
+  head: createRouteMeta({
+    titleKey: "page.apply.title",
+    descriptionKey: "page.apply.description",
   }),
   component: OpenApplyPage,
 });
