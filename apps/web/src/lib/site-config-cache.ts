@@ -7,16 +7,6 @@ import type { SiteConfig } from "@/lib/site-config";
  * module so both `route-meta.ts` and `site-config.tsx` can depend on it without
  * creating a runtime import cycle.
  */
-let cachedSiteConfig: SiteConfig | null = null;
-
-export function setCachedSiteConfig(config: SiteConfig): void {
-  cachedSiteConfig = config;
-}
-
-export function getCachedSiteConfig(): SiteConfig | null {
-  return cachedSiteConfig;
-}
-
 const CONFIG_STORAGE_KEY = "career-portal-site-config";
 
 /** Read a previously saved config without touching storage during SSR. */
@@ -32,6 +22,17 @@ export function readStoredSiteConfig(): SiteConfig | null {
   } catch {
     return null;
   }
+}
+
+// Seed the cache before route head factories run during client initialization.
+let cachedSiteConfig: SiteConfig | null = readStoredSiteConfig();
+
+export function setCachedSiteConfig(config: SiteConfig): void {
+  cachedSiteConfig = config;
+}
+
+export function getCachedSiteConfig(): SiteConfig | null {
+  return cachedSiteConfig;
 }
 
 /** Return the best available config for synchronous client initialization. */

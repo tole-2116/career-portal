@@ -15,6 +15,7 @@ import {
   saveAdminSiteConfig,
 } from "@/services/site-config.api";
 import type { Localized } from "@/lib/i18n";
+import { refreshDocumentBrand } from "@/lib/route-meta";
 import {
   getCachedSiteConfig,
   getInitialSiteConfig,
@@ -1024,6 +1025,7 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
           const merged = mergeConfig(data);
           setConfig(merged);
           setCachedSiteConfig(merged);
+          refreshDocumentBrand();
         }
       })
       .catch(() => {
