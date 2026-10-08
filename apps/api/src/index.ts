@@ -8,7 +8,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import path from "node:path";
 import { db } from "@career-portal/database";
-import { ApplyJobSchema } from "@career-portal/types";
+import { ApplyJobSchema, ContactSchema } from "@career-portal/types";
 import { adminJobsRoutes } from "./routes/admin-jobs.routes";
 import { adminCandidateRoutes } from "./routes/admin-candidates.routes";
 import { adminUserRoutes } from "./routes/admin-users.routes";
@@ -111,6 +111,35 @@ app.post("/api/jobs/:jobId/apply", applyCvUpload, async (req, res) => {
   } catch (error) {
     console.error("POST apply error:", error);
     return res.status(500).json({ error: "Failed to submit application" });
+  }
+});
+
+// API: Liên hệ (mở) — lưu tin nhắn từ biểu mẫu trang Liên hệ.
+app.post("/api/contacts", async (req, res) => {
+  try {
+    const validation = ContactSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ errors: validation.error.format() });
+    }
+
+    const { name, email, phone, subject, body } = validation.data;
+
+    const contact = await db.contact.create({
+      data: {
+        code: `CONTACT-${Date.now()}`,
+        name,
+        email,
+        phone: phone || null,
+        subject,
+        body,
+        usercreate_at: "contact_public",
+      },
+    });
+
+    return res.status(201).json({ success: true, data: { id: contact.id, code: contact.code } });
+  } catch (error) {
+    console.error("POST /api/contacts error:", error);
+    return res.status(500).json({ success: false, error: "Failed to submit contact message" });
   }
 });
 

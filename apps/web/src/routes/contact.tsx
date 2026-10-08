@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, Clock, Globe, Mail, MapPin, Phone } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
+import { ContactSchema } from "@career-portal/types";
 
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/lib/i18n";
-import { useInbox } from "@/lib/inbox-store";
 import { useSiteConfig } from "@/lib/site-config";
+import { ApiError } from "@/lib/api/request";
+import { submitContact } from "@/services/contact.api";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -34,26 +35,60 @@ export const Route = createFileRoute("/contact")({
   component: ContactPage,
 });
 
-const schema = z.object({
-  name: z.string().trim().min(1, "Vui lòng nhập họ tên").max(100),
-  email: z.string().trim().email("Email không hợp lệ").max(255),
-  phone: z.string().trim().max(30).optional(),
-  subject: z.string().trim().min(1, "Vui lòng nhập chủ đề").max(150),
-  body: z.string().trim().min(10, "Nội dung tối thiểu 10 ký tự").max(2000),
-});
-
 function ContactPage() {
   const { tr } = useI18n();
   const { config } = useSiteConfig();
   const company = config.company;
-  const { addMessage } = useInbox();
 
   const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", body: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const set = (key: keyof typeof form) => (value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  async function submit() {
+    const result = ContactSchema.safeParse({
+      ...form,
+      phone: form.phone.trim() === "" ? null : form.phone,
+    });
+    if (!result.success) {
+      const next: Record<string, string> = {};
+      for (const issue of result.error.issues) {
+        const key = String(issue.path[0]);
+        if (!next[key]) next[key] = issue.message;
+      }
+      setErrors(next);
+      return;
+    }
+
+    setErrors({});
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      await submitContact({
+        ...result.data,
+        phone: result.data.phone?.trim() ? result.data.phone : null,
+      });
+      setForm({ name: "", email: "", phone: "", subject: "", body: "" });
+      setSent(true);
+      toast.success(tr({ vi: "Đã gửi tin nhắn liên hệ.", en: "Message sent." }));
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : tr({
+              vi: "Không gửi được tin nhắn. Vui lòng thử lại.",
+              en: "Failed to send message. Please try again.",
+            });
+      setSubmitError(message);
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <SiteLayout>
@@ -157,27 +192,7 @@ function ContactPage() {
               className="space-y-5"
               onSubmit={(event) => {
                 event.preventDefault();
-                const result = schema.safeParse(form);
-                if (!result.success) {
-                  const next: Record<string, string> = {};
-                  for (const issue of result.error.issues) {
-                    const key = String(issue.path[0]);
-                    if (!next[key]) next[key] = issue.message;
-                  }
-                  setErrors(next);
-                  return;
-                }
-                setErrors({});
-                addMessage({
-                  name: result.data.name,
-                  email: result.data.email,
-                  phone: result.data.phone ?? "",
-                  subject: result.data.subject,
-                  body: result.data.body,
-                });
-                setForm({ name: "", email: "", phone: "", subject: "", body: "" });
-                setSent(true);
-                toast.success(tr({ vi: "Đã gửi tin nhắn liên hệ.", en: "Message sent." }));
+                void submit();
               }}
             >
               <h2 className="font-display text-lg font-semibold">
@@ -241,8 +256,15 @@ function ContactPage() {
                 />
                 {errors["body"] && <p className="text-sm text-destructive">{errors["body"]}</p>}
               </div>
-              <Button type="submit" size="lg">
-                {tr({ vi: "Gửi liên hệ", en: "Send message" })}
+              {submitError && (
+                <p className="text-sm text-destructive" role="alert">
+                  {submitError}
+                </p>
+              )}
+              <Button type="submit" size="lg" disabled={submitting}>
+                {submitting
+                  ? tr({ vi: "Đang gửi...", en: "Sending..." })
+                  : tr({ vi: "Gửi liên hệ", en: "Send message" })}
               </Button>
             </form>
           )}
