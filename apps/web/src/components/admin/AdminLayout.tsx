@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 
-import { LanguageToggle } from "@/components/LanguageToggle";
+import { PublicLanguageSwitch } from "@/components/PublicLanguageSwitch";
 import { BrandMark } from "@/components/site/BrandMark";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-store";
@@ -205,7 +205,7 @@ export function AdminLayout({
                   </Button>
                 </div>
               )}
-              <LanguageToggle />
+              <PublicLanguageSwitch />
               {action}
               <Button
                 variant="ghost"
