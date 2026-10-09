@@ -328,6 +328,11 @@ const dict = {
   "admin.candidates.filter.stage": { vi: "Giai đoạn", en: "Stage" },
   "admin.candidates.profile": { vi: "Hồ sơ ứng viên", en: "Candidate profile" },
   "admin.candidates.cv": { vi: "Tệp CV", en: "CV file" },
+  "admin.candidates.cvViewer.title": { vi: "Xem CV", en: "View CV" },
+  "admin.candidates.cvViewer.unsupported": {
+    vi: "Không thể xem trước định dạng này trong trình duyệt. Vui lòng tải tệp để mở.",
+    en: "This format cannot be previewed in the browser. Please download the file to open it.",
+  },
   "admin.candidates.notes": { vi: "Ghi chú nội bộ", en: "Internal notes" },
   "admin.candidates.changeStage": { vi: "Chuyển giai đoạn", en: "Move to stage" },
   "admin.candidates.stageUpdated": {
