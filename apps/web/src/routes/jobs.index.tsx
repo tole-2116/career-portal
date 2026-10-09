@@ -22,11 +22,13 @@ import { cn } from "@/lib/utils";
 import { fetchPublicJobs } from "@/services/jobs.api";
 import { createRouteMeta } from "@/lib/route-meta";
 
-type JobSearch = { q?: string | undefined };
+type JobSearch = { q?: string | undefined; departmentId?: string | undefined; locationIds?: string | undefined };
 
 export const Route = createFileRoute("/jobs/")({
   validateSearch: (search: Record<string, unknown>): JobSearch => ({
     q: typeof search["q"] === "string" ? (search["q"] as string) : undefined,
+    departmentId: typeof search["departmentId"] === "string" ? (search["departmentId"] as string) : undefined,
+    locationIds: typeof search["locationIds"] === "string" ? (search["locationIds"] as string) : undefined,
   }),
   head: createRouteMeta({
     titleKey: "page.jobs.title",
@@ -79,7 +81,7 @@ function FacetSelect({
 }
 
 function JobsPage() {
-  const { q } = Route.useSearch();
+  const { q, departmentId, locationIds } = Route.useSearch();
   const { t, tr } = useI18n();
   const { taxonomies } = useTaxonomies();
   const { config } = useSiteConfig();
@@ -90,8 +92,8 @@ function JobsPage() {
   const [error, setError] = useState(false);
 
   const [keyword, setKeyword] = useState(q ?? "");
-  const [department, setDepartment] = useState(ALL);
-  const [location, setLocation] = useState(ALL);
+  const [department, setDepartment] = useState(departmentId ?? ALL);
+  const [location, setLocation] = useState(locationIds ?? ALL);
   const [workType, setWorkType] = useState(ALL);
   const [salary, setSalary] = useState(ALL);
   const [experience, setExperience] = useState(ALL);
