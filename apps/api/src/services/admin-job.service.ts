@@ -266,13 +266,17 @@ export class AdminJobService {
     }
 
     if (query.search) {
-      // title/description là cột JSON ({en, vi}) — Prisma tìm trên Json cần `path` + `string_contains`.
+      // title/description/summary/requirements là cột JSON ({en, vi}) — Prisma tìm trên Json cần `path` + `string_contains`.
       where.OR = [
         { slug: { contains: query.search, mode: "insensitive" } },
         { title: { path: ["en"], string_contains: query.search } },
         { title: { path: ["vi"], string_contains: query.search } },
         { description: { path: ["en"], string_contains: query.search } },
         { description: { path: ["vi"], string_contains: query.search } },
+        { summary: { path: ["en"], string_contains: query.search } },
+        { summary: { path: ["vi"], string_contains: query.search } },
+        { requirements: { path: ["en"], string_contains: query.search } },
+        { requirements: { path: ["vi"], string_contains: query.search } },
       ];
     }
 

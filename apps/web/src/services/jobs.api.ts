@@ -33,10 +33,11 @@ function queryString(params: PublicJobListParams): string {
 
 export async function fetchPublicJobs(
   params: PublicJobListParams = {},
+  options: { signal?: AbortSignal } = {},
 ): Promise<{ jobs: Job[]; total: number; page: number; totalPages: number }> {
   const result = await apiRequest<PublicJobListResponse>(
     `${PUBLIC_BASE}${queryString(params)}`,
-    { authenticated: false },
+    { authenticated: false, signal: options.signal },
   );
 
   return {

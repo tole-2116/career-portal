@@ -1,9 +1,9 @@
-import { useNavigate } from "@tanstack/react-router";
 import { Facebook, Github, Linkedin, MessageCircle, Music2, Search, Youtube } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 
+import { HomeSearchSuggestions } from "@/components/home/HomeSearchSuggestions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import type { Job } from "@/data/jobs";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -100,6 +100,7 @@ export function useHomeData() {
     config,
     sections,
     featured,
+    jobs,
     openCount,
     isLoading,
     jobsError: error,
@@ -120,7 +121,7 @@ export function HomeSearch({
   className?: string;
   tone?: "light" | "dark";
 }) {
-  const { t, tr } = useI18n();
+  const { tr } = useI18n();
   const { config } = useSiteConfig();
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState("");
@@ -129,7 +130,8 @@ export function HomeSearch({
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        navigate({ to: "/jobs", search: keyword ? { q: keyword } : {} });
+        const q = keyword.trim();
+        navigate({ to: "/jobs", search: q ? { q } : {} });
       }}
       className={cn(
         "flex w-full flex-col gap-2 rounded-2xl border p-2 sm:flex-row sm:items-center",
@@ -146,15 +148,10 @@ export function HomeSearch({
             tone === "dark" ? "text-primary-foreground/70" : "text-muted-foreground",
           )}
         />
-        <Input
+        <HomeSearchSuggestions
           value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          placeholder={t("home.search.keyword")}
-          aria-label={t("home.search.keyword")}
-          className={cn(
-            "border-0 bg-transparent px-0 shadow-none focus-visible:ring-0",
-            tone === "dark" && "text-primary-foreground placeholder:text-primary-foreground/60",
-          )}
+          onChange={setKeyword}
+          tone={tone}
         />
       </div>
       <Button type="submit" variant="accent" size="lg" className="shrink-0">
