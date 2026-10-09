@@ -5,17 +5,20 @@ export type ApiResponse<T> = {
   data?: T;
   error?: string;
   code?: string;
+  field?: string;
 };
 
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string | undefined;
+  readonly field: string | undefined;
 
-  constructor(message: string, status: number, code?: string) {
+  constructor(message: string, status: number, code?: string, field?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.field = field;
   }
 }
 
@@ -112,6 +115,7 @@ export async function apiRequest<T>(
       body?.error || `Request failed with status ${response.status}`,
       response.status,
       body?.code,
+      body?.field,
     );
   }
 

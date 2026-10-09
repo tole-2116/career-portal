@@ -92,6 +92,32 @@ app.post("/api/jobs/:jobId/apply", applyCvUpload, async (req, res) => {
 
     const { jobId, name, email, phone, address, coverLetter } = validation.data;
 
+    const emailDuplicate = await db.candidate.findFirst({
+      where: { email },
+      select: { id: true },
+    });
+
+    if (emailDuplicate) {
+      return res.status(409).json({
+        success: false,
+        error: "Email is already in use",
+        field: "email",
+      });
+    }
+
+    const phoneDuplicate = await db.candidate.findFirst({
+      where: { phone },
+      select: { id: true },
+    });
+
+    if (phoneDuplicate) {
+      return res.status(409).json({
+        success: false,
+        error: "Phone number is already in use",
+        field: "phone",
+      });
+    }
+
     const candidate = await db.candidate.create({
       data: {
         code: `CAND-${Date.now()}`,

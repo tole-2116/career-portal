@@ -117,7 +117,11 @@ function ApplyPage() {
 
   function renderField(field: FormField) {
     const value = values[field.id] ?? "";
-    const setValue = (next: string) => setValues((prev) => ({ ...prev, [field.id]: next }));
+    const error = fieldErrors[field.id];
+    const setValue = (next: string) => {
+      setValues((prev) => ({ ...prev, [field.id]: next }));
+      if (error) setFieldErrors((prev) => ({ ...prev, [field.id]: null }));
+    };
 
     if (field.type === "file") {
       const file = files[field.id] ?? null;
@@ -257,6 +261,7 @@ function ApplyPage() {
             onChange={(e) => setValue(e.target.value)}
           />
         )}
+        {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
     );
   }
@@ -363,6 +368,26 @@ function ApplyPage() {
       await submitJobApplication(activeJob.id, buildPayload());
       setSubmitted(true);
     } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        const duplicateField = error.field;
+        if (duplicateField === "email" || duplicateField === "phone") {
+          // The API reports the canonical name; the form may use a custom field id.
+          const targetId =
+            allFields.find(
+              (field) =>
+                field.type === (duplicateField === "email" ? "email" : "tel") ||
+                field.id.toLowerCase().includes(duplicateField),
+            )?.id ?? duplicateField;
+          setFieldErrors((prev) => ({
+            ...prev,
+            [targetId]: t(
+              duplicateField === "email" ? "apply.error.emailInUse" : "apply.error.phoneInUse",
+            ),
+          }));
+          setSubmitError(null);
+          return;
+        }
+      }
       setSubmitError(error instanceof ApiError ? error.message : t("apply.error"));
     } finally {
       setIsSubmitting(false);

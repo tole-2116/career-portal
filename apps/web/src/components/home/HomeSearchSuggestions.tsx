@@ -156,7 +156,8 @@ export function HomeSearchSuggestions({
 
     if (open && suggestions.length > 0) {
       event.preventDefault();
-      selectSuggestion(suggestions[activeIndex >= 0 ? activeIndex : 0]);
+      const suggestion = suggestions[activeIndex >= 0 ? activeIndex : 0];
+      if (suggestion) selectSuggestion(suggestion);
       return;
     }
 

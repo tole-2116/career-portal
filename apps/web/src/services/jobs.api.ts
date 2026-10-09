@@ -37,7 +37,7 @@ export async function fetchPublicJobs(
 ): Promise<{ jobs: Job[]; total: number; page: number; totalPages: number }> {
   const result = await apiRequest<PublicJobListResponse>(
     `${PUBLIC_BASE}${queryString(params)}`,
-    { authenticated: false, signal: options.signal },
+    { authenticated: false, signal: options.signal ?? null },
   );
 
   return {

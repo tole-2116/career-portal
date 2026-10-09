@@ -152,6 +152,14 @@ const dict = {
     vi: "Không thể gửi hồ sơ. Vui lòng thử lại.",
     en: "Failed to submit application. Please try again.",
   },
+  "apply.error.emailInUse": {
+    vi: "Email này đã được sử dụng để ứng tuyển trước đó.",
+    en: "This email has already been used for an application.",
+  },
+  "apply.error.phoneInUse": {
+    vi: "Số điện thoại này đã được sử dụng để ứng tuyển trước đó.",
+    en: "This phone number has already been used for an application.",
+  },
   "apply.required": { vi: "Bắt buộc", en: "Required" },
   "apply.success.title": { vi: "Đã nhận hồ sơ của bạn", en: "Application received" },
   "apply.success.body": {
