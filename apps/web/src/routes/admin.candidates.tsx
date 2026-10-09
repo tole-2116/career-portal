@@ -89,6 +89,16 @@ function getCvUrl(value: string): string {
   return `${apiOrigin}${value.startsWith("/") ? value : `/${value}`}`;
 }
 
+function isPdfFile(value: string): boolean {
+  return /\.pdf(?:$|[?#])/i.test(value);
+}
+
+type CvPreview = {
+  candidateName: string;
+  fileName: string;
+  url: string;
+};
+
 function Rating({ value }: { value: number }) {
   return (
     <span className="flex items-center gap-0.5">
@@ -196,6 +206,7 @@ function AdminCandidatesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editStage, setEditStage] = useState<Stage>("new");
   const [editNoteBody, setEditNoteBody] = useState("");
+  const [cvPreview, setCvPreview] = useState<CvPreview | null>(null);
 
   // Dropdown lọc cần jobId dạng UUID của database để khớp Candidate.jobId.
   useEffect(() => {
@@ -474,26 +485,19 @@ function AdminCandidatesPage() {
                           variant="ghost"
                           size="sm"
                           className="h-8 px-2"
-                          onClick={(event) => event.stopPropagation()}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (!candidate.cvFile) return;
+                            setCvPreview({
+                              candidateName: candidate.name,
+                              fileName: candidate.cvFile.split("/").pop() ?? candidate.cvFile,
+                              url: getCvUrl(candidate.cvFile),
+                            });
+                          }}
                           disabled={!candidate.cvFile}
-                          asChild={Boolean(candidate.cvFile)}
                         >
-                          {candidate.cvFile ? (
-                            <a
-                              href={getCvUrl(candidate.cvFile)}
-                              target="_blank"
-                              rel="noreferrer"
-                              download
-                            >
-                              <FileText className="mr-1 h-3.5 w-3.5" />
-                              {t("admin.candidates.cv")}
-                            </a>
-                          ) : (
-                            <span>
-                              <FileText className="mr-1 h-3.5 w-3.5" />
-                              {t("admin.candidates.cv")}
-                            </span>
-                          )}
+                          <FileText className="mr-1 h-3.5 w-3.5" />
+                          {t("admin.candidates.cv")}
                         </Button>
                       </TableCell>
                       <TableCell className="w-[100px] pr-4">
@@ -686,28 +690,41 @@ function AdminCandidatesPage() {
                     <FileText className="h-4 w-4 shrink-0 text-accent" />
                     <span className="truncate">{selected.cvFile}</span>
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0"
-                    disabled={!selected.cvFile}
-                    asChild={Boolean(selected.cvFile)}
-                  >
-                    {selected.cvFile ? (
-                      <a
-                        href={getCvUrl(selected.cvFile)}
-                        target="_blank"
-                        rel="noreferrer"
-                        download
-                      >
-                        <Download className="mr-1.5 h-3.5 w-3.5" /> {t("common.download")}
-                      </a>
-                    ) : (
-                      <span>
-                        <Download className="mr-1.5 h-3.5 w-3.5" /> {t("common.download")}
-                      </span>
-                    )}
-                  </Button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      disabled={!selected.cvFile}
+                      onClick={() => {
+                        if (!selected.cvFile) return;
+                        setCvPreview({
+                          candidateName: selected.name,
+                          fileName: selected.cvFile.split("/").pop() ?? selected.cvFile,
+                          url: getCvUrl(selected.cvFile),
+                        });
+                      }}
+                    >
+                      <Eye className="mr-1.5 h-3.5 w-3.5" /> {t("admin.candidates.cvViewer.title")}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      disabled={!selected.cvFile}
+                      asChild={Boolean(selected.cvFile)}
+                    >
+                      {selected.cvFile ? (
+                        <a href={getCvUrl(selected.cvFile)} target="_blank" rel="noreferrer" download>
+                          <Download className="mr-1.5 h-3.5 w-3.5" /> {t("common.download")}
+                        </a>
+                      ) : (
+                        <span>
+                          <Download className="mr-1.5 h-3.5 w-3.5" /> {t("common.download")}
+                        </span>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -797,6 +814,44 @@ function AdminCandidatesPage() {
                 </Button>
               </DialogFooter>
             </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={cvPreview !== null} onOpenChange={(open) => !open && setCvPreview(null)}>
+        <DialogContent className="max-h-[90vh] overflow-hidden p-0 sm:max-w-[900px]">
+          {cvPreview && (
+            <div className="flex max-h-[90vh] flex-col">
+              <DialogHeader className="shrink-0 border-b border-border/70 px-6 py-4">
+                <DialogTitle className="flex items-center gap-2">
+                  <Eye className="h-4 w-4 text-accent" />
+                  {t("admin.candidates.cvViewer.title")}
+                </DialogTitle>
+                <DialogDescription className="truncate">{cvPreview.candidateName} · {cvPreview.fileName}</DialogDescription>
+              </DialogHeader>
+              <div className="min-h-0 flex-1 p-4">
+                {isPdfFile(cvPreview.url) ? (
+                  <iframe
+                    title={`${t("admin.candidates.cvViewer.title")} - ${cvPreview.fileName}`}
+                    src={cvPreview.url}
+                    className="h-[65vh] min-h-[360px] w-full rounded-md border border-border bg-muted/20"
+                  />
+                ) : (
+                  <div className="flex min-h-[240px] flex-col items-center justify-center gap-4 rounded-md border border-dashed border-border bg-muted/20 p-6 text-center">
+                    <FileText className="h-10 w-10 text-muted-foreground" />
+                    <p className="max-w-md text-sm text-muted-foreground">
+                      {t("admin.candidates.cvViewer.unsupported")}
+                    </p>
+                    <Button type="button" asChild>
+                      <a href={cvPreview.url} target="_blank" rel="noreferrer" download>
+                        <Download className="mr-1.5 h-4 w-4" />
+                        {t("common.download")}
+                      </a>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
