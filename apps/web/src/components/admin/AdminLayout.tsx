@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   ListTree,
   LogOut,
+  Mailbox,
   Newspaper,
   Palette,
   ShieldCheck,
@@ -49,6 +50,7 @@ const navItems = [
     section: "settings",
   },
   { to: "/admin/users", key: "admin.nav.users", icon: ShieldCheck, exact: false, section: "users" },
+  { to: "/admin/contacts", key: "admin.nav.contacts", icon: Mailbox, exact: false, section: "contacts" },
 ] as const satisfies ReadonlyArray<{
   to: string;
   key: TranslationKey;
