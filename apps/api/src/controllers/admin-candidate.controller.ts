@@ -30,8 +30,45 @@ export class AdminCandidateController {
   constructor() {
     this.getPaginated = this.getPaginated.bind(this);
     this.getExperienceTaxonomies = this.getExperienceTaxonomies.bind(this);
+    this.streamCv = this.streamCv.bind(this);
     this.updateStatus = this.updateStatus.bind(this);
     this.update = this.update.bind(this);
+  }
+
+  /** GET /api/admin/candidates/:id/cv — stream file CV để admin xem/tải trong viewer. */
+  async streamCv(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        return res.status(400).json({ success: false, error: "Missing candidate id" });
+      }
+
+      const { absolutePath, fileName } = await adminCandidateService.getStoredCvFile(id);
+      const ext = fileName.slice(fileName.lastIndexOf(".")).toLowerCase();
+      const mime = ext === ".pdf" ? "application/pdf" : ext === ".docx"
+        ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        : ext === ".doc"
+          ? "application/msword"
+          : "application/octet-stream";
+
+      res.setHeader("Content-Type", mime);
+      res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(fileName)}"`);
+      // Cho phép iframe nhúng từ origin frontend dù server đặt X-Frame-Options: DENY chung.
+      res.setHeader("X-Frame-Options", "SAMEORIGIN");
+      res.setHeader("Content-Security-Policy", "frame-ancestors 'self'");
+      res.setHeader("Cache-Control", "private, max-age=0, no-cache");
+      return res.sendFile(absolutePath, { headers: { "Content-Type": mime } });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to fetch CV";
+      if (message === "Candidate not found") {
+        return res.status(404).json({ success: false, error: "Candidate not found" });
+      }
+      if (message === "CV not found" || message === "CV file missing") {
+        return res.status(404).json({ success: false, error: "CV file not found" });
+      }
+      console.error("GET /api/admin/candidates/:id/cv error:", error);
+      return res.status(500).json({ success: false, error: message });
+    }
   }
 
   async getExperienceTaxonomies(_req: Request, res: Response) {

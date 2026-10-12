@@ -10,7 +10,7 @@
 
 import type { Candidate, Stage } from "@/data/candidates";
 import type { Localized } from "@/lib/i18n";
-import { apiRequest } from "@/lib/api/request";
+import { apiRequest, apiRequestBlob } from "@/lib/api/request";
 
 const API_BASE = "/api/admin/candidates";
 
@@ -206,9 +206,15 @@ async function updateCandidate(id: string, payload: CandidateUpdatePayload): Pro
   return mapApiCandidate(raw);
 }
 
+/** GET /api/admin/candidates/:id/cv — tải bytes file CV (authenticated) để preview. */
+async function getCvBlob(id: string): Promise<Blob> {
+  return apiRequestBlob(`${API_BASE}/${encodeURIComponent(id)}/cv`);
+}
+
 export const adminCandidateApi = {
   getCandidates,
   getExperienceTaxonomies,
+  getCvBlob,
   updateStatus,
   updateCandidate,
 };

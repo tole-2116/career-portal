@@ -16,7 +16,7 @@ import {
   Star,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -82,21 +82,16 @@ export const Route = createFileRoute("/admin/candidates")({
 
 const ALL = "__all__";
 
-function getCvUrl(value: string): string {
-  if (!value) return "";
-  if (/^https?:\/\//i.test(value)) return value;
-  const apiOrigin = import.meta.env["VITE_API_URL"] ?? "";
-  return `${apiOrigin}${value.startsWith("/") ? value : `/${value}`}`;
-}
-
 function isPdfFile(value: string): boolean {
   return /\.pdf(?:$|[?#])/i.test(value);
 }
 
 type CvPreview = {
+  candidateId: string;
   candidateName: string;
   fileName: string;
   url: string;
+  isLoading: boolean;
 };
 
 function Rating({ value }: { value: number }) {
@@ -207,6 +202,68 @@ function AdminCandidatesPage() {
   const [editStage, setEditStage] = useState<Stage>("new");
   const [editNoteBody, setEditNoteBody] = useState("");
   const [cvPreview, setCvPreview] = useState<CvPreview | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const cvObjectUrlRef = useRef<string | null>(null);
+
+  // Giải phóng object URL của blob CV khi đóng dialog / unmount để tránh rò rỉ bộ nhớ.
+  useEffect(() => {
+    return () => {
+      if (cvObjectUrlRef.current) {
+        URL.revokeObjectURL(cvObjectUrlRef.current);
+        cvObjectUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  async function openCvPreview(candidate: { id: string; name: string; cvFile: string }) {
+    if (!candidate.cvFile) return;
+    const fileName = candidate.cvFile.split("/").pop() ?? candidate.cvFile;
+    if (cvObjectUrlRef.current) {
+      URL.revokeObjectURL(cvObjectUrlRef.current);
+      cvObjectUrlRef.current = null;
+    }
+    setCvPreview({
+      candidateId: candidate.id,
+      candidateName: candidate.name,
+      fileName,
+      url: "",
+      isLoading: true,
+    });
+    try {
+      const blob = await adminCandidateApi.getCvBlob(candidate.id);
+      const objectUrl = URL.createObjectURL(blob);
+      cvObjectUrlRef.current = objectUrl;
+      setCvPreview((prev) =>
+        prev && prev.candidateId === candidate.id
+          ? { ...prev, url: objectUrl, isLoading: false }
+          : prev,
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("settings.storageNote"));
+      setCvPreview(null);
+    }
+  }
+
+  async function downloadCv(candidate: { id: string; name: string; cvFile: string }) {
+    if (!candidate.cvFile || isDownloading) return;
+    setIsDownloading(true);
+    try {
+      const blob = await adminCandidateApi.getCvBlob(candidate.id);
+      const fileName = candidate.cvFile.split("/").pop() ?? candidate.cvFile;
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("settings.storageNote"));
+    } finally {
+      setIsDownloading(false);
+    }
+  }
 
   // Dropdown lọc cần jobId dạng UUID của database để khớp Candidate.jobId.
   useEffect(() => {
@@ -487,12 +544,7 @@ function AdminCandidatesPage() {
                           className="h-8 px-2"
                           onClick={(event) => {
                             event.stopPropagation();
-                            if (!candidate.cvFile) return;
-                            setCvPreview({
-                              candidateName: candidate.name,
-                              fileName: candidate.cvFile.split("/").pop() ?? candidate.cvFile,
-                              url: getCvUrl(candidate.cvFile),
-                            });
+                            void openCvPreview(candidate);
                           }}
                           disabled={!candidate.cvFile}
                         >
@@ -696,14 +748,7 @@ function AdminCandidatesPage() {
                       size="sm"
                       className="h-8"
                       disabled={!selected.cvFile}
-                      onClick={() => {
-                        if (!selected.cvFile) return;
-                        setCvPreview({
-                          candidateName: selected.name,
-                          fileName: selected.cvFile.split("/").pop() ?? selected.cvFile,
-                          url: getCvUrl(selected.cvFile),
-                        });
-                      }}
+                      onClick={() => void openCvPreview(selected)}
                     >
                       <Eye className="mr-1.5 h-3.5 w-3.5" /> {t("admin.candidates.cvViewer.title")}
                     </Button>
@@ -711,18 +756,15 @@ function AdminCandidatesPage() {
                       variant="outline"
                       size="sm"
                       className="h-8"
-                      disabled={!selected.cvFile}
-                      asChild={Boolean(selected.cvFile)}
+                      disabled={!selected.cvFile || isDownloading}
+                      onClick={() => void downloadCv(selected)}
                     >
-                      {selected.cvFile ? (
-                        <a href={getCvUrl(selected.cvFile)} target="_blank" rel="noreferrer" download>
-                          <Download className="mr-1.5 h-3.5 w-3.5" /> {t("common.download")}
-                        </a>
+                      {isDownloading ? (
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                       ) : (
-                        <span>
-                          <Download className="mr-1.5 h-3.5 w-3.5" /> {t("common.download")}
-                        </span>
-                      )}
+                        <Download className="mr-1.5 h-3.5 w-3.5" />
+                      )}{" "}
+                      {t("common.download")}
                     </Button>
                   </div>
                 </div>
@@ -818,7 +860,17 @@ function AdminCandidatesPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={cvPreview !== null} onOpenChange={(open) => !open && setCvPreview(null)}>
+      <Dialog
+        open={cvPreview !== null}
+        onOpenChange={(open) => {
+          if (open) return;
+          if (cvObjectUrlRef.current) {
+            URL.revokeObjectURL(cvObjectUrlRef.current);
+            cvObjectUrlRef.current = null;
+          }
+          setCvPreview(null);
+        }}
+      >
         <DialogContent className="max-h-[90vh] overflow-hidden p-0 sm:max-w-[900px]">
           {cvPreview && (
             <div className="flex max-h-[90vh] flex-col">
@@ -830,7 +882,11 @@ function AdminCandidatesPage() {
                 <DialogDescription className="truncate">{cvPreview.candidateName} · {cvPreview.fileName}</DialogDescription>
               </DialogHeader>
               <div className="min-h-0 flex-1 p-4">
-                {isPdfFile(cvPreview.url) ? (
+                {cvPreview.isLoading ? (
+                  <div className="flex h-[65vh] min-h-[360px] items-center justify-center rounded-md border border-border bg-muted/20">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : isPdfFile(cvPreview.fileName) ? (
                   <iframe
                     title={`${t("admin.candidates.cvViewer.title")} - ${cvPreview.fileName}`}
                     src={cvPreview.url}
@@ -843,7 +899,7 @@ function AdminCandidatesPage() {
                       {t("admin.candidates.cvViewer.unsupported")}
                     </p>
                     <Button type="button" asChild>
-                      <a href={cvPreview.url} target="_blank" rel="noreferrer" download>
+                      <a href={cvPreview.url} download={cvPreview.fileName}>
                         <Download className="mr-1.5 h-4 w-4" />
                         {t("common.download")}
                       </a>
