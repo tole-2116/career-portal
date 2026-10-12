@@ -11,6 +11,9 @@ adminCandidateRoutes.get("/", adminCandidateController.getPaginated);
 // GET /api/admin/candidates/taxonomies — taxonomy experience dùng filter có ID thực từ DB
 adminCandidateRoutes.get("/taxonomies", adminCandidateController.getExperienceTaxonomies);
 
+// GET /api/admin/candidates/:id/cv — stream file CV để admin xem/tải trong viewer
+adminCandidateRoutes.get("/:id/cv", adminCandidateController.streamCv);
+
 // PATCH /api/admin/candidates/:id/status — cập nhật giai đoạn tuyển dụng
 adminCandidateRoutes.patch("/:id/status", adminCandidateController.updateStatus);
 

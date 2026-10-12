@@ -1,4 +1,7 @@
+import fs from "node:fs";
+import path from "node:path";
 import { db } from "@career-portal/database";
+import { UPLOAD_DIR } from "../middleware/upload";
 import type {
   AdminCandidateFilterQuery,
   AdminCandidateListItem,
@@ -190,6 +193,32 @@ export class AdminCandidateService {
       page: currentPage,
       totalPages,
     };
+  }
+
+  /**
+   * Trả về đường dẫn tuyệt đối tới file CV của ứng viên để controller stream.
+   * Chỉ dùng basename của cvFile đã lưu để dựng lại đường dẫn trong UPLOAD_DIR,
+   * chặn path traversal; ném lỗi phân biệt để controller map status.
+   */
+  async getStoredCvFile(id: string): Promise<{ absolutePath: string; fileName: string }> {
+    const candidate = await db.candidate.findFirst({
+      where: { id, isdelete: false },
+      select: { cvFile: true },
+    });
+    if (!candidate) throw new Error("Candidate not found");
+
+    const stored = candidate.cvFile?.trim();
+    if (!stored) throw new Error("CV not found");
+
+    // cvFile có dạng `/uploads/cv-<ts>-<rand>.pdf` — chỉ lấy basename để dựng đường dẫn.
+    const fileName = path.basename(stored);
+    if (!fileName || fileName === "." || fileName === "..") throw new Error("CV not found");
+
+    const absolutePath = path.join(UPLOAD_DIR, fileName);
+    if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+      throw new Error("CV file missing");
+    }
+    return { absolutePath, fileName };
   }
 
   async updateStatus(id: string, status: AdminCandidateStatus): Promise<AdminCandidateListItem> {

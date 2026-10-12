@@ -125,3 +125,46 @@ export async function apiRequest<T>(
 export function resetAuthExpiryState() {
   resetAuthExpiryNotification();
 }
+
+/**
+ * Like `apiRequest` but returns a raw Blob for binary responses (CV/PDF files).
+ * Reuses the same Bearer token + cookie credentials and one-shot 401 refresh.
+ */
+export async function apiRequestBlob(
+  input: string,
+  init: AuthenticatedRequestInit = {},
+): Promise<Blob> {
+  const { authenticated = true, retryOnAuthFailure = true, ...requestInit } = init;
+  const token = authenticated ? getApiToken() : null;
+  const headers = new Headers(requestInit.headers);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const response = await fetch(input, {
+    ...requestInit,
+    headers,
+    credentials: "include",
+  });
+
+  if (response.status === 401 && authenticated && retryOnAuthFailure) {
+    const refreshedToken = await refreshAccessToken();
+    if (refreshedToken) {
+      return apiRequestBlob(input, { ...init, retryOnAuthFailure: false });
+    }
+    handleAuthFailure();
+  } else if (response.ok && authenticated) {
+    resetAuthExpiryNotification();
+  }
+
+  if (!response.ok) {
+    let message = `Request failed with status ${response.status}`;
+    try {
+      const body = (await response.json()) as ApiResponse<unknown>;
+      if (body?.error) message = body.error;
+    } catch {
+      // body không phải JSON — giữ message mặc định
+    }
+    throw new ApiError(message, response.status);
+  }
+
+  return response.blob();
+}
