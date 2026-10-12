@@ -24,6 +24,7 @@ const dict = {
   "nav.contact": { vi: "Liên hệ", en: "Contact" },
   "admin.nav.news": { vi: "Tin tức", en: "News" },
   "admin.nav.users": { vi: "Người dùng", en: "Users" },
+  "admin.nav.contacts": { vi: "Liên hệ", en: "Contacts" },
   "nav.admin": { vi: "Bảng điều khiển", en: "Dashboard" },
   "nav.apply": { vi: "Ứng tuyển ngay", en: "Apply now" },
   "brand.name": { vi: "TalentHub", en: "TalentHub" },
@@ -307,6 +308,15 @@ const dict = {
   "admin.users.meta.ogDescription": {
     vi: "Tài khoản truy cập khu vực quản trị và nhóm quyền tương ứng.",
     en: "Console accounts and their permission groups.",
+  },
+  "admin.contacts.meta.title": { vi: "Liên hệ", en: "Contacts" },
+  "admin.contacts.meta.description": {
+    vi: "Xem lại các tin nhắn gửi từ biểu mẫu liên hệ trên website.",
+    en: "Review messages submitted through the website contact form.",
+  },
+  "admin.contacts.meta.ogDescription": {
+    vi: "Tin nhắn gửi từ biểu mẫu liên hệ trên website.",
+    en: "Messages submitted through the website contact form.",
   },
   "admin.candidates.meta.title": { vi: "Ứng viên", en: "Candidates" },
   "admin.candidates.meta.description": {

@@ -7,7 +7,8 @@ export type AdminSection =
   | "forms"
   | "taxonomies"
   | "settings"
-  | "users";
+  | "users"
+  | "contacts";
 
 export type UserRole = "admin" | "mod";
 
@@ -22,6 +23,7 @@ export const allSections: AdminSection[] = [
   "taxonomies",
   "settings",
   "users",
+  "contacts",
 ];
 
 export function sectionsFor(role: UserRole): AdminSection[] {
@@ -45,6 +47,7 @@ export function sectionForPath(pathname: string): AdminSection {
     taxonomies: "taxonomies",
     settings: "settings",
     users: "users",
+    contacts: "contacts",
   };
   return map[slug] ?? "overview";
 }
