@@ -91,7 +91,7 @@ function mapCandidate(candidate: {
   email: string;
   phone: string;
   address: string | null;
-  jobId: string;
+  jobId: string | null;
   status: AdminCandidateStatus;
   rating: number | null;
   appliedAt: Date;
@@ -159,6 +159,8 @@ export class AdminCandidateService {
     const where: Record<string, unknown> = { isdelete: false };
 
     if (query.jobId?.trim()) where.jobId = query.jobId.trim();
+    else if (query.open) where.jobId = null;
+    else where.jobId = { not: null };
     if (query.experienceId?.trim()) where.experienceId = query.experienceId.trim();
     if (query.status && candidateStatuses.includes(query.status)) where.status = query.status;
     if (query.search?.trim()) {
@@ -247,11 +249,13 @@ export class AdminCandidateService {
       throw new Error(`Invalid status: ${payload.status}`);
     }
 
-    const job = await db.job.findFirst({
-      where: { id: payload.jobId },
-      select: { id: true },
-    });
-    if (!job) throw new Error(`Invalid jobId: ${payload.jobId}`);
+    const job = payload.jobId
+      ? await db.job.findFirst({
+          where: { id: payload.jobId },
+          select: { id: true },
+        })
+      : null;
+    if (payload.jobId && !job) throw new Error(`Invalid jobId: ${payload.jobId}`);
 
     // Notes hiện có trong DB — dùng để nhận diện note cũ vs note mới.
     const current = await db.candidate.findFirst({
@@ -289,6 +293,28 @@ export class AdminCandidateService {
     });
 
     return mapCandidate(updated);
+  }
+
+  /** Gán hồ sơ tự do vào một tin tuyển dụng (jobId thật từ DB). */
+  async assignJob(id: string, jobId: string): Promise<AdminCandidateListItem> {
+    const job = await db.job.findFirst({ where: { id: jobId }, select: { id: true } });
+    if (!job) throw new Error(`Invalid jobId: ${jobId}`);
+
+    const updated = await db.candidate.update({
+      where: { id, isdelete: false },
+      data: { jobId },
+      include: {
+        job: { select: { title: true } },
+        experienceTaxonomy: { select: { name: true, type: true } },
+      },
+    });
+
+    return mapCandidate(updated);
+  }
+
+  /** Xoá mềm hồ sơ tự do. */
+  async softDelete(id: string): Promise<void> {
+    await db.candidate.update({ where: { id, isdelete: false }, data: { isdelete: true } });
   }
 }
 

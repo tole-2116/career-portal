@@ -130,7 +130,7 @@ model Contact {
 model Candidate {
   id              String         @id @default(uuid())
   code            String         @unique @db.VarChar(100)
-  jobId           String
+  jobId           String?
   candidateUserId String?
   name            String         @db.VarChar(255)
   email           String         @db.VarChar(255)
@@ -152,7 +152,7 @@ model Candidate {
   usercreate_at   String?        @db.VarChar(255)
   userupdated_at  String?        @db.VarChar(255)
   isdelete        Boolean        @default(false)
-  job             Job            @relation(fields: [jobId], references: [id])
+  job             Job?           @relation(fields: [jobId], references: [id])
   candidateUser   User?          @relation(fields: [candidateUserId], references: [id])
   experienceTaxonomy Taxonomy?   @relation("CandidateExperience", fields: [experienceId], references: [id])
 

@@ -13,6 +13,8 @@ export interface AdminCandidateFilterQuery {
   jobId?: string;
   experienceId?: string;
   search?: string;
+  /** Lọc hồ sơ tự do (Candidate không gắn tin — jobId null). */
+  open?: boolean;
 }
 
 export interface AdminCandidateLocalizedText {
@@ -33,7 +35,7 @@ export interface AdminCandidateListItem {
   email: string;
   phone: string;
   address: string | null;
-  jobId: string;
+  jobId: string | null;
   jobTitle: AdminCandidateLocalizedText;
   status: AdminCandidateStatus;
   rating: number;
@@ -65,7 +67,7 @@ export interface AdminCandidateUpdatePayload {
   phone: string;
   address?: string;
   cvFile: string;
-  jobId: string;
+  jobId: string | null;
   status: AdminCandidateStatus;
   notes: AdminCandidateNote[];
 }

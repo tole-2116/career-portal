@@ -9,9 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/lib/i18n";
-import { useInbox } from "@/lib/inbox-store";
 import { useSiteConfig } from "@/lib/site-config";
 import { createRouteMeta } from "@/lib/route-meta";
+import { submitOpenApplication } from "@/services/apply.api";
 
 export const Route = createFileRoute("/apply")({
   head: createRouteMeta({
@@ -26,7 +26,6 @@ const MAX_SIZE = 5 * 1024 * 1024;
 
 function OpenApplyPage() {
   const { t, tr } = useI18n();
-  const { addOpenApplication } = useInbox();
   const { config } = useSiteConfig();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -39,6 +38,7 @@ function OpenApplyPage() {
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function acceptFile(next: File) {
     const lower = next.name.toLowerCase();
@@ -99,15 +99,23 @@ function OpenApplyPage() {
               setFileError(t("apply.cv.required"));
               return;
             }
-            addOpenApplication({
+            if (isSubmitting) return;
+            setIsSubmitting(true);
+            void submitOpenApplication({
               name: form.name,
               email: form.email,
               phone: form.phone,
               note: form.note,
-              fileName: file.name,
-            });
-            setSubmitted(true);
-            toast.success(tr({ vi: "Đã gửi hồ sơ tự do.", en: "Open application sent." }));
+              cv: file,
+            })
+              .then(() => {
+                setSubmitted(true);
+                toast.success(tr({ vi: "Đã gửi hồ sơ tự do.", en: "Open application sent." }));
+              })
+              .catch((error) => {
+                toast.error(error instanceof Error ? error.message : String(error));
+              })
+              .finally(() => setIsSubmitting(false));
           }}
         >
           <div className="grid gap-5 sm:grid-cols-2">

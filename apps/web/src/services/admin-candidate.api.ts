@@ -36,7 +36,7 @@ interface ApiCandidate {
   email: string;
   phone: string;
   address: string | null;
-  jobId: string;
+  jobId: string | null;
   jobTitle: ApiLocalizedText;
   status: ApiCandidateStatus;
   rating: number;
@@ -141,7 +141,7 @@ export interface CandidateUpdatePayload {
   phone: string;
   address?: string;
   cvFile: string;
-  jobId: string;
+  jobId: string | null;
   status: Stage;
   notes: CandidateNote[];
 }
@@ -185,6 +185,43 @@ async function getCandidates(params: CandidateListParams = {}): Promise<Candidat
   };
 }
 
+/** GET /api/admin/candidates/open — hồ sơ tự do (Candidate chưa gắn tin). */
+async function getOpenApplications(params: CandidateListParams = {}): Promise<CandidateListResult> {
+  const query = new URLSearchParams();
+  if (params.page) query.set("page", String(params.page));
+  if (params.pageSize) query.set("limit", String(params.pageSize));
+  if (params.search) query.set("search", params.search);
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const result = await request<{
+    candidates: ApiCandidate[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>(`${API_BASE}/open${suffix}`);
+
+  return {
+    candidates: (result?.candidates ?? []).map(mapApiCandidate),
+    total: result?.total ?? 0,
+    page: result?.page ?? 1,
+    totalPages: result?.totalPages ?? 1,
+  };
+}
+
+/** PATCH /api/admin/candidates/:id/job — gán hồ sơ tự do vào một tin tuyển dụng. */
+async function assignOpenApplication(id: string, jobId: string): Promise<Candidate> {
+  const raw = await request<ApiCandidate>(`${API_BASE}/${encodeURIComponent(id)}/job`, {
+    method: "PATCH",
+    body: JSON.stringify({ jobId }),
+  });
+  return mapApiCandidate(raw);
+}
+
+/** DELETE /api/admin/candidates/:id — xoá mềm hồ sơ tự do. */
+async function deleteOpenApplication(id: string): Promise<void> {
+  await request<{ id: string }>(`${API_BASE}/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
 /** PATCH /api/admin/candidates/:id/status — lưu giai đoạn tuyển dụng. */
 async function updateStatus(id: string, status: Stage): Promise<Candidate> {
   const raw = await request<ApiCandidate>(`${API_BASE}/${encodeURIComponent(id)}/status`, {
@@ -214,6 +251,9 @@ async function getCvBlob(id: string): Promise<Blob> {
 export const adminCandidateApi = {
   getCandidates,
   getExperienceTaxonomies,
+  getOpenApplications,
+  assignOpenApplication,
+  deleteOpenApplication,
   getCvBlob,
   updateStatus,
   updateCandidate,

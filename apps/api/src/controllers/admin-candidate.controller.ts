@@ -33,6 +33,9 @@ export class AdminCandidateController {
     this.streamCv = this.streamCv.bind(this);
     this.updateStatus = this.updateStatus.bind(this);
     this.update = this.update.bind(this);
+    this.getOpen = this.getOpen.bind(this);
+    this.assignJob = this.assignJob.bind(this);
+    this.remove = this.remove.bind(this);
   }
 
   /** GET /api/admin/candidates/:id/cv — stream file CV để admin xem/tải trong viewer. */
@@ -179,7 +182,12 @@ export class AdminCandidateController {
           : "__invalid__";
       const cvFile = typeof payload.cvFile === "string" ? payload.cvFile.trim() : "";
       const notes = payload.notes;
-      const jobId = typeof payload.jobId === "string" ? payload.jobId.trim() : "";
+      // jobId có thể null với hồ sơ tự do; chỉ bắt buộc khi ứng viên đã gắn tin.
+      const jobId = payload.jobId === null || payload.jobId === undefined
+        ? null
+        : typeof payload.jobId === "string"
+          ? payload.jobId.trim() || null
+          : "__invalid__";
       const status = payload.status;
 
       const missing: string[] = [];
@@ -187,7 +195,6 @@ export class AdminCandidateController {
       if (!email) missing.push("email");
       if (!phone) missing.push("phone");
       if (!cvFile) missing.push("cvFile");
-      if (!jobId) missing.push("jobId");
       if (!status) missing.push("status");
       if (!Array.isArray(notes)) {
         return res.status(400).json({ success: false, error: "notes must be an array" });
@@ -226,6 +233,12 @@ export class AdminCandidateController {
           error: "address must be a string or null",
         });
       }
+      if (jobId === "__invalid__") {
+        return res.status(400).json({
+          success: false,
+          error: "jobId must be a string or null",
+        });
+      }
       if (address && address.length > 500) {
         return res.status(400).json({
           success: false,
@@ -261,6 +274,85 @@ export class AdminCandidateController {
         return res.status(404).json({ success: false, error: "Candidate not found" });
       }
       console.error("PUT /api/admin/candidates/:id error:", error);
+      return res.status(500).json({ success: false, error: message });
+    }
+  }
+
+  /** GET /api/admin/candidates/open — danh sách hồ sơ tự do (chưa gắn tin). */
+  async getOpen(req: Request, res: Response) {
+    try {
+      const query: AdminCandidateFilterQuery = {
+        page: parsePositiveInteger(req.query.page, "page"),
+        limit: parsePositiveInteger(req.query.limit, "limit"),
+        search: req.query.search as string | undefined,
+        open: true,
+      };
+      const result = await adminCandidateService.findMany(query);
+
+      return res.json({
+        success: true,
+        data: result,
+        meta: {
+          page: result.page,
+          totalPages: result.totalPages,
+          total: result.total,
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to fetch open applications";
+      if (message.includes("must be a positive integer")) {
+        return res.status(400).json({ success: false, error: message });
+      }
+      console.error("GET /api/admin/candidates/open error:", error);
+      return res.status(500).json({ success: false, error: message });
+    }
+  }
+
+  /** PATCH /api/admin/candidates/:id/job — gán hồ sơ tự do vào một tin tuyển dụng. */
+  async assignJob(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const payload = req.body as { jobId?: unknown } | undefined;
+      const jobId = typeof payload?.jobId === "string" ? payload.jobId.trim() : "";
+
+      if (!id) {
+        return res.status(400).json({ success: false, error: "Missing candidate id" });
+      }
+      if (!jobId) {
+        return res.status(400).json({ success: false, error: "Missing jobId" });
+      }
+
+      const candidate = await adminCandidateService.assignJob(id, jobId);
+      return res.json({ success: true, data: candidate });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to assign candidate";
+      if (message.startsWith("Invalid jobId:")) {
+        return res.status(400).json({ success: false, error: message });
+      }
+      if (message.includes("No record was found")) {
+        return res.status(404).json({ success: false, error: "Candidate not found" });
+      }
+      console.error("PATCH /api/admin/candidates/:id/job error:", error);
+      return res.status(500).json({ success: false, error: message });
+    }
+  }
+
+  /** DELETE /api/admin/candidates/:id — xoá mềm hồ sơ. */
+  async remove(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        return res.status(400).json({ success: false, error: "Missing candidate id" });
+      }
+
+      await adminCandidateService.softDelete(id);
+      return res.json({ success: true, data: { id } });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete candidate";
+      if (message.includes("No record was found")) {
+        return res.status(404).json({ success: false, error: "Candidate not found" });
+      }
+      console.error("DELETE /api/admin/candidates/:id error:", error);
       return res.status(500).json({ success: false, error: message });
     }
   }

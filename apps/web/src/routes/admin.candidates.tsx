@@ -55,7 +55,7 @@ import {
   type Stage,
 } from "@/data/candidates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getJob } from "@/data/jobs";
+import { getJob, type Job } from "@/data/jobs";
 import { fetchJobs } from "@/lib/api/jobs";
 import { useI18n } from "@/lib/i18n";
 import { adminCandidateApi } from "@/services/admin-candidate.api";
@@ -63,8 +63,6 @@ import { createRouteMeta } from "@/lib/route-meta";
 
 const PAGE_SIZE = 10;
 
-import { useInbox } from "@/lib/inbox-store";
-import { useJobs } from "@/lib/jobs-store";
 import type { TaxonomyItem } from "@/lib/taxonomy-store";
 import { cn } from "@/lib/utils";
 import { requireAdminSession } from "@/lib/admin-route-guard";
@@ -110,12 +108,26 @@ function Rating({ value }: { value: number }) {
   );
 }
 
-function OpenApplicationsPanel() {
-  const { tr } = useI18n();
-  const { openApplications, assignApplication, deleteOpenApplication } = useInbox();
-  const { jobs: liveJobs } = useJobs();
+function OpenApplicationsPanel({
+  items,
+  isLoading,
+  jobs,
+  onAssign,
+  onDelete,
+  onViewCv,
+  onDownloadCv,
+}: {
+  items: Candidate[];
+  isLoading: boolean;
+  jobs: Job[];
+  onAssign: (id: string, jobId: string) => void;
+  onDelete: (id: string) => void;
+  onViewCv: (candidate: Candidate) => void;
+  onDownloadCv: (candidate: Candidate) => void;
+}) {
+  const { t, tr } = useI18n();
 
-  if (openApplications.length === 0) {
+  if (!isLoading && items.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
         {tr({ vi: "Chưa có hồ sơ tự do nào.", en: "No open applications yet." })}
@@ -125,67 +137,85 @@ function OpenApplicationsPanel() {
 
   return (
     <div className="grid gap-3">
-      {openApplications.map((item) => (
-        <div key={item.id} className="rounded-lg border border-border bg-card p-4">
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-medium">{item.name}</p>
-                <Badge variant="secondary">{tr({ vi: "Hồ sơ tự do", en: "Open" })}</Badge>
-                {item.assignedJobId && (
-                  <Badge variant="outline">
-                    {tr(getJob(item.assignedJobId)?.title ?? { vi: "Đã gán", en: "Assigned" })}
-                  </Badge>
-                )}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {item.email}
-                {item.phone ? ` · ${item.phone}` : ""} · {item.createdAt}
-              </p>
-              {item.fileName && (
-                <p className="mt-2 flex items-center gap-2 text-sm">
-                  <FileText className="h-4 w-4 shrink-0 text-accent" /> {item.fileName}
+      {items.map((item) => {
+        const noteBody = item.notes[0]?.body;
+        return (
+          <div key={item.id} className="rounded-lg border border-border bg-card p-4">
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium">{item.name}</p>
+                  <Badge variant="secondary">{tr({ vi: "Hồ sơ tự do", en: "Open" })}</Badge>
+                  {item.jobId && (
+                    <Badge variant="outline">
+                      {tr(item.jobTitle ?? getJob(item.jobId)?.title ?? { vi: "Đã gán", en: "Assigned" })}
+                    </Badge>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {item.email}
+                  {item.phone ? ` · ${item.phone}` : ""} · {item.appliedAt}
                 </p>
-              )}
-              {item.note && <p className="mt-2 text-sm text-muted-foreground">{item.note}</p>}
-            </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <Select
-                value={item.assignedJobId ?? ""}
-                onValueChange={(value) => {
-                  assignApplication(item.id, value);
-                  toast.success(tr({ vi: "Đã gán vào tin", en: "Assigned to job" }));
-                }}
-              >
-                <SelectTrigger className="w-56 bg-card">
-                  <SelectValue placeholder={tr({ vi: "Gán vào tin", en: "Assign to job" })} />
-                </SelectTrigger>
-                <SelectContent>
-                  {liveJobs.map((job) => (
-                    <SelectItem key={job.id} value={job.id}>
-                      {tr(job.title)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => deleteOpenApplication(item.id)}
-              >
-                {tr({ vi: "Xóa", en: "Delete" })}
-              </Button>
+                {item.cvFile && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 max-w-full px-2"
+                      onClick={() => onViewCv(item)}
+                    >
+                      <FileText className="mr-1 h-3.5 w-3.5 shrink-0 text-accent" />
+                      <span className="truncate">{item.cvFile.split("/").pop()}</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      title={t("common.download") || "Tải xuống"}
+                      onClick={() => onDownloadCv(item)}
+                    >
+                      <Download className="h-4 w-4" />
+                      <span className="sr-only">{t("common.download") || "Tải xuống"}</span>
+                    </Button>
+                  </div>
+                )}
+                {noteBody && <p className="mt-2 text-sm text-muted-foreground">{tr(noteBody)}</p>}
+              </div>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <Select
+                  value={item.jobId ?? ""}
+                  onValueChange={(value) => {
+                    onAssign(item.id, value);
+                    toast.success(tr({ vi: "Đã gán vào tin", en: "Assigned to job" }));
+                  }}
+                >
+                  <SelectTrigger className="w-56 bg-card">
+                    <SelectValue placeholder={tr({ vi: "Gán vào tin", en: "Assign to job" })} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {jobs.map((job) => (
+                      <SelectItem key={job.id} value={job.id}>
+                        {tr(job.title)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" onClick={() => onDelete(item.id)}>
+                  {tr({ vi: "Xóa", en: "Delete" })}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
 function AdminCandidatesPage() {
   const { t, tr } = useI18n();
-  const { openApplications } = useInbox();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [filterJobs, setFilterJobs] = useState<import("@/data/jobs").Job[]>([]);
   const [filterExperiences, setFilterExperiences] = useState<TaxonomyItem[]>([]);
@@ -329,6 +359,50 @@ function AdminCandidatesPage() {
     setPage(1);
   }, [keyword, jobFilter, experienceFilter, stageFilter]);
 
+  const [openApplications, setOpenApplications] = useState<Candidate[]>([]);
+  const [isOpenLoading, setIsOpenLoading] = useState(false);
+  const [openReloadToken, setOpenReloadToken] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsOpenLoading(true);
+    adminCandidateApi
+      .getOpenApplications({ pageSize: 100 })
+      .then((result) => {
+        if (!cancelled) setOpenApplications(result.candidates);
+      })
+      .catch((error) => {
+        if (!cancelled)
+          toast.error(error instanceof Error ? error.message : t("settings.storageNote"));
+      })
+      .finally(() => {
+        if (!cancelled) setIsOpenLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [openReloadToken, t]);
+
+  const reloadOpenApplications = () => setOpenReloadToken((prev) => prev + 1);
+
+  async function handleAssignOpen(id: string, jobId: string) {
+    try {
+      await adminCandidateApi.assignOpenApplication(id, jobId);
+      reloadOpenApplications();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("settings.storageNote"));
+    }
+  }
+
+  async function handleDeleteOpen(id: string) {
+    try {
+      await adminCandidateApi.deleteOpenApplication(id);
+      reloadOpenApplications();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("settings.storageNote"));
+    }
+  }
+
   const selected = candidates.find((c) => c.id === selectedId) ?? null;
   const handleRowClick = (candidate: Candidate) => {
     setSelectedId(candidate.id);
@@ -384,7 +458,15 @@ function AdminCandidatesPage() {
           </TabsList>
         </div>
         <TabsContent value="open" className="mt-5 min-h-0 flex-1 overflow-auto">
-          <OpenApplicationsPanel />
+          <OpenApplicationsPanel
+            items={openApplications}
+            isLoading={isOpenLoading}
+            jobs={filterJobs}
+            onAssign={handleAssignOpen}
+            onDelete={handleDeleteOpen}
+            onViewCv={(candidate) => void openCvPreview(candidate)}
+            onDownloadCv={(candidate) => void downloadCv(candidate)}
+          />
         </TabsContent>
         <TabsContent value="applicants" className="flex min-h-0 flex-1 flex-col space-y-3.5 overflow-hidden">
       <div className="grid shrink-0 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
@@ -510,7 +592,7 @@ function AdminCandidatesPage() {
               )}
               {!isLoading &&
                 candidates.map((candidate, index) => {
-                  const job = getJob(candidate.jobId);
+                  const job = candidate.jobId ? getJob(candidate.jobId) : undefined;
                   const jobTitle = candidate.jobTitle ?? job?.title;
                   return (
                     <TableRow
@@ -663,7 +745,7 @@ function AdminCandidatesPage() {
 
       <div className="mt-5 grid gap-3 md:hidden">
             {candidates.map((candidate) => {
-              const job = getJob(candidate.jobId);
+              const job = candidate.jobId ? getJob(candidate.jobId) : undefined;
               const jobTitle = candidate.jobTitle ?? job?.title;
               return (
                 <button

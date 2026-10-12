@@ -8,7 +8,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import path from "node:path";
 import { db } from "@career-portal/database";
-import { ApplyJobSchema, ContactSchema } from "@career-portal/types";
+import { ApplyJobSchema, ContactSchema, OpenApplicationSchema } from "@career-portal/types";
 import { adminJobsRoutes } from "./routes/admin-jobs.routes";
 import { adminCandidateRoutes } from "./routes/admin-candidates.routes";
 import { adminUserRoutes } from "./routes/admin-users.routes";
@@ -138,6 +138,70 @@ app.post("/api/jobs/:jobId/apply", applyCvUpload, async (req, res) => {
   } catch (error) {
     console.error("POST apply error:", error);
     return res.status(500).json({ error: "Failed to submit application" });
+  }
+});
+
+// API: Gửi hồ sơ tự do (mở) — lưu ứng viên chưa gắn tin vào Candidate (jobId null).
+app.post("/api/open-applications", applyCvUpload, async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: "CV file is required" });
+    }
+
+    const validation = OpenApplicationSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ errors: validation.error.format() });
+    }
+
+    const { name, email, phone, note } = validation.data;
+
+    const emailDuplicate = await db.candidate.findFirst({
+      where: { email },
+      select: { id: true },
+    });
+
+    if (emailDuplicate) {
+      return res.status(409).json({
+        success: false,
+        error: "Email is already in use",
+        field: "email",
+      });
+    }
+
+    if (phone) {
+      const phoneDuplicate = await db.candidate.findFirst({
+        where: { phone },
+        select: { id: true },
+      });
+
+      if (phoneDuplicate) {
+        return res.status(409).json({
+          success: false,
+          error: "Phone number is already in use",
+          field: "phone",
+        });
+      }
+    }
+
+    const trimmedNote = note?.trim() ?? "";
+    const candidate = await db.candidate.create({
+      data: {
+        code: `OPEN-${Date.now()}`,
+        jobId: null,
+        name,
+        email,
+        phone: phone ?? "",
+        cvFile: `/uploads/${req.file.filename}`,
+        notes: trimmedNote ? [{ author: "", at: "", body: { vi: trimmedNote, en: trimmedNote } }] : [],
+        status: "NEW",
+        usercreate_at: "candidate_open",
+      },
+    });
+
+    return res.status(201).json({ success: true, data: { id: candidate.id, code: candidate.code } });
+  } catch (error) {
+    console.error("POST /api/open-applications error:", error);
+    return res.status(500).json({ success: false, error: "Failed to submit open application" });
   }
 });
 

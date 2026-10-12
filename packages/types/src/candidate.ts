@@ -11,3 +11,12 @@ export const ApplyJobSchema = z.object({
 });
 
 export type ApplyJobInput = z.infer<typeof ApplyJobSchema>;
+
+export const OpenApplicationSchema = z.object({
+  name: z.string().min(2, "Tên ứng viên quá ngắn"),
+  email: z.string().email("Email không đúng định dạng"),
+  phone: z.string().min(8, "Số điện thoại không hợp lệ").optional().or(z.literal("")),
+  note: z.string().max(1000, "Ghi chú quá dài").optional(),
+});
+
+export type OpenApplicationInput = z.infer<typeof OpenApplicationSchema>;
