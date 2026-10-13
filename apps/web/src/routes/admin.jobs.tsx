@@ -1,11 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Check,
-  X,
   FileText,
   Loader2,
   Pencil,
@@ -13,10 +8,12 @@ import {
   Search,
   Sparkles,
   Trash2,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { AdminDataTable, type AdminColumn } from "@/components/admin/AdminDataTable";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
   LocalizedField as BiField,
@@ -42,14 +39,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import type { Job, JobStatus } from "@/data/jobs";
 import { useI18n, type Localized } from "@/lib/i18n";
 
@@ -323,6 +312,61 @@ function AdminJobsPage() {
     }
   };
 
+  const columns: AdminColumn<Job>[] = [
+    { header: t("admin.jobs.col.title"), cell: (job) => <span className="font-medium">{tr(job.title)}</span> },
+    { header: t("admin.jobs.col.department"), className: "text-muted-foreground", cell: (job) => tr(job.department) },
+    {
+      header: t("admin.jobs.col.location"),
+      className: "text-muted-foreground",
+      cell: (job) => (
+        <div className="flex flex-wrap gap-1">
+          {job.locations.length > 0 ? (
+            job.locations.map((loc, index) => (
+              <Badge key={`${job.id}-loc-${index}`} variant="secondary" className="text-xs">
+                {tr(loc)}
+              </Badge>
+            ))
+          ) : (
+            <span className="text-sm">—</span>
+          )}
+        </div>
+      ),
+    },
+    { header: t("admin.jobs.col.applicants"), className: "text-right tabular-nums", cell: (job) => job.applicants },
+    { header: t("admin.jobs.col.deadline"), className: "text-muted-foreground", cell: (job) => job.deadline },
+    { header: t("admin.jobs.col.featured"), cell: (job) => job.featured && <Sparkles className="h-4 w-4 text-accent" /> },
+    { header: t("admin.jobs.col.status"), cell: (job) => <Badge variant={statusVariant[job.status]}>{tr(statusLabels[job.status])}</Badge> },
+    {
+      header: tr({ vi: "Hành động", en: "Actions" }),
+      className: "w-[100px] text-center",
+      cell: (job) => (
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label={t("admin.jobs.edit")}
+            onClick={() => {
+              setDraft(structuredClone(job));
+              setIsNew(false);
+            }}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
+            aria-label={t("admin.jobs.delete")}
+            onClick={() => removeJob(job.id)}
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </>
+      ),
+    },
+  ];
+
   return (
     <AdminLayout
       title={t("admin.jobs.title")}
@@ -342,9 +386,9 @@ function AdminJobsPage() {
         </div>
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-card px-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-hidden">
+      <div className="grid shrink-0 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="flex min-w-0 items-center gap-2 rounded-md border border-input bg-card px-3">
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <Input
             value={keyword}
@@ -354,7 +398,7 @@ function AdminJobsPage() {
           />
         </div>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="w-full bg-card sm:w-48" aria-label={t("admin.jobs.col.status")}>
+          <SelectTrigger className="bg-card" aria-label={t("admin.jobs.col.status")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -370,187 +414,19 @@ function AdminJobsPage() {
         </Select>
       </div>
 
-      <div className="mt-5 hidden min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
-        <div className="shrink-0 overflow-hidden rounded-t-xl border-b-2 border-border/80 bg-muted/60 backdrop-blur-sm">
-          <Table className="table-fixed w-full">
-          <TableHeader className="bg-transparent">
-            <TableRow className="h-10 border-none hover:bg-transparent">
-              <TableHead className="w-[60px] text-center text-xs font-semibold text-foreground/80 select-none"></TableHead>
-              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.title")}</TableHead>
-              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.department")}</TableHead>
-              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.location")}</TableHead>
-              <TableHead className="text-right text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.applicants")}</TableHead>
-              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.deadline")}</TableHead>
-              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.featured")}</TableHead>
-              <TableHead className="text-xs font-semibold text-foreground/80 select-none">{t("admin.jobs.col.status")}</TableHead>
-              <TableHead className="pr-4 text-xs font-semibold text-foreground/80 select-none" />
-            </TableRow>
-          </TableHeader>
-          </Table>
-        </div>
-
-        <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden [&>div]:overflow-visible [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
-          <Table className="table-fixed w-full">
-          <TableBody>
-            {isLoading && (
-              <TableRow>
-                <TableCell colSpan={9} className="p-2 text-center text-sm text-muted-foreground">
-                  <Loader2 className="mx-auto h-5 w-5 animate-spin" />
-                </TableCell>
-              </TableRow>
-            )}
-            {!isLoading && rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={9} className="p-2 text-center text-sm text-muted-foreground">
-                  {tr({ vi: "Chưa có tin tuyển dụng nào", en: "No job postings yet" })}
-                </TableCell>
-              </TableRow>
-            )}
-            {!isLoading && rows.map((job, index) => (
-              <TableRow key={job.id} className="h-[52px]">
-                <TableCell className="w-[60px] text-center tabular-nums text-muted-foreground">
-                  {(page - 1) * PAGE_SIZE + index + 1}
-                </TableCell>
-                <TableCell className="font-medium">{tr(job.title)}</TableCell>
-                <TableCell className="text-muted-foreground">{tr(job.department)}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  <div className="flex flex-wrap gap-1">
-                    {job.locations.length > 0 ? (
-                      job.locations.map((loc, index) => (
-                        <Badge key={`${job.id}-loc-${index}`} variant="secondary" className="text-xs">
-                          {tr(loc)}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-sm">—</span>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right tabular-nums">{job.applicants}</TableCell>
-                <TableCell className="text-muted-foreground">{job.deadline}</TableCell>
-                <TableCell>
-                  {job.featured && <Sparkles className="h-4 w-4 text-accent" />}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={statusVariant[job.status]}>{tr(statusLabels[job.status])}</Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={t("admin.jobs.edit")}
-                    onClick={() => {
-                      setDraft(structuredClone(job));
-                      setIsNew(false);
-                    }}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={t("admin.jobs.delete")}
-                    onClick={() => {
-                      removeJob(job.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-          </Table>
-        </div>
-
-        <div className="h-10 min-h-10 shrink-0 border-t border-border/70 bg-muted/30 px-4 py-0 flex items-center justify-between gap-3 select-none">
-          {/* Phía trái: Đếm số dòng */}
-          <div className="text-xs text-muted-foreground">
-            {totalCount > 0 ? (
-              <>
-                {t("admin.jobs.footer.showing") || "Đang hiển thị"}{" "}
-                <strong className="font-semibold text-foreground">
-                  {(page - 1) * PAGE_SIZE + 1}
-                </strong>{" "}
-                -{" "}
-                <strong className="font-semibold text-foreground">
-                  {Math.min(page * PAGE_SIZE, totalCount)}
-                </strong>{" "}
-                {t("admin.jobs.footer.of") || "trên tổng số"}{" "}
-                <strong className="font-semibold text-foreground">{totalCount}</strong>{" "}
-                {t("admin.jobs.footer.records") || "dòng"}
-              </>
-            ) : (
-              <span>{t("admin.jobs.footer.noRecords") || "Không có bản ghi nào"}</span>
-            )}
-          </div>
-
-          {/* Phía phải: Cụm 4 nút chuyển trang */}
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground">
-              {t("admin.jobs.footer.page") || "Trang"}{" "}
-              <strong className="font-semibold text-foreground">{page}</strong> / {totalPages || 1}
-            </span>
-
-            <div className="flex items-center gap-1">
-              {/* Về đầu */}
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 rounded-md border-border/70"
-                onClick={() => setPage(1)}
-                disabled={page <= 1 || isLoading}
-                title={t("admin.jobs.footer.firstPage") || "Trang đầu"}
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </Button>
-
-              {/* Lùi 1 trang */}
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 rounded-md border-border/70"
-                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                disabled={page <= 1 || isLoading}
-                title={t("admin.jobs.footer.prevPage") || "Trang trước"}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-
-              {/* Tiến 1 trang */}
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 rounded-md border-border/70"
-                onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-                disabled={page >= totalPages || isLoading}
-                title={t("admin.jobs.footer.nextPage") || "Trang sau"}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-
-              {/* Đến cuối */}
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 rounded-md border-border/70"
-                onClick={() => setPage(totalPages)}
-                disabled={page >= totalPages || isLoading}
-                title={t("admin.jobs.footer.lastPage") || "Trang cuối"}
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-5 grid shrink-0 gap-3 md:hidden">
-        {rows.map((job) => (
+      <AdminDataTable
+        columns={columns}
+        rows={rows}
+        loading={isLoading}
+        emptyMessage={tr({ vi: "Chưa có tin tuyển dụng nào", en: "No job postings yet" })}
+        rowClassName="h-[52px]"
+        rowKey={(job) => job.id}
+        page={page}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+        renderCard={(job) => (
           <div key={job.id} className="rounded-lg border border-border bg-card p-4">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
               <div className="min-w-0">
@@ -590,8 +466,8 @@ function AdminJobsPage() {
               </div>
             </div>
           </div>
-        ))}
-      </div>
+        )}
+      />
       </div>
 
       <Dialog

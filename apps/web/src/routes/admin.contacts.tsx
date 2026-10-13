@@ -1,17 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Eye,
-  Loader2,
-  Search,
-  X,
-} from "lucide-react";
+import { Eye, Search, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { AdminDataTable, type AdminColumn } from "@/components/admin/AdminDataTable";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { requireAdminSession } from "@/lib/admin-route-guard";
 import { Button } from "@/components/ui/button";
@@ -26,14 +18,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useI18n } from "@/lib/i18n";
 import {
   fetchAdminContact,
@@ -56,7 +40,7 @@ export const Route = createFileRoute("/admin/contacts")({
 const PAGE_SIZE = 10;
 
 function AdminContactsPage() {
-  const { t, tr } = useI18n();
+  const { tr } = useI18n();
   const [contacts, setContacts] = useState<AdminContact[]>([]);
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
@@ -111,6 +95,31 @@ function AdminContactsPage() {
     return `${year}-${month}-${day}`;
   };
 
+  const columns: AdminColumn<AdminContact>[] = [
+    { header: tr({ vi: "Email", en: "Email" }), cell: (c) => <span className="block truncate font-medium">{c.email}</span> },
+    { header: tr({ vi: "Tên", en: "Name" }), className: "min-w-0 truncate", cell: (c) => c.name },
+    { header: tr({ vi: "Tiêu đề", en: "Subject" }), className: "min-w-0 truncate", cell: (c) => c.subject },
+    { header: tr({ vi: "Điện thoại", en: "Phone" }), className: "w-[140px] text-sm text-muted-foreground", cell: (c) => c.phone || "—" },
+    { header: tr({ vi: "Ngày tạo", en: "Created" }), className: "w-[130px] text-sm text-muted-foreground", cell: (c) => formatDate(c.createdAt) },
+    {
+      header: tr({ vi: "Hành động", en: "Actions" }),
+      className: "w-[100px] text-center",
+      cell: (c) => (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+          aria-label={tr({ vi: "Xem", en: "View" })}
+          title={tr({ vi: "Xem", en: "View" })}
+          onClick={() => void openView(c)}
+          disabled={isLoading}
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <AdminLayout
       title={tr({ vi: "Liên hệ", en: "Contacts" })}
@@ -128,73 +137,33 @@ function AdminContactsPage() {
             />
           </div>
         </div>
-        <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
-          <div className="shrink-0 overflow-hidden rounded-t-xl border-b-2 border-border/80 bg-muted/60 backdrop-blur-sm">
-            <Table className="table-fixed w-full">
-              <TableHeader className="bg-transparent">
-                <TableRow className="h-10 border-none hover:bg-transparent">
-                  <TableHead className="w-[60px] text-center text-xs font-semibold text-foreground/80 select-none">{tr({ vi: "STT", en: "No." })}</TableHead>
-                  <TableHead className="text-xs font-semibold text-foreground/80 select-none">{tr({ vi: "Email", en: "Email" })}</TableHead>
-                  <TableHead className="text-xs font-semibold text-foreground/80 select-none">{tr({ vi: "Tên", en: "Name" })}</TableHead>
-                  <TableHead className="text-xs font-semibold text-foreground/80 select-none">{tr({ vi: "Tiêu đề", en: "Subject" })}</TableHead>
-                  <TableHead className="w-[140px] text-xs font-semibold text-foreground/80 select-none">{tr({ vi: "Điện thoại", en: "Phone" })}</TableHead>
-                  <TableHead className="w-[130px] text-xs font-semibold text-foreground/80 select-none">{tr({ vi: "Ngày tạo", en: "Created" })}</TableHead>
-                  <TableHead className="w-[100px] pr-4 text-right text-xs font-semibold text-foreground/80 select-none">{tr({ vi: "Hành động", en: "Actions" })}</TableHead>
-                </TableRow>
-              </TableHeader>
-            </Table>
-          </div>
-          <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden [&>div]:overflow-visible [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
-            <Table className="table-fixed w-full">
-              <TableBody>
-                {isLoading && <TableRow><TableCell colSpan={7} className="p-2 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></TableCell></TableRow>}
-                {!isLoading && contacts.length === 0 && <TableRow><TableCell colSpan={7} className="p-2 text-center text-sm text-muted-foreground">{tr({ vi: "Không có liên hệ nào.", en: "No contacts found." })}</TableCell></TableRow>}
-                {!isLoading && contacts.map((contact, index) => <TableRow key={contact.id} className="hover:bg-muted/50 transition-colors">
-                  <TableCell className="w-[60px] text-center tabular-nums text-muted-foreground">{(page - 1) * PAGE_SIZE + index + 1}</TableCell>
-                  <TableCell className="min-w-0"><span className="block truncate font-medium">{contact.email}</span></TableCell>
-                  <TableCell className="min-w-0 truncate">{contact.name}</TableCell>
-                  <TableCell className="min-w-0 truncate">{contact.subject}</TableCell>
-                  <TableCell className="w-[140px] text-sm text-muted-foreground">{contact.phone || "—"}</TableCell>
-                  <TableCell className="w-[130px] text-sm text-muted-foreground">{formatDate(contact.createdAt)}</TableCell>
-                  <TableCell className="w-[100px] pr-4 text-right">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={tr({ vi: "Xem", en: "View" })} title={tr({ vi: "Xem", en: "View" })} onClick={() => void openView(contact)} disabled={isLoading}><Eye className="h-4 w-4" /></Button>
-                  </TableCell>
-                </TableRow>)}
-              </TableBody>
-            </Table>
-          </div>
-          <div className="h-10 min-h-10 shrink-0 border-t border-border/70 bg-muted/30 px-4 py-0 flex items-center justify-between gap-3 select-none">
-            <div className="text-xs text-muted-foreground">
-              {totalCount > 0 ? <>{t("admin.jobs.footer.showing")} <strong className="font-semibold text-foreground">{(page - 1) * PAGE_SIZE + 1}</strong> - <strong className="font-semibold text-foreground">{Math.min(page * PAGE_SIZE, totalCount)}</strong> {t("admin.jobs.footer.of")} <strong className="font-semibold text-foreground">{totalCount}</strong> {t("admin.jobs.footer.records")}</> : <span>{t("admin.jobs.footer.noRecords")}</span>}
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground">{t("admin.jobs.footer.page")} <strong className="font-semibold text-foreground">{page}</strong> / {totalPages || 1}</span>
-              <div className="flex items-center gap-1">
-                <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-lg border-border/70" onClick={() => setPage(1)} disabled={page <= 1 || isLoading} title={t("admin.jobs.footer.firstPage")}><ChevronsLeft className="h-4 w-4" /></Button>
-                <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-lg border-border/70" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page <= 1 || isLoading} title={t("admin.jobs.footer.prevPage")}><ChevronLeft className="h-4 w-4" /></Button>
-                <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-lg border-border/70" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={page >= totalPages || isLoading} title={t("admin.jobs.footer.nextPage")}><ChevronRight className="h-4 w-4" /></Button>
-                <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-lg border-border/70" onClick={() => setPage(totalPages)} disabled={page >= totalPages || isLoading} title={t("admin.jobs.footer.lastPage")}><ChevronsRight className="h-4 w-4" /></Button>
+        <AdminDataTable
+          columns={columns}
+          rows={contacts}
+          loading={isLoading}
+          emptyMessage={tr({ vi: "Không có liên hệ nào.", en: "No contacts found." })}
+          rowKey={(contact) => contact.id}
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+          renderCard={(contact) => (
+            <div key={contact.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-card p-3">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{contact.subject}</p>
+                <p className="truncate text-sm text-muted-foreground">{contact.name} — {contact.email}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  {contact.phone && <span>{contact.phone}</span>}
+                  <span>{formatDate(contact.createdAt)}</span>
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-col">
+                <Button variant="ghost" size="icon" onClick={() => void openView(contact)} disabled={isLoading}><Eye className="h-4 w-4" /></Button>
               </div>
             </div>
-          </div>
-        </div>
-        <div className="min-h-0 flex-1 space-y-3 overflow-auto md:hidden">
-          {isLoading && <p className="rounded-xl border border-dashed border-border p-10 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" /></p>}
-          {!isLoading && contacts.length === 0 && <p className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">{tr({ vi: "Không có liên hệ nào.", en: "No contacts found." })}</p>}
-          {!isLoading && contacts.map((contact) => <div key={contact.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-card p-3">
-            <div className="min-w-0">
-              <p className="truncate font-medium">{contact.subject}</p>
-              <p className="truncate text-sm text-muted-foreground">{contact.name} — {contact.email}</p>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                {contact.phone && <span>{contact.phone}</span>}
-                <span>{formatDate(contact.createdAt)}</span>
-              </div>
-            </div>
-            <div className="flex shrink-0 flex-col">
-              <Button variant="ghost" size="icon" onClick={() => void openView(contact)} disabled={isLoading}><Eye className="h-4 w-4" /></Button>
-            </div>
-          </div>)}
-        </div>
+          )}
+        />
       </div>
 
       <Dialog open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>

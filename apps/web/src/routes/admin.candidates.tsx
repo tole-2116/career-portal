@@ -1,10 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Check,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Download,
   Eye,
   FileText,
@@ -20,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminDataTable, type AdminColumn } from "@/components/admin/AdminDataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,14 +37,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   stageLabels,
   stageOrder,
@@ -444,6 +433,69 @@ function AdminCandidatesPage() {
     }
   }
 
+  const columns: AdminColumn<Candidate>[] = [
+    {
+      header: t("admin.candidates.col.name"),
+      className: "w-[240px] pl-4",
+      cell: (candidate) => (
+        <>
+          <span className="block truncate font-medium">{candidate.name}</span>
+          <span className="block truncate text-xs text-muted-foreground">{candidate.email}</span>
+        </>
+      ),
+    },
+    {
+      header: t("admin.candidates.col.job"),
+      className: "w-[200px] truncate text-muted-foreground",
+      cell: (candidate) => {
+        const jobTitle = candidate.jobTitle ?? (candidate.jobId ? getJob(candidate.jobId)?.title : undefined);
+        return jobTitle ? tr(jobTitle) : "—";
+      },
+    },
+    { header: t("admin.candidates.col.stage"), className: "w-[140px]", cell: (candidate) => <Badge variant="secondary">{tr(stageLabels[candidate.stage])}</Badge> },
+    { header: t("admin.candidates.col.applied"), className: "w-[130px] text-muted-foreground", cell: (candidate) => candidate.appliedAt },
+    {
+      header: t("admin.candidates.cv"),
+      className: "w-[110px]",
+      cell: (candidate) => (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 px-2"
+          onClick={(event) => {
+            event.stopPropagation();
+            void openCvPreview(candidate);
+          }}
+          disabled={!candidate.cvFile}
+        >
+          <FileText className="mr-1 h-3.5 w-3.5" />
+          {t("admin.candidates.cv")}
+        </Button>
+      ),
+    },
+    {
+      header: tr({ vi: "Hành động", en: "Actions" }),
+      className: "w-[100px] text-center",
+      cell: (candidate) => (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+          title={t("common.actions.view") || "Xem chi tiết"}
+          onClick={(event) => {
+            event.stopPropagation();
+            handleRowClick(candidate);
+          }}
+        >
+          <Eye className="h-4 w-4" />
+          <span className="sr-only">Xem chi tiết</span>
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <AdminLayout title={t("admin.candidates.title")} description={t("admin.demoNote")}>
       <Tabs defaultValue="applicants" className="flex min-h-0 flex-1 flex-col space-y-3.5 overflow-hidden">
@@ -543,236 +595,48 @@ function AdminCandidatesPage() {
         </Select>
       </div>
 
-      <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
-        <div className="shrink-0 overflow-hidden rounded-t-xl border-b-2 border-border/80 bg-muted/60 backdrop-blur-sm">
-          <Table className="table-fixed w-full">
-            <TableHeader className="bg-transparent">
-              <TableRow className="h-10 border-none hover:bg-transparent">
-                <TableHead className="w-[60px] text-center text-xs font-semibold text-foreground/80 select-none">
-                </TableHead>
-                <TableHead className="w-[240px] pl-4 text-xs font-semibold text-foreground/80 select-none">
-                  {t("admin.candidates.col.name")}
-                </TableHead>
-                <TableHead className="w-[200px] text-xs font-semibold text-foreground/80 select-none">
-                  {t("admin.candidates.col.job")}
-                </TableHead>
-                <TableHead className="w-[140px] text-xs font-semibold text-foreground/80 select-none">
-                  {t("admin.candidates.col.stage")}
-                </TableHead>
-                <TableHead className="w-[130px] text-xs font-semibold text-foreground/80 select-none">
-                  {t("admin.candidates.col.applied")}
-                </TableHead>
-                <TableHead className="w-[110px] text-xs font-semibold text-foreground/80 select-none">
-                  {t("admin.candidates.cv")}
-                </TableHead>
-                <TableHead className="w-[100px] pr-4 text-xs font-semibold text-foreground/80 select-none">
-                  {t("admin.candidates.actions.detail")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-          </Table>
-        </div>
-
-        <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden [&>div]:overflow-visible [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
-          <Table className="table-fixed w-full">
-            <TableBody>
-              {isLoading && (
-                <TableRow>
-                  <TableCell colSpan={7} className="p-2 text-center text-sm text-muted-foreground">
-                    <Loader2 className="mx-auto h-5 w-5 animate-spin" />
-                  </TableCell>
-                </TableRow>
-              )}
-              {!isLoading && candidates.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="p-2 text-center text-sm text-muted-foreground">
-                    {t("admin.candidates.empty")}
-                  </TableCell>
-                </TableRow>
-              )}
-              {!isLoading &&
-                candidates.map((candidate, index) => {
-                  const job = candidate.jobId ? getJob(candidate.jobId) : undefined;
-                  const jobTitle = candidate.jobTitle ?? job?.title;
-                  return (
-                    <TableRow
-                      key={candidate.id}
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => handleRowClick(candidate)}
-                    >
-                      <TableCell className="w-[60px] text-center text-muted-foreground">
-                        {(page - 1) * PAGE_SIZE + index + 1}
-                      </TableCell>
-                      <TableCell className="w-[240px] pl-4">
-                        <span className="block truncate font-medium">{candidate.name}</span>
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {candidate.email}
-                        </span>
-                      </TableCell>
-                      <TableCell className="w-[200px] truncate text-muted-foreground">
-                        {jobTitle ? tr(jobTitle) : "—"}
-                      </TableCell>
-                      <TableCell className="w-[140px]">
-                        <Badge variant="secondary">{tr(stageLabels[candidate.stage])}</Badge>
-                      </TableCell>
-                      <TableCell className="w-[130px] text-muted-foreground">
-                        {candidate.appliedAt}
-                      </TableCell>
-                      <TableCell className="w-[110px]">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 px-2"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void openCvPreview(candidate);
-                          }}
-                          disabled={!candidate.cvFile}
-                        >
-                          <FileText className="mr-1 h-3.5 w-3.5" />
-                          {t("admin.candidates.cv")}
-                        </Button>
-                      </TableCell>
-                      <TableCell className="w-[100px] pr-4">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                          title={t("common.actions.view") || "Xem chi tiết"}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleRowClick(candidate);
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                          <span className="sr-only">Xem chi tiết</span>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="h-10 min-h-10 shrink-0 border-t border-border/70 bg-muted/30 px-4 py-0 flex items-center justify-between gap-3 select-none">
-          {/* Phía trái: Đếm số dòng */}
-          <div className="text-xs text-muted-foreground">
-            {totalCount > 0 ? (
-              <>
-                {t("admin.jobs.footer.showing")}{" "}
-                <strong className="font-semibold text-foreground">
-                  {(page - 1) * PAGE_SIZE + 1}
-                </strong>{" "}
-                -{" "}
-                <strong className="font-semibold text-foreground">
-                  {Math.min(page * PAGE_SIZE, totalCount)}
-                </strong>{" "}
-                {t("admin.jobs.footer.of")}{" "}
-                <strong className="font-semibold text-foreground">{totalCount}</strong>{" "}
-                {t("admin.jobs.footer.records")}
-              </>
-            ) : (
-              <span>{t("admin.jobs.footer.noRecords")}</span>
-            )}
-          </div>
-
-          {/* Phía phải: Cụm 4 nút chuyển trang */}
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground">
-              {t("admin.jobs.footer.page")}{" "}
-              <strong className="font-semibold text-foreground">{page}</strong> / {totalPages || 1}
-            </span>
-
-            <div className="flex items-center gap-1">
-              {/* Về đầu */}
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 rounded-lg border-border/70"
-                onClick={() => setPage(1)}
-                disabled={page <= 1 || isLoading}
-                title={t("admin.jobs.footer.firstPage")}
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </Button>
-
-              {/* Lùi 1 trang */}
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 rounded-lg border-border/70"
-                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                disabled={page <= 1 || isLoading}
-                title={t("admin.jobs.footer.prevPage")}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-
-              {/* Tiến 1 trang */}
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 rounded-lg border-border/70"
-                onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-                disabled={page >= totalPages || isLoading}
-                title={t("admin.jobs.footer.nextPage")}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-
-              {/* Đến cuối */}
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 rounded-lg border-border/70"
-                onClick={() => setPage(totalPages)}
-                disabled={page >= totalPages || isLoading}
-                title={t("admin.jobs.footer.lastPage")}
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-5 grid gap-3 md:hidden">
-            {candidates.map((candidate) => {
-              const job = candidate.jobId ? getJob(candidate.jobId) : undefined;
-              const jobTitle = candidate.jobTitle ?? job?.title;
-              return (
-                <button
-                  key={candidate.id}
-                  type="button"
-                  onClick={() => setSelectedId(candidate.id)}
-                  className="rounded-lg border border-border bg-card p-4 text-left"
-                >
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{candidate.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {jobTitle ? tr(jobTitle) : "—"}
-                      </p>
-                    </div>
-                    <Badge variant="secondary" className="shrink-0">
-                      {tr(stageLabels[candidate.stage])}
-                    </Badge>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <Rating value={candidate.rating} />
-                    <span className="text-xs text-muted-foreground">{candidate.appliedAt}</span>
-                  </div>
-                </button>
-              );
-            })}
-      </div>
+      <AdminDataTable
+        columns={columns}
+        rows={candidates}
+        loading={isLoading}
+        emptyMessage={t("admin.candidates.empty")}
+        rowClassName="cursor-pointer hover:bg-muted/50 transition-colors"
+        rowKey={(candidate) => candidate.id}
+        onRowClick={handleRowClick}
+        page={page}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+        renderCard={(candidate) => {
+          const job = candidate.jobId ? getJob(candidate.jobId) : undefined;
+          const jobTitle = candidate.jobTitle ?? job?.title;
+          return (
+            <button
+              key={candidate.id}
+              type="button"
+              onClick={() => setSelectedId(candidate.id)}
+              className="rounded-lg border border-border bg-card p-4 text-left"
+            >
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{candidate.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {jobTitle ? tr(jobTitle) : "—"}
+                  </p>
+                </div>
+                <Badge variant="secondary" className="shrink-0">
+                  {tr(stageLabels[candidate.stage])}
+                </Badge>
+              </div>
+              <div className="mt-3 flex items-center justify-between">
+                <Rating value={candidate.rating} />
+                <span className="text-xs text-muted-foreground">{candidate.appliedAt}</span>
+              </div>
+            </button>
+          );
+        }}
+      />
         </TabsContent>
       </Tabs>
 

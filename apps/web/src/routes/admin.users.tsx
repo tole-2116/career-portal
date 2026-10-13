@@ -1,10 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Check,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Loader2,
   Pencil,
   Plus,
@@ -16,6 +12,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminDataTable, type AdminColumn } from "@/components/admin/AdminDataTable";
 import { requireAdminSession } from "@/lib/admin-route-guard";
 import {
   AlertDialog,
@@ -47,14 +44,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -90,7 +79,7 @@ type Draft = {
 };
 
 function AdminUsersPage() {
-  const { t, tr } = useI18n();
+  const { tr } = useI18n();
   const { currentUser } = useAuth();
   const [users, setUsers] = useState<AdminManagedUser[]>([]);
   const [keyword, setKeyword] = useState("");
@@ -199,6 +188,33 @@ function AdminUsersPage() {
     }
   };
 
+  const columns: AdminColumn<AdminManagedUser>[] = [
+    {
+      header: tr({ vi: "Email", en: "Email" }),
+      className: "min-w-0",
+      cell: (user) => (
+        <span className="block truncate font-medium">
+          {user.email}
+          {currentUser?.id === user.id && <span className="ml-2 text-xs text-muted-foreground">{tr({ vi: "(bạn)", en: "(you)" })}</span>}
+        </span>
+      ),
+    },
+    { header: tr({ vi: "Tên hiển thị", en: "Display name" }), className: "min-w-0 truncate", cell: (user) => user.name },
+    { header: tr({ vi: "Nhóm quyền", en: "Role" }), className: "w-[140px]", cell: (user) => <Badge variant={user.role === "admin" ? "default" : "secondary"}>{roleLabel(user.role)}</Badge> },
+    { header: tr({ vi: "Trạng thái", en: "Status" }), className: "w-[130px]", cell: (user) => <Badge variant={user.active ? "outline" : "destructive"}>{user.active ? tr({ vi: "Hoạt động", en: "Active" }) : tr({ vi: "Đã khoá", en: "Locked" })}</Badge> },
+    { header: tr({ vi: "Ngày tạo", en: "Created" }), className: "w-[130px] text-sm text-muted-foreground", cell: (user) => formatDate(user.createdAt) },
+    {
+      header: tr({ vi: "Hành động", en: "Actions" }),
+      className: "w-[100px] text-center",
+      cell: (user) => (
+        <>
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={tr({ vi: "Sửa", en: "Edit" })} title={tr({ vi: "Sửa", en: "Edit" })} onClick={() => openEdit(user)} disabled={isSaving}><Pencil className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-destructive" aria-label={tr({ vi: "Xóa", en: "Delete" })} title={tr({ vi: "Xóa", en: "Delete" })} onClick={() => setPendingDelete(user)} disabled={isSaving || currentUser?.id === user.id}><Trash2 className="h-4 w-4" /></Button>
+        </>
+      ),
+    },
+  ];
+
   return (
     <AdminLayout
       title={tr({ vi: "Người dùng", en: "Users" })}
@@ -220,76 +236,35 @@ function AdminUsersPage() {
             />
           </div>
         </div>
-        <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
-          <div className="shrink-0 overflow-hidden rounded-t-xl border-b-2 border-border/80 bg-muted/60 backdrop-blur-sm">
-            <Table className="table-fixed w-full">
-              <TableHeader className="bg-transparent">
-                <TableRow className="h-10 border-none hover:bg-transparent">
-                  <TableHead className="w-[60px] text-center text-xs font-semibold text-foreground/80 select-none">{tr({ vi: "STT", en: "No." })}</TableHead>
-                  <TableHead className="text-xs font-semibold text-foreground/80 select-none">{tr({ vi: "Email", en: "Email" })}</TableHead>
-                  <TableHead className="text-xs font-semibold text-foreground/80 select-none">{tr({ vi: "Tên hiển thị", en: "Display name" })}</TableHead>
-                  <TableHead className="w-[140px] text-xs font-semibold text-foreground/80 select-none">{tr({ vi: "Nhóm quyền", en: "Role" })}</TableHead>
-                  <TableHead className="w-[130px] text-xs font-semibold text-foreground/80 select-none">{tr({ vi: "Trạng thái", en: "Status" })}</TableHead>
-                  <TableHead className="w-[130px] text-xs font-semibold text-foreground/80 select-none">{tr({ vi: "Ngày tạo", en: "Created" })}</TableHead>
-                  <TableHead className="w-[100px] pr-4 text-right text-xs font-semibold text-foreground/80 select-none">{tr({ vi: "Hành động", en: "Actions" })}</TableHead>
-                </TableRow>
-              </TableHeader>
-            </Table>
-          </div>
-          <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden [&>div]:overflow-visible [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
-            <Table className="table-fixed w-full">
-              <TableBody>
-                {isLoading && <TableRow><TableCell colSpan={7} className="p-2 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></TableCell></TableRow>}
-                {!isLoading && users.length === 0 && <TableRow><TableCell colSpan={7} className="p-2 text-center text-sm text-muted-foreground">{tr({ vi: "Không có người dùng.", en: "No users found." })}</TableCell></TableRow>}
-                {!isLoading && users.map((user, index) => <TableRow key={user.id} className="hover:bg-muted/50 transition-colors">
-                  <TableCell className="w-[60px] text-center tabular-nums text-muted-foreground">{(page - 1) * PAGE_SIZE + index + 1}</TableCell>
-                  <TableCell className="min-w-0"><span className="block truncate font-medium">{user.email}{currentUser?.id === user.id && <span className="ml-2 text-xs text-muted-foreground">{tr({ vi: "(bạn)", en: "(you)" })}</span>}</span></TableCell>
-                  <TableCell className="min-w-0 truncate">{user.name}</TableCell>
-                  <TableCell className="w-[140px]"><Badge variant={user.role === "admin" ? "default" : "secondary"}>{roleLabel(user.role)}</Badge></TableCell>
-                  <TableCell className="w-[130px]"><Badge variant={user.active ? "outline" : "destructive"}>{user.active ? tr({ vi: "Hoạt động", en: "Active" }) : tr({ vi: "Đã khoá", en: "Locked" })}</Badge></TableCell>
-                  <TableCell className="w-[130px] text-sm text-muted-foreground">{formatDate(user.createdAt)}</TableCell>
-                  <TableCell className="w-[100px] pr-4 text-right">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={tr({ vi: "Sửa", en: "Edit" })} title={tr({ vi: "Sửa", en: "Edit" })} onClick={() => openEdit(user)} disabled={isSaving}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-destructive" aria-label={tr({ vi: "Xóa", en: "Delete" })} title={tr({ vi: "Xóa", en: "Delete" })} onClick={() => setPendingDelete(user)} disabled={isSaving || currentUser?.id === user.id}><Trash2 className="h-4 w-4" /></Button>
-                  </TableCell>
-                </TableRow>)}
-              </TableBody>
-            </Table>
-          </div>
-          <div className="h-10 min-h-10 shrink-0 border-t border-border/70 bg-muted/30 px-4 py-0 flex items-center justify-between gap-3 select-none">
-            <div className="text-xs text-muted-foreground">
-              {totalCount > 0 ? <>{t("admin.jobs.footer.showing")} <strong className="font-semibold text-foreground">{(page - 1) * PAGE_SIZE + 1}</strong> - <strong className="font-semibold text-foreground">{Math.min(page * PAGE_SIZE, totalCount)}</strong> {t("admin.jobs.footer.of")} <strong className="font-semibold text-foreground">{totalCount}</strong> {t("admin.jobs.footer.records")}</> : <span>{t("admin.jobs.footer.noRecords")}</span>}
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground">{t("admin.jobs.footer.page")} <strong className="font-semibold text-foreground">{page}</strong> / {totalPages || 1}</span>
-              <div className="flex items-center gap-1">
-                <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-lg border-border/70" onClick={() => setPage(1)} disabled={page <= 1 || isLoading} title={t("admin.jobs.footer.firstPage")}><ChevronsLeft className="h-4 w-4" /></Button>
-                <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-lg border-border/70" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page <= 1 || isLoading} title={t("admin.jobs.footer.prevPage")}><ChevronLeft className="h-4 w-4" /></Button>
-                <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-lg border-border/70" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={page >= totalPages || isLoading} title={t("admin.jobs.footer.nextPage")}><ChevronRight className="h-4 w-4" /></Button>
-                <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-lg border-border/70" onClick={() => setPage(totalPages)} disabled={page >= totalPages || isLoading} title={t("admin.jobs.footer.lastPage")}><ChevronsRight className="h-4 w-4" /></Button>
+        <AdminDataTable<AdminManagedUser>
+          columns={columns}
+          rows={users}
+          loading={isLoading}
+          emptyMessage={tr({ vi: "Không có người dùng.", en: "No users found." })}
+          rowKey={(user) => user.id}
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+          renderCard={(user) => (
+            <div key={user.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-card p-3">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{user.email}{currentUser?.id === user.id && <span className="ml-2 text-xs text-muted-foreground">{tr({ vi: "(bạn)", en: "(you)" })}</span>}</p>
+                <p className="truncate text-sm text-muted-foreground">{user.name}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <Badge variant={user.role === "admin" ? "default" : "secondary"}>{roleLabel(user.role)}</Badge>
+                  <Badge variant={user.active ? "outline" : "destructive"}>{user.active ? tr({ vi: "Hoạt động", en: "Active" }) : tr({ vi: "Đã khoá", en: "Locked" })}</Badge>
+                  <span>{formatDate(user.createdAt)}</span>
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-col">
+                <Button variant="ghost" size="icon" onClick={() => openEdit(user)} disabled={isSaving}><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => setPendingDelete(user)} disabled={isSaving || currentUser?.id === user.id}><Trash2 className="h-4 w-4 text-destructive" /></Button>
               </div>
             </div>
-          </div>
-        </div>
-        <div className="min-h-0 flex-1 space-y-3 overflow-auto md:hidden">
-          {isLoading && <p className="rounded-xl border border-dashed border-border p-10 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" /></p>}
-          {!isLoading && users.length === 0 && <p className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">{tr({ vi: "Không có người dùng.", en: "No users found." })}</p>}
-          {!isLoading && users.map((user) => <div key={user.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-card p-3">
-            <div className="min-w-0">
-              <p className="truncate font-medium">{user.email}{currentUser?.id === user.id && <span className="ml-2 text-xs text-muted-foreground">{tr({ vi: "(bạn)", en: "(you)" })}</span>}</p>
-              <p className="truncate text-sm text-muted-foreground">{user.name}</p>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <Badge variant={user.role === "admin" ? "default" : "secondary"}>{roleLabel(user.role)}</Badge>
-                <Badge variant={user.active ? "outline" : "destructive"}>{user.active ? tr({ vi: "Hoạt động", en: "Active" }) : tr({ vi: "Đã khoá", en: "Locked" })}</Badge>
-                <span>{formatDate(user.createdAt)}</span>
-              </div>
-            </div>
-            <div className="flex shrink-0 flex-col">
-              <Button variant="ghost" size="icon" onClick={() => openEdit(user)} disabled={isSaving}><Pencil className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => setPendingDelete(user)} disabled={isSaving || currentUser?.id === user.id}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-            </div>
-          </div>)}
-        </div>
+          )}
+        />
       </div>
 
       <Dialog open={draft !== null} onOpenChange={(open) => !open && !isSaving && setDraft(null)}>

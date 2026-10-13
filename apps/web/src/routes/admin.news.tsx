@@ -1,10 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Check,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Loader2,
   Pencil,
   Plus,
@@ -49,14 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { AdminDataTable, type AdminColumn } from "@/components/admin/AdminDataTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { heroLibrary, cultureLibrary } from "@/data/media";
 import { useI18n } from "@/lib/i18n";
@@ -332,6 +321,45 @@ function AdminNewsPage() {
       ? tr({ vi: "Đã xuất bản", en: "Published" })
       : tr({ vi: "Nháp", en: "Draft" });
 
+  const columns: AdminColumn<Article>[] = [
+    { header: tr({ vi: "Ảnh", en: "Thumb" }), className: "w-[110px] pl-4", cell: (article) => <img src={article.cover} alt="" className="h-12 w-20 rounded-md object-cover" /> },
+    {
+      header: tr({ vi: "Tiêu đề", en: "Title" }),
+      className: "min-w-0",
+      cell: (article) => (
+        <>
+          <span className="block truncate font-medium">{tr(article.title)}</span>
+          <span className="block truncate text-xs text-muted-foreground">/{article.slug}</span>
+        </>
+      ),
+    },
+    {
+      header: tr({ vi: "Chuyên mục", en: "Category" }),
+      className: "w-[160px] truncate text-sm text-muted-foreground",
+      cell: (article) => {
+        const category = categories.find((item) => item.id === article.categoryId);
+        return category ? tr(category.label) : "—";
+      },
+    },
+    { header: tr({ vi: "Tác giả", en: "Author" }), className: "w-[130px] truncate text-sm text-muted-foreground", cell: (article) => article.author },
+    { header: tr({ vi: "Ngày tạo", en: "Created" }), className: "w-[120px] text-sm text-muted-foreground", cell: (article) => article.date },
+    { header: tr({ vi: "Trạng thái", en: "Status" }), className: "w-[120px]", cell: (article) => <Badge variant={article.published ? "default" : "secondary"}>{publishedLabel(article.published)}</Badge> },
+    {
+      header: tr({ vi: "Hành động", en: "Actions" }),
+      className: "w-[100px] text-center",
+      cell: (article) => (
+        <>
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={tr({ vi: "Sửa", en: "Edit" })} title={tr({ vi: "Sửa", en: "Edit" })} onClick={() => openEdit(article)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-destructive" aria-label={tr({ vi: "Xóa", en: "Delete" })} title={tr({ vi: "Xóa", en: "Delete" })} onClick={() => setPendingDelete(article)}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </>
+      ),
+    },
+  ];
+
   return (
     <AdminLayout
       title={tr({ vi: "Tin tức", en: "News" })}
@@ -417,251 +445,40 @@ function AdminNewsPage() {
             </Select>
           </div>
 
-          {/* Bảng desktop: body cuộn + footer phân trang cố định */}
-          <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xs md:flex">
-            <div className="shrink-0 overflow-hidden rounded-t-xl border-b-2 border-border/80 bg-muted/60 backdrop-blur-sm">
-              <Table className="table-fixed w-full">
-                <TableHeader className="bg-transparent">
-                  <TableRow className="h-10 border-none hover:bg-transparent">
-                    <TableHead className="w-[60px] text-center text-xs font-semibold text-foreground/80 select-none">
-                      {tr({ vi: "STT", en: "No." })}
-                    </TableHead>
-                    <TableHead className="w-[110px] pl-4 text-xs font-semibold text-foreground/80 select-none">
-                      {tr({ vi: "Ảnh", en: "Thumb" })}
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-foreground/80 select-none">
-                      {tr({ vi: "Tiêu đề", en: "Title" })}
-                    </TableHead>
-                    <TableHead className="w-[160px] text-xs font-semibold text-foreground/80 select-none">
-                      {tr({ vi: "Chuyên mục", en: "Category" })}
-                    </TableHead>
-                    <TableHead className="w-[130px] text-xs font-semibold text-foreground/80 select-none">
-                      {tr({ vi: "Tác giả", en: "Author" })}
-                    </TableHead>
-                    <TableHead className="w-[120px] text-xs font-semibold text-foreground/80 select-none">
-                      {tr({ vi: "Ngày tạo", en: "Created" })}
-                    </TableHead>
-                    <TableHead className="w-[120px] text-xs font-semibold text-foreground/80 select-none">
-                      {tr({ vi: "Trạng thái", en: "Status" })}
-                    </TableHead>
-                    <TableHead className="w-[100px] pr-4 text-right text-xs font-semibold text-foreground/80 select-none">
-                      {tr({ vi: "Hành động", en: "Actions" })}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-              </Table>
-            </div>
-
-            <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden [&>div]:overflow-visible [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
-              <Table className="table-fixed w-full">
-                <TableBody>
-                  {isLoading && (
-                    <TableRow>
-                      <TableCell colSpan={8} className="p-2 text-center text-sm text-muted-foreground">
-                        <Loader2 className="mx-auto h-5 w-5 animate-spin" />
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {!isLoading && articles.length === 0 && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={8}
-                        className="p-2 text-center text-sm text-muted-foreground"
-                      >
-                        {tr({ vi: "Chưa có bài viết nào.", en: "No articles yet." })}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {!isLoading &&
-                    articles.map((article, index) => {
-                      const category = categories.find(
-                        (item) => item.id === article.categoryId,
-                      );
-                      return (
-                        <TableRow key={article.id} className="hover:bg-muted/50 transition-colors">
-                          <TableCell className="w-[60px] text-center tabular-nums text-muted-foreground">
-                            {(page - 1) * PAGE_SIZE + index + 1}
-                          </TableCell>
-                          <TableCell className="w-[110px] pl-4">
-                            <img
-                              src={article.cover}
-                              alt=""
-                              className="h-12 w-20 rounded-md object-cover"
-                            />
-                          </TableCell>
-                          <TableCell className="min-w-0">
-                            <span className="block truncate font-medium">
-                              {tr(article.title)}
-                            </span>
-                            <span className="block truncate text-xs text-muted-foreground">
-                              /{article.slug}
-                            </span>
-                          </TableCell>
-                          <TableCell className="w-[160px] truncate text-sm text-muted-foreground">
-                            {category ? tr(category.label) : "—"}
-                          </TableCell>
-                          <TableCell className="w-[130px] truncate text-sm text-muted-foreground">
-                            {article.author}
-                          </TableCell>
-                          <TableCell className="w-[120px] text-sm text-muted-foreground">
-                            {article.date}
-                          </TableCell>
-                          <TableCell className="w-[120px]">
-                            <Badge variant={article.published ? "default" : "secondary"}>
-                              {publishedLabel(article.published)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="w-[100px] pr-4 text-right">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                              aria-label={tr({ vi: "Sửa", en: "Edit" })}
-                              title={tr({ vi: "Sửa", en: "Edit" })}
-                              onClick={() => openEdit(article)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
-                              aria-label={tr({ vi: "Xóa", en: "Delete" })}
-                              title={tr({ vi: "Xóa", en: "Delete" })}
-                              onClick={() => setPendingDelete(article)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-              </Table>
-            </div>
-
-            <div className="h-10 min-h-10 shrink-0 border-t border-border/70 bg-muted/30 px-4 py-0 flex items-center justify-between gap-3 select-none">
-              <div className="text-xs text-muted-foreground">
-                {totalCount > 0 ? (
-                  <>
-                    {t("admin.jobs.footer.showing")}{" "}
-                    <strong className="font-semibold text-foreground">
-                      {(page - 1) * PAGE_SIZE + 1}
-                    </strong>{" "}
-                    -{" "}
-                    <strong className="font-semibold text-foreground">
-                      {Math.min(page * PAGE_SIZE, totalCount)}
-                    </strong>{" "}
-                    {t("admin.jobs.footer.of")}{" "}
-                    <strong className="font-semibold text-foreground">{totalCount}</strong>{" "}
-                    {t("admin.jobs.footer.records")}
-                  </>
-                ) : (
-                  <span>{t("admin.jobs.footer.noRecords")}</span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">
-                  {t("admin.jobs.footer.page")}{" "}
-                  <strong className="font-semibold text-foreground">{page}</strong> /{" "}
-                  {totalPages || 1}
-                </span>
-
-                <div className="flex items-center gap-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-lg border-border/70"
-                    onClick={() => setPage(1)}
-                    disabled={page <= 1 || isLoading}
-                    title={t("admin.jobs.footer.firstPage")}
-                  >
-                    <ChevronsLeft className="h-4 w-4" />
+          {/* Bảng desktop + cards mobile gom trong AdminDataTable */}
+          <AdminDataTable
+            columns={columns}
+            rows={articles}
+            loading={isLoading}
+            emptyMessage={tr({ vi: "Chưa có bài viết nào.", en: "No articles yet." })}
+            rowKey={(article) => article.id}
+            page={page}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            renderCard={(article) => (
+              <div key={article.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-card p-3">
+                <img src={article.cover} alt="" className="h-14 w-20 rounded-lg object-cover" />
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{tr(article.title)}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <Badge variant={article.published ? "default" : "secondary"}>{publishedLabel(article.published)}</Badge>
+                    <span>{article.author}</span>
+                    <span>{article.date}</span>
+                  </div>
+                </div>
+                <div className="flex shrink-0 flex-col">
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(article)}>
+                    <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-lg border-border/70"
-                    onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                    disabled={page <= 1 || isLoading}
-                    title={t("admin.jobs.footer.prevPage")}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-lg border-border/70"
-                    onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-                    disabled={page >= totalPages || isLoading}
-                    title={t("admin.jobs.footer.nextPage")}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-lg border-border/70"
-                    onClick={() => setPage(totalPages)}
-                    disabled={page >= totalPages || isLoading}
-                    title={t("admin.jobs.footer.lastPage")}
-                  >
-                    <ChevronsRight className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" onClick={() => setPendingDelete(article)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Cards trên mobile */}
-          <div className="min-h-0 flex-1 space-y-3 overflow-auto md:hidden">
-            {isLoading && (
-              <p className="rounded-xl border border-dashed border-border p-10 text-center">
-                <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
-              </p>
             )}
-            {!isLoading && articles.length === 0 && (
-              <p className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-                {tr({ vi: "Chưa có bài viết nào.", en: "No articles yet." })}
-              </p>
-            )}
-            {!isLoading &&
-              articles.map((article) => (
-                <div
-                  key={article.id}
-                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-card p-3"
-                >
-                  <img src={article.cover} alt="" className="h-14 w-20 rounded-lg object-cover" />
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{tr(article.title)}</p>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <Badge variant={article.published ? "default" : "secondary"}>
-                        {publishedLabel(article.published)}
-                      </Badge>
-                      <span>{article.author}</span>
-                      <span>{article.date}</span>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 flex-col">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(article)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setPendingDelete(article)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-          </div>
+          />
         </TabsContent>
 
         <TabsContent value="categories" className="mt-5 min-h-0 flex-1 space-y-4 overflow-auto">
