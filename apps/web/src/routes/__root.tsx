@@ -4,10 +4,11 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { I18nProvider } from "@/lib/i18n";
@@ -77,6 +78,37 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+function RouteProgressBar() {
+  const isLoading = useRouterState({ select: (state) => state.isLoading });
+  const [width, setWidth] = useState(0);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (isLoading) {
+      setVisible(true);
+      setWidth(70);
+      return;
+    }
+    setWidth(100);
+    const id = window.setTimeout(() => {
+      setVisible(false);
+      setWidth(0);
+    }, 200);
+    return () => window.clearTimeout(id);
+  }, [isLoading]);
+
+  if (!visible) return null;
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5">
+      <div
+        className="h-full bg-accent transition-[width,opacity] duration-200 motion-reduce:transition-none"
+        style={{ width: `${width}%`, opacity: visible ? 1 : 0 }}
+      />
     </div>
   );
 }
@@ -155,6 +187,7 @@ function RootComponent() {
                   <NewsProvider>
                     <InboxProvider>
                       <AuthProvider>
+                      <RouteProgressBar />
                       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
                       <Outlet />
                       <Toaster />
