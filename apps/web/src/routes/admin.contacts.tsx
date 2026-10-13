@@ -148,6 +148,7 @@ function AdminContactsPage() {
           totalCount={totalCount}
           pageSize={PAGE_SIZE}
           onPageChange={setPage}
+          onRefresh={() => void loadContacts()}
           renderCard={(contact) => (
             <div key={contact.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-card p-3">
               <div className="min-w-0">

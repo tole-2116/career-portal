@@ -4,6 +4,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import type * as React from "react";
 
@@ -42,6 +43,7 @@ export type AdminDataTableProps<T extends { id: string }> = {
   pageSize?: number;
   onPageChange: (page: number) => void;
   renderCard?: (row: T) => React.ReactNode;
+  onRefresh?: () => void;
 };
 
 export function AdminDataTable<T extends { id: string }>({
@@ -59,8 +61,9 @@ export function AdminDataTable<T extends { id: string }>({
   pageSize = 10,
   onPageChange,
   renderCard,
+  onRefresh,
 }: AdminDataTableProps<T>) {
-  const { t } = useI18n();
+  const { t, tr } = useI18n();
   const colSpan = columns.length + 1;
   const keyOf = rowKey ?? ((row: T) => row.id);
 
@@ -206,6 +209,20 @@ export function AdminDataTable<T extends { id: string }>({
                 <ChevronsRight className="h-4 w-4" />
               </Button>
             </div>
+
+            {onRefresh && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-md border-border/70"
+                onClick={onRefresh}
+                disabled={loading}
+                title={tr({ vi: "Làm mới", en: "Refresh" })}
+              >
+                <RefreshCw className={`h-4 w-4${loading ? " animate-spin" : ""}`} />
+              </Button>
+            )}
           </div>
         </div>
       </div>

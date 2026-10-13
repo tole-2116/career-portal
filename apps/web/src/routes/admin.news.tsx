@@ -457,6 +457,7 @@ function AdminNewsPage() {
             totalCount={totalCount}
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
+            onRefresh={() => void loadArticles()}
             renderCard={(article) => (
               <div key={article.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-card p-3">
                 <img src={article.cover} alt="" className="h-14 w-20 rounded-lg object-cover" />

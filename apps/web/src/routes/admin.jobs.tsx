@@ -175,6 +175,7 @@ function AdminJobsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
   const [draft, setDraft] = useState<Job | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -216,7 +217,7 @@ function AdminJobsPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, keyword, status, t]);
+  }, [page, keyword, status, reloadToken, t]);
 
   // Đổi keyword/status → về trang 1, tránh trang vượt totalPages.
   useEffect(() => {
@@ -426,6 +427,7 @@ function AdminJobsPage() {
         totalCount={totalCount}
         pageSize={PAGE_SIZE}
         onPageChange={setPage}
+        onRefresh={() => setReloadToken((n) => n + 1)}
         renderCard={(job) => (
           <div key={job.id} className="rounded-lg border border-border bg-card p-4">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">

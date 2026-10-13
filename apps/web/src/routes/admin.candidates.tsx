@@ -216,6 +216,7 @@ function AdminCandidatesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editStage, setEditStage] = useState<Stage>("new");
@@ -342,7 +343,7 @@ function AdminCandidatesPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, keyword, jobFilter, experienceFilter, stageFilter, t]);
+  }, [page, keyword, jobFilter, experienceFilter, stageFilter, reloadToken, t]);
 
   useEffect(() => {
     setPage(1);
@@ -608,6 +609,7 @@ function AdminCandidatesPage() {
         totalCount={totalCount}
         pageSize={PAGE_SIZE}
         onPageChange={setPage}
+        onRefresh={() => setReloadToken((n) => n + 1)}
         renderCard={(candidate) => {
           const job = candidate.jobId ? getJob(candidate.jobId) : undefined;
           const jobTitle = candidate.jobTitle ?? job?.title;

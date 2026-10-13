@@ -247,6 +247,7 @@ function AdminUsersPage() {
           totalCount={totalCount}
           pageSize={PAGE_SIZE}
           onPageChange={setPage}
+          onRefresh={() => void loadUsers()}
           renderCard={(user) => (
             <div key={user.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-card p-3">
               <div className="min-w-0">
