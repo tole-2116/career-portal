@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -26,13 +27,17 @@ const PaginationItem = React.forwardRef<HTMLLIElement, React.ComponentProps<"li"
 );
 PaginationItem.displayName = "PaginationItem";
 
-type PaginationLinkProps = {
+type PaginationLinkProps = Pick<ButtonProps, "size"> & {
   isActive?: boolean;
-} & Pick<ButtonProps, "size"> &
-  React.ComponentProps<"a">;
+  href?: string;
+  "aria-label"?: string;
+  className?: string;
+  children?: React.ReactNode;
+};
 
-const PaginationLink = ({ className, isActive, size = "icon", ...props }: PaginationLinkProps) => (
-  <a
+const PaginationLink = ({ className, isActive, size = "icon", href, ...props }: PaginationLinkProps) => (
+  <Link
+    to={(href ?? "/") as never}
     aria-current={isActive ? "page" : undefined}
     className={cn(
       buttonVariants({
