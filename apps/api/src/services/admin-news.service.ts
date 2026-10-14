@@ -1,4 +1,12 @@
 import { db, Prisma } from "@career-portal/database";
+import {
+  BaseService,
+  paginationMeta,
+  readLocalizedStrict as readLocalized,
+  slugify as baseSlugify,
+  softDeleteData,
+  toLocalizedObj,
+} from "./base.service";
 import type {
   NewsModel,
   NewsModelQuery,
@@ -8,23 +16,6 @@ import type {
   NewsCategoryPayload,
 } from "../types/news";
 
-/** Đọc cột Json an toàn ra {vi, en}. */
-function readLocalized(value: unknown): NewsLocalizedText {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    const raw = value as { vi?: unknown; en?: unknown };
-    return {
-      vi: typeof raw.vi === "string" ? raw.vi : "",
-      en: typeof raw.en === "string" ? raw.en : "",
-    };
-  }
-  return { vi: "", en: "" };
-}
-
-/** Chuyển NewsLocalizedText sang object {en, vi} cho Prisma Json field. */
-function toLocalizedObj(text: NewsLocalizedText): { en: string; vi: string } {
-  return { en: text.en, vi: text.vi };
-}
-
 /** Format ISO date thành yyyy-mm-dd. */
 function toDateString(date: Date): string {
   return date.toISOString().split("T")[0];
@@ -32,14 +23,7 @@ function toDateString(date: Date): string {
 
 /** Slugify tiếng Việt: remove accents, đ->d, keep a-z0-9, - separator. */
 function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 60);
+  return baseSlugify(value, { maxLength: 60 });
 }
 
 /** Tạo slug duy nhất, append -2, -3... nếu bị trùng. */
@@ -61,7 +45,7 @@ async function ensureUniqueSlug(baseSlug: string, excludeId?: string): Promise<s
   }
 }
 
-export class AdminNewsService {
+export class AdminNewsService extends BaseService {
   async findMany(query: NewsModelQuery = {}) {
     const page = query.page ?? 1;
     const limit = Math.min(query.limit ?? 10, 100);
@@ -124,8 +108,7 @@ export class AdminNewsService {
     return {
       news: formatted,
       total,
-      page,
-      totalPages: Math.ceil(total / limit),
+      ...paginationMeta(page, limit, total, { clamp: false }),
     };
   }
 
@@ -290,7 +273,7 @@ export class AdminNewsService {
 
     return db.news.update({
       where: { id },
-      data: { isdelete: true, userupdated_at: "system_delete" },
+      data: softDeleteData("system_delete"),
     });
   }
 
@@ -344,7 +327,7 @@ export class AdminNewsService {
 
     return db.taxonomy.update({
       where: { id: taxonomy.id },
-      data: { isdelete: true, userupdated_at: "system_delete" },
+      data: softDeleteData("system_delete"),
     });
   }
 }

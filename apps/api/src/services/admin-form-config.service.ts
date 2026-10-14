@@ -1,4 +1,5 @@
 import { db } from "@career-portal/database";
+import { BaseService, readLocalized } from "./base.service";
 
 export type Localized = { vi: string; en: string };
 
@@ -45,11 +46,9 @@ function localized(value: unknown, allowEmpty = true): Localized {
     if (allowEmpty) return { vi: "", en: "" };
     throw new Error("value must be an object");
   }
-  const raw = value as { vi?: unknown; en?: unknown };
-  const vi = typeof raw.vi === "string" ? raw.vi.trim() : "";
-  const en = typeof raw.en === "string" ? raw.en.trim() : "";
-  if (!allowEmpty && !vi && !en) throw new Error("label must contain vi or en text");
-  return { vi: vi || en, en: en || vi };
+  const result = readLocalized(value);
+  if (!allowEmpty && !result.vi && !result.en) throw new Error("label must contain vi or en text");
+  return result;
 }
 
 function localizedOrDefault(value: unknown, fallback: Localized): Localized {
@@ -114,7 +113,7 @@ function readConfig(row: Row): FormConfigDto {
   };
 }
 
-export class AdminFormConfigService {
+export class AdminFormConfigService extends BaseService {
   async get(): Promise<FormConfigDto> {
     const row = await db.form_configs.findFirst({ where: { isdelete: false } });
     if (!row) throw new Error("Form configuration not found");

@@ -1,4 +1,12 @@
 import { db, Prisma } from "@career-portal/database";
+import {
+  BaseService,
+  paginationMeta,
+  readLocalizedStrict,
+  slugify,
+  softDeleteData,
+  toLocalizedObj,
+} from "./base.service";
 import type { JobModel, JobModelQuery, JobStatus, LocaleStringModel } from "../types/job";
 
 // Taxonomy type codes. Seed lưu dạng thường ("department", "workType", "level", "location", "newsCategory"),
@@ -47,14 +55,7 @@ export type TaxonomyInfo = {
 
 /** Cột `Taxonomy.name` là Json — đọc an toàn ra {vi, en}. */
 function readName(name: unknown): { vi: string; en: string } {
-  if (name && typeof name === "object" && !Array.isArray(name)) {
-    const raw = name as { vi?: unknown; en?: unknown };
-    return {
-      vi: typeof raw.vi === "string" ? raw.vi : "",
-      en: typeof raw.en === "string" ? raw.en : "",
-    };
-  }
-  return { vi: "", en: "" };
+  return readLocalizedStrict(name);
 }
 
 function toTaxonomyInfo(row: { id: string; code: string; type: string; name: unknown }): TaxonomyInfo {
@@ -119,14 +120,6 @@ async function loadTaxonomyMap(
   return map;
 }
 
-/** Chuyển LocaleStringModel sang object {en, vi} cho Prisma Json field. */
-function toLocalizedObj(locale: LocaleStringModel): { en: string; vi: string } {
-  return {
-    en: locale.en,
-    vi: locale.vi ?? locale.en,
-  };
-}
-
 /** Chuẩn hoá một field đa ngữ về JSON nullable { en, vi }. */
 function formatLocalizedField(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
   if (value === null || value === undefined) return Prisma.JsonNull;
@@ -165,17 +158,6 @@ function normalizeHeadcount(value: number | string | null | undefined): number |
   if (value === undefined || value === null || value === "") return null;
   const normalized = Number(value);
   return Number.isFinite(normalized) ? normalized : null;
-}
-
-/** Slugify để sinh slug khi client không truyền (cột `Job.slug` là @unique). */
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
 }
 
 /** Ba cột trên Job lưu trực tiếp `Taxonomy.id`. */
@@ -222,7 +204,7 @@ async function withTaxonomyInfo<T extends JobTaxonomyColumns>(job: T) {
   };
 }
 
-export class AdminJobService {
+export class AdminJobService extends BaseService {
   async findMany(query: JobModelQuery = {}) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
@@ -324,8 +306,7 @@ export class AdminJobService {
     return {
       jobs: formattedJobs,
       total,
-      page,
-      totalPages: Math.ceil(total / limit),
+      ...paginationMeta(page, limit, total, { clamp: false }),
     };
   }
 
@@ -473,7 +454,7 @@ export class AdminJobService {
   async delete(id: string) {
     return db.job.update({
       where: { id },
-      data: { isdelete: true, userupdated_at: "system_delete" },
+      data: softDeleteData("system_delete"),
     });
   }
 

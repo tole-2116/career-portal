@@ -1,4 +1,5 @@
 import { db } from "@career-portal/database";
+import { BaseService } from "./base.service";
 import { defaultSiteConfig } from "../defaults/site-config.defaults";
 
 export type { SiteConfigPayload } from "../defaults/site-config.defaults";
@@ -64,7 +65,7 @@ function readConfig(row: {
   });
 }
 
-export class AdminSiteConfigService {
+export class AdminSiteConfigService extends BaseService {
   async get(): Promise<SiteConfigPayload> {
     const row = await db.site_configs.findFirst({ where: { isdelete: false } });
     if (!row) throw new Error("Site configuration not found");

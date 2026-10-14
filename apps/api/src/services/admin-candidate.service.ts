@@ -2,6 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { db } from "@career-portal/database";
 import { UPLOAD_DIR } from "../middleware/upload";
+import {
+  BaseService,
+  normalizeLimit,
+  normalizePage,
+  paginationMeta,
+  readLocalized as baseReadLocalized,
+} from "./base.service";
 import type {
   AdminCandidateFilterQuery,
   AdminCandidateListItem,
@@ -12,10 +19,6 @@ import type {
   AdminCandidateUpdatePayload,
 } from "../types/admin-candidate.types";
 
-const DEFAULT_PAGE = 1;
-const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 100;
-
 const candidateStatuses: readonly AdminCandidateStatus[] = [
   "NEW",
   "SCREENING",
@@ -25,23 +28,9 @@ const candidateStatuses: readonly AdminCandidateStatus[] = [
   "REJECTED",
 ];
 
-function normalizePage(value: number | undefined): number {
-  return Number.isInteger(value) && value && value > 0 ? value : DEFAULT_PAGE;
-}
-
-function normalizeLimit(value: number | undefined): number {
-  if (!Number.isInteger(value) || !value || value < 1) return DEFAULT_LIMIT;
-  return Math.min(value, MAX_LIMIT);
-}
-
+// Candidate giữ hành vi đọc localized KHÔNG trim (khác mặc định của base).
 function readLocalized(value: unknown): AdminCandidateLocalizedText {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { vi: "", en: "" };
-  }
-  const raw = value as { vi?: unknown; en?: unknown };
-  const en = typeof raw.en === "string" ? raw.en : "";
-  const vi = typeof raw.vi === "string" ? raw.vi : "";
-  return { vi: vi || en, en: en || vi };
+  return baseReadLocalized(value, { trim: false });
 }
 
 function readFormLocation(value: unknown): AdminCandidateLocalizedText {
@@ -135,7 +124,7 @@ function mapCandidate(candidate: {
   };
 }
 
-export class AdminCandidateService {
+export class AdminCandidateService extends BaseService {
   async findExperienceTaxonomies() {
     const rows = await db.taxonomy.findMany({
       where: { type: "experience", isdelete: false },
@@ -186,14 +175,12 @@ export class AdminCandidateService {
       db.candidate.count({ where }),
     ]);
 
-    const totalPages = Math.max(1, Math.ceil(total / limit));
-    const currentPage = Math.min(page, totalPages);
+    const meta = paginationMeta(page, limit, total);
 
     return {
       candidates: rows.map(mapCandidate),
       total,
-      page: currentPage,
-      totalPages,
+      ...meta,
     };
   }
 
@@ -314,7 +301,7 @@ export class AdminCandidateService {
 
   /** Xoá mềm hồ sơ tự do. */
   async softDelete(id: string): Promise<void> {
-    await db.candidate.update({ where: { id, isdelete: false }, data: { isdelete: true } });
+    await db.candidate.update({ where: { id, isdelete: false }, data: this.softDeleteData() });
   }
 }
 

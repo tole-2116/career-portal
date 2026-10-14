@@ -1,4 +1,5 @@
 import { db } from "@career-portal/database";
+import { BaseService, readLocalized, slugify as baseSlugify, softDeleteData } from "./base.service";
 
 export type Localized = { vi: string; en: string };
 export type TaxonomyType = "department" | "workType" | "salary" | "experience" | "location";
@@ -53,15 +54,11 @@ const DEFAULTS: Record<TaxonomyType, DefaultItem[]> = {
 };
 
 function localized(value: unknown): Localized {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return { vi: "", en: "" };
-  const raw = value as { vi?: unknown; en?: unknown };
-  const vi = typeof raw.vi === "string" ? raw.vi.trim() : "";
-  const en = typeof raw.en === "string" ? raw.en.trim() : "";
-  return { vi: vi || en, en: en || vi };
+  return readLocalized(value);
 }
 
 function slugify(value: string): string {
-  return value.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60) || "muc-moi";
+  return baseSlugify(value, { maxLength: 60, fallback: "muc-moi" });
 }
 
 function readItem(raw: { id: string; code: string; type: string; name: unknown }): TaxonomyItemDto {
@@ -73,7 +70,7 @@ function emptyTaxonomies(): Record<TaxonomyType, TaxonomyItemDto[]> {
   return { department: [], workType: [], salary: [], experience: [], location: [] };
 }
 
-export class AdminTaxonomyService {
+export class AdminTaxonomyService extends BaseService {
   async list(): Promise<TaxonomyResult> {
     const rows = await db.taxonomy.findMany({ where: { isdelete: false }, orderBy: { created_at: "asc" } });
     const taxonomies = emptyTaxonomies();
@@ -141,7 +138,7 @@ export class AdminTaxonomyService {
 
   async delete(id: string): Promise<void> {
     const row = await this.findActive(id);
-    await db.taxonomy.update({ where: { id: row.id }, data: { isdelete: true, userupdated_at: "admin" } });
+    await db.taxonomy.update({ where: { id: row.id }, data: softDeleteData("admin") });
   }
 
   async createGroup(label: Localized): Promise<CustomGroupDto> {
@@ -156,14 +153,14 @@ export class AdminTaxonomyService {
   }
 
   async deleteGroup(key: string): Promise<void> {
-    await db.taxonomy.updateMany({ where: { type: `custom:${key}`, isdelete: false }, data: { isdelete: true, userupdated_at: "admin" } });
+    await db.taxonomy.updateMany({ where: { type: `custom:${key}`, isdelete: false }, data: softDeleteData("admin") });
   }
 
   async reset(): Promise<TaxonomyResult> {
     // Xoá mềm toàn bộ mục built-in (kể cả bản ghi seed cũ) rồi khôi phục giá trị mặc định.
     await db.taxonomy.updateMany({
       where: { type: { in: [...BUILT_IN_TYPES] }, isdelete: false },
-      data: { isdelete: true, userupdated_at: "admin" },
+      data: softDeleteData("admin"),
     });
     for (const type of BUILT_IN_TYPES) {
       for (const item of DEFAULTS[type]) {

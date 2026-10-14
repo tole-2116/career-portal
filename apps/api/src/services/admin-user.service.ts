@@ -1,30 +1,17 @@
 import bcrypt from "bcryptjs";
 import { db } from "@career-portal/database";
+import { BaseService } from "./base.service";
 import type {
   AdminUserDto,
-  AdminUserListQuery,
-  AdminUserListResult,
   AdminUserRole,
   CreateAdminUserInput,
   UpdateAdminUserInput,
 } from "../types/admin-user.types";
 
-const DEFAULT_PAGE = 1;
-const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 100;
 const MIN_PASSWORD_LENGTH = 6;
 const BCRYPT_ROUNDS = 10;
 
 export const adminUserRoles: readonly AdminUserRole[] = ["ADMIN", "RECRUITER"];
-
-function normalizePage(value: number | undefined): number {
-  return Number.isInteger(value) && value && value > 0 ? value : DEFAULT_PAGE;
-}
-
-function normalizeLimit(value: number | undefined): number {
-  if (!Number.isInteger(value) || !value || value < 1) return DEFAULT_LIMIT;
-  return Math.min(value, MAX_LIMIT);
-}
 
 function mapUser(user: {
   id: string;
@@ -61,49 +48,20 @@ async function assertNotLastActiveAdmin(target: {
   }
 }
 
-export class AdminUserService {
-  async findMany(query: AdminUserListQuery = {}): Promise<AdminUserListResult> {
-    const page = normalizePage(query.page);
-    const limit = normalizeLimit(query.limit);
-    const where: Record<string, unknown> = {
-      isdelete: false,
-      role: { in: ["ADMIN", "RECRUITER"] },
-    };
+export class AdminUserService extends BaseService<AdminUserDto> {
+  constructor() {
+    super();
+    this.model = db.user;
+    this.orderByCol = "created_at";
+    this.searchCols = ["email", "name"];
+    this.rowSelect = { id: true, email: true, name: true, role: true, isdelete: true, created_at: true };
+    this.itemsKey = "users";
+    this.mapRow = (row) => mapUser(row as never);
+  }
 
-    if (query.search?.trim()) {
-      const search = query.search.trim();
-      where.OR = [
-        { email: { contains: search, mode: "insensitive" } },
-        { name: { contains: search, mode: "insensitive" } },
-      ];
-    }
-
-    const [rows, total] = await Promise.all([
-      db.user.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { created_at: "desc" },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          role: true,
-          isdelete: true,
-          created_at: true,
-        },
-      }),
-      db.user.count({ where }),
-    ]);
-
-    const totalPages = Math.max(1, Math.ceil(total / limit));
-
-    return {
-      users: rows.map(mapUser),
-      total,
-      page: Math.min(page, totalPages),
-      totalPages,
-    };
+  // Chỉ giữ phần lọc đặc thù (giới hạn role); khung phân trang dùng lại từ BaseService.findMany.
+  protected override extraWhere(): Record<string, unknown> {
+    return { role: { in: ["ADMIN", "RECRUITER"] } };
   }
 
   async create(input: CreateAdminUserInput, actorId: string): Promise<AdminUserDto> {
