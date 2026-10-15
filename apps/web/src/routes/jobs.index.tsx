@@ -192,14 +192,14 @@ function JobsPage() {
           options={opt(taxonomies.workTypes)}
         />
       )}
-      {page.filters.salary && taxonomies.salaries.length > 0 && (
+      {/* {page.filters.salary && taxonomies.salaries.length > 0 && (
         <FacetSelect
           label={t("jobs.filter.salary")}
           value={salary}
           onChange={setSalary}
           options={opt(taxonomies.salaries)}
         />
-      )}
+      )} */}
       {page.filters.experience && taxonomies.experiences.length > 0 && (
         <FacetSelect
           label={t("jobs.filter.experience")}
