@@ -19,7 +19,7 @@ const taxonomyData = [
   },
   {
     type: "workTypes",
-    name: { vi: "Hình thức làm việc", en: "Work types" },
+    name: { vi: "Hình thức", en: "Work types" },
     slug: "work-types",
     items: [
       { id: "full-time", label: { vi: "Toàn thời gian", en: "Full-time" } },

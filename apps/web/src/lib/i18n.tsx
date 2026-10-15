@@ -485,7 +485,7 @@ const dict = {
     en: "Predefined options for job postings. Stored in this browser.",
   },
   "taxonomy.departments": { vi: "Ngành nghề", en: "Industries" },
-  "taxonomy.workTypes": { vi: "Hình thức làm việc", en: "Work types" },
+  "taxonomy.workTypes": { vi: "Hình thức", en: "Work types" },
   "taxonomy.salaries": { vi: "Mức lương", en: "Salary ranges" },
   "taxonomy.experiences": { vi: "Kinh nghiệm", en: "Experience levels" },
   "taxonomy.locations": { vi: "Nơi làm việc", en: "Work locations" },
