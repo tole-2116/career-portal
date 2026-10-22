@@ -231,8 +231,18 @@ export class AdminJobService extends BaseService {
       const locationIds = await Promise.all(
         splitIds(query.locationIds).map((id) => assertValidTaxonomyId(id, "location", "locationIds")),
       );
-      // locationIds lưu nhiều id nối bằng dấu phẩy -> lọc bằng contains trên chuỗi.
-      where.locationIds = locationIds.length ? { contains: locationIds[0] } : undefined;
+      // locationIds lưu dạng CSV; so khớp token đầy đủ để tránh nhầm ID con.
+      const locationMatches = locationIds.flatMap((id) => [
+        { locationIds: id },
+        { locationIds: { startsWith: `${id},` } },
+        { locationIds: { endsWith: `,${id}` } },
+        { locationIds: { contains: `,${id},` } },
+      ]);
+      if (locationMatches.length) {
+        const filters = (where.AND as unknown[] | undefined) ?? [];
+        filters.push({ OR: locationMatches });
+        where.AND = filters;
+      }
     }
 
     if (query.workTypeId) {
@@ -247,19 +257,23 @@ export class AdminJobService extends BaseService {
       where.experienceId = await assertValidTaxonomyId(query.experienceId, "experience", "experienceId");
     }
 
-    if (query.search) {
-      // title/description/summary/requirements là cột JSON ({en, vi}) — Prisma tìm trên Json cần `path` + `string_contains`.
-      where.OR = [
-        { slug: { contains: query.search, mode: "insensitive" } },
-        { title: { path: ["en"], string_contains: query.search } },
-        { title: { path: ["vi"], string_contains: query.search } },
-        { description: { path: ["en"], string_contains: query.search } },
-        { description: { path: ["vi"], string_contains: query.search } },
-        { summary: { path: ["en"], string_contains: query.search } },
-        { summary: { path: ["vi"], string_contains: query.search } },
-        { requirements: { path: ["en"], string_contains: query.search } },
-        { requirements: { path: ["vi"], string_contains: query.search } },
+    const search = query.search?.trim();
+    if (search) {
+      // Prisma JsonFilter không có mode insensitive; tìm trên trường JSON bằng PostgreSQL ILIKE.
+      const fields = [
+        Prisma.raw('"slug"'),
+        ...["title", "description", "summary", "requirements"].flatMap((field) =>
+          ["en", "vi"].map((locale) => Prisma.raw(`"${field}"->>'${locale}'`)),
+        ),
       ];
+      const matchingJobs = await db.$queryRaw<{ id: string }[]>(Prisma.sql`
+        SELECT id FROM jobs
+        WHERE isdelete = false AND (${Prisma.join(
+          fields.map((field) => Prisma.sql`${field} ILIKE ${`%${search}%`}`),
+          " OR ",
+        )})
+      `);
+      where.id = { in: matchingJobs.map(({ id }) => id) };
     }
 
     const [jobs, total] = await Promise.all([
