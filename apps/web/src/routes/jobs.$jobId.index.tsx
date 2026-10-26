@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Banknote,
@@ -18,8 +19,10 @@ import { Button } from "@/components/ui/button";
 import { useI18n, type Localized } from "@/lib/i18n";
 import { useSiteConfig } from "@/lib/site-config";
 import { useTaxonomies } from "@/lib/taxonomy-store";
-import { fetchPublicJob } from "@/services/jobs.api";
+import type { Job } from "@/data/jobs";
 import { createDynamicRouteMeta } from "@/lib/route-meta";
+import { fetchPublicJob, fetchPublicJobs } from "@/services/jobs.api";
+import { JobCard } from "@/components/site/JobCard";
 
 export const Route = createFileRoute("/jobs/$jobId/")({
   loader: async ({ params }) => ({ job: await fetchPublicJob(params.jobId) }),
@@ -36,6 +39,34 @@ function JobDetailPage() {
   const { taxonomies } = useTaxonomies();
   const { config } = useSiteConfig();
   const { t, tr } = useI18n();
+  const [similarJobs, setSimilarJobs] = useState<Job[]>([]);
+
+  useEffect(() => {
+    if (!job || (job.status !== "expired" && job.status !== "closed")) {
+      setSimilarJobs([]);
+      return;
+    }
+
+    const currentJob = job;
+    let cancelled = false;
+    fetchPublicJobs({ departmentId: currentJob.departmentId, limit: 100 })
+      .then((result) => {
+        if (!cancelled) {
+          setSimilarJobs(
+            result.jobs
+              .filter((candidate) => candidate.status === "open" && candidate.id !== currentJob.id)
+              .slice(0, 3),
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSimilarJobs([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [job?.id, job?.status, job?.departmentId]);
 
   if (!job) {
     return (
@@ -92,6 +123,15 @@ function JobDetailPage() {
             {tr(job.summary)}
           </p>
 
+          {(job.status === "expired" || job.status === "closed") && (
+            <p
+              role="status"
+              className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive"
+            >
+              {t("jobs.closedNotice")}
+            </p>
+          )}
+
           <div className="mt-6 flex flex-wrap gap-2">
             {job.featured && (
               <Badge className="gap-1">
@@ -146,6 +186,19 @@ function JobDetailPage() {
               ))}
             </ul>
           </section>
+          )}
+
+          {similarJobs.length > 0 && (
+            <section aria-labelledby="similar-jobs-title">
+              <h2 id="similar-jobs-title" className="font-display text-xl font-semibold">
+                {t("jobs.similar.title")}
+              </h2>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                {similarJobs.map((similarJob) => (
+                  <JobCard key={similarJob.id} job={similarJob} />
+                ))}
+              </div>
+            </section>
           )}
         </article>
 
@@ -230,12 +283,12 @@ function JobDetailPage() {
                   {t("nav.apply")}
                 </Link>
               </Button>
-            ) : (
+            ) : job.status === "expired" || job.status === "closed" ? null : (
               <div className="mt-6 space-y-3">
                 <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
                   {tr({
-                    vi: "Vị trí này không còn nhận hồ sơ.",
-                    en: "This position is no longer accepting applications.",
+                    vi: "Vị trí này hiện đang tạm dừng nhận hồ sơ.",
+                    en: "Applications for this position are temporarily paused.",
                   })}
                 </p>
                 {config.modules.openApplication && (

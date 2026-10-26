@@ -113,6 +113,14 @@ const dict = {
   "jobs.section.about": { vi: "Mô tả công việc", en: "About the role" },
   "jobs.section.requirements": { vi: "Yêu cầu", en: "Requirements" },
   "jobs.section.benefits": { vi: "Quyền lợi", en: "What you get" },
+  "jobs.closedNotice": {
+    vi: "Vị trí này hiện đã đóng nhận hồ sơ",
+    en: "This position is no longer accepting applications.",
+  },
+  "jobs.similar.title": {
+    vi: "Các vị trí tương tự đang tuyển dụng",
+    en: "Similar open positions",
+  },
   "jobs.notfound": {
     vi: "Không tìm thấy vị trí này.",
     en: "This position could not be found.",

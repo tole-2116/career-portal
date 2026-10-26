@@ -342,10 +342,14 @@ export class AdminJobService extends BaseService {
     return this.findMany({ ...query, status: "OPEN" });
   }
 
-  /** Public detail only exposes an open, non-deleted job. */
+  /** Public detail exposes open or closed jobs, but never drafts or paused jobs. */
   async findPublicById(id: string) {
     const job = await db.job.findFirst({
-      where: { id, status: "OPEN" },
+      where: {
+        id,
+        isdelete: false,
+        status: { in: ["OPEN", "EXPIRED", "CLOSED"] },
+      },
     });
 
     return job ? withTaxonomyInfo(job) : null;

@@ -93,6 +93,17 @@ app.post("/api/jobs/:jobId/apply", applyCvUpload, async (req, res) => {
 
     const { jobId, name, email, phone, address, coverLetter } = validation.data;
 
+    const job = await db.job.findFirst({
+      where: { id: jobId, isdelete: false, status: "OPEN" },
+      select: { id: true },
+    });
+    if (!job) {
+      return res.status(409).json({
+        success: false,
+        error: "This job is not accepting applications",
+      });
+    }
+
     const emailDuplicate = await db.candidate.findFirst({
       where: { email },
       select: { id: true },
