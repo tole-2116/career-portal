@@ -29,6 +29,7 @@ export interface JobModel {
   headcount?: number | null;
   contactName?: string | null;
   contactEmail?: string | null;
+  deadline?: string | null;
 }
 
 // Params phục vụ phân trang, lọc và tìm kiếm
