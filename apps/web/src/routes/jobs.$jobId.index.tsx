@@ -81,6 +81,12 @@ function JobDetailPage() {
     );
   }
 
+  const deadlineDate = new Date(`${job.deadline}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const deadlinePassed = !Number.isNaN(deadlineDate.getTime()) && deadlineDate < today;
+  const isExpired = job.status === "expired" || deadlinePassed;
+
   const taxonomyLabel = (
     key: "departments" | "workTypes" | "salaries" | "experiences",
     id: string | undefined,
@@ -123,7 +129,7 @@ function JobDetailPage() {
             {tr(job.summary)}
           </p>
 
-          {(job.status === "expired" || job.status === "closed") && (
+          {(isExpired || job.status === "closed") && (
             <p
               role="status"
               className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive"
@@ -224,6 +230,11 @@ function JobDetailPage() {
                 <div className="min-w-0">
                   <dt className="text-xs text-muted-foreground">{t("jobs.deadline")}</dt>
                   <dd className="font-medium">{job.deadline}</dd>
+                  {isExpired && (
+                    <dd className="mt-1 inline-flex items-center rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+                      {tr({ vi: "Hết hạn", en: "Expired" })}
+                    </dd>
+                  )}
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -277,13 +288,13 @@ function JobDetailPage() {
               )}
             </dl>
 
-            {job.status === "open" ? (
+            {job.status === "open" && !isExpired ? (
               <Button asChild className="mt-6 w-full" size="lg">
                 <Link to="/jobs/$jobId/apply" params={{ jobId: job.id }}>
                   {t("nav.apply")}
                 </Link>
               </Button>
-            ) : job.status === "expired" || job.status === "closed" ? null : (
+            ) : isExpired || job.status === "closed" ? null : (
               <div className="mt-6 space-y-3">
                 <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
                   {tr({
@@ -300,9 +311,13 @@ function JobDetailPage() {
                 )}
               </div>
             )}
-            <p className="mt-3 text-xs text-muted-foreground">
-              {t("jobs.posted")}: {job.posted}
-            </p>
+            <div className="mt-4 flex items-center gap-3 border-t border-border pt-4 text-sm">
+              <CalendarClock className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">{t("jobs.posted")}</p>
+                <p className="font-medium">{job.posted}</p>
+              </div>
+            </div>
           </div>
         </aside>
       </div>

@@ -67,7 +67,12 @@ function ApplyPage() {
     );
   }
 
-  if (job.status !== "open") {
+  const deadlineDate = new Date(`${job.deadline}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const deadlinePassed = !Number.isNaN(deadlineDate.getTime()) && deadlineDate < today;
+
+  if (job.status !== "open" || deadlinePassed) {
     return (
       <SiteLayout>
         <div className="mx-auto w-full max-w-3xl px-4 py-24 text-center sm:px-6">
