@@ -10,14 +10,12 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminDataTable, type AdminColumn } from "@/components/admin/AdminDataTable";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import {
-  LocalizedField as BiField,
-} from "@/components/admin/LocalizedInput";
+import { LanguageTabs, LocalizedField as BiField } from "@/components/admin/LocalizedInput";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +45,11 @@ import { useTaxonomies, type TaxonomyKey } from "@/lib/taxonomy-store";
 import { fetchJobs, createJob, updateJob, deleteJob, toApiPayload, fetchJobTaxonomies } from "@/lib/api/jobs";
 import { requireAdminSession } from "@/lib/admin-route-guard";
 import { createRouteMeta } from "@/lib/route-meta";
+import { useLanguageConfig } from "@/lib/language-config";
+
+const RichTextEditor = lazy(() =>
+  import("@/components/admin/RichTextEditor").then((m) => ({ default: m.RichTextEditor })),
+);
 
 export const Route = createFileRoute("/admin/jobs")({
   beforeLoad: ({ location }) => requireAdminSession(location.pathname),
@@ -81,6 +84,38 @@ const ALL = "__all__";
 const PAGE_SIZE = 10;
 
 const emptyLocalized: Localized = { vi: "", en: "" };
+
+function JobRichTextField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: Localized;
+  onChange: (value: Localized) => void;
+}) {
+  const { enabled } = useLanguageConfig();
+  const [language, setLanguage] = useState(enabled[0] ?? "vi");
+  const activeLanguage = enabled.includes(language) ? language : (enabled[0] ?? "vi");
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Label>{label}</Label>
+        <LanguageTabs active={activeLanguage} onChange={setLanguage} languages={enabled} />
+      </div>
+      <Suspense
+        fallback={<div className="h-48 animate-pulse rounded-md border border-border bg-muted" />}
+      >
+        <RichTextEditor
+          key={activeLanguage}
+          value={value[activeLanguage] ?? ""}
+          onChange={(content) => onChange({ ...value, [activeLanguage]: content })}
+        />
+      </Suspense>
+    </div>
+  );
+}
 
 /** Option taxonomy cho form: id + label lấy từ database. */
 type TaxonomyOption = { id: string; label: Localized };
@@ -652,24 +687,18 @@ function AdminJobsPage() {
                       {t("admin.jobs.group.content") || "Nội dung chi tiết"}
                     </p>
                   </div>
-                  <BiField
-                    label={t("admin.jobs.field.description")}
-                    value={draft.description ?? emptyLocalized}
-                    multiline
-                    onChange={(description) => patch({ description })}
-                  />
-                  <BiField
-                    label={t("admin.jobs.field.requirements")}
-                    value={draft.requirements ?? emptyLocalized}
-                    multiline
-                    onChange={(requirements) => patch({ requirements })}
-                  />
-                  <BiField
-                    label={t("admin.jobs.field.benefits")}
-                    value={draft.benefits ?? emptyLocalized}
-                    multiline
-                    onChange={(benefits) => patch({ benefits })}
-                  />
+                  {([
+                    ["description", t("admin.jobs.field.description")],
+                    ["requirements", t("admin.jobs.field.requirements")],
+                    ["benefits", t("admin.jobs.field.benefits")],
+                  ] as const).map(([field, label]) => (
+                    <JobRichTextField
+                      key={field}
+                      label={label}
+                      value={draft[field] ?? emptyLocalized}
+                      onChange={(value) => patch({ [field]: value })}
+                    />
+                  ))}
                 </section>
               </div>
 
