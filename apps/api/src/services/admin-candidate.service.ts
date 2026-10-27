@@ -271,6 +271,7 @@ export class AdminCandidateService extends BaseService {
         cvFile: payload.cvFile.trim(),
         jobId: payload.jobId,
         status: payload.status,
+        rating: payload.rating,
         notes: nextNotes,
       },
       include: {

@@ -40,6 +40,7 @@ export interface ApiJobPayload {
   headcount?: number | null;
   contactName?: string | null;
   contactEmail?: string | null;
+  deadline: string;
 }
 
 /** Shape Taxonomy info do AdminJobService trả về (label {vi, en}). */
@@ -206,6 +207,7 @@ export function toApiPayload(job: Job, statusOverride?: JobStatus): ApiJobPayloa
     benefits: toLocalizedPayload(job.benefits),
     status: UI_TO_API[statusOverride ?? job.status],
     isFeatured: job.featured,
+    deadline: job.deadline,
   };
 
   // Không gửi slug: backend tự slugify từ title.en (id của Prisma không phải slug).

@@ -160,6 +160,15 @@ function normalizeHeadcount(value: number | string | null | undefined): number |
   return Number.isFinite(normalized) ? normalized : null;
 }
 
+function parseDeadline(value: string | null | undefined): Date | undefined {
+  if (value == null || value === "") return undefined;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+    throw new Error("Invalid deadline: expected YYYY-MM-DD");
+  }
+  return date;
+}
+
 /** Ba cột trên Job lưu trực tiếp `Taxonomy.id`. */
 type JobTaxonomyColumns = {
   departmentId: string | null;
@@ -375,9 +384,11 @@ export class AdminJobService extends BaseService {
       ? await assertValidTaxonomyId(data.experienceId, "experience", "experienceId")
       : undefined;
 
+    const deadline = parseDeadline(data.deadline);
     const job = await db.job.create({
       data: {
         slug: data.slug ?? slugify(data.title.en),
+        ...(deadline && { deadline }),
         title: toLocalizedObj(data.title),
         ...(data.summary && { summary: toLocalizedObj(data.summary) }),
         description: formatLocalizedField(data.description),
@@ -426,7 +437,9 @@ export class AdminJobService extends BaseService {
       ? await assertValidTaxonomyId(data.experienceId, "experience", "experienceId")
       : undefined;
 
+    const deadline = parseDeadline(data.deadline);
     const updateData: Record<string, unknown> = {
+      ...(deadline && { deadline }),
       ...(data.title && { title: toLocalizedObj(data.title) }),
       ...(data.summary && { summary: toLocalizedObj(data.summary) }),
       ...(data.description !== undefined && { description: formatLocalizedField(data.description) }),

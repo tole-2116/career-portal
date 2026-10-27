@@ -69,5 +69,6 @@ export interface AdminCandidateUpdatePayload {
   cvFile: string;
   jobId: string | null;
   status: AdminCandidateStatus;
+  rating: number;
   notes: AdminCandidateNote[];
 }

@@ -143,6 +143,7 @@ export interface CandidateUpdatePayload {
   cvFile: string;
   jobId: string | null;
   status: Stage;
+  rating: number;
   notes: CandidateNote[];
 }
 

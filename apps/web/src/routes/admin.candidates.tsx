@@ -220,6 +220,8 @@ function AdminCandidatesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editStage, setEditStage] = useState<Stage>("new");
+  const [editRating, setEditRating] = useState<number | null>(null);
+  const [hoveredRating, setHoveredRating] = useState(0);
   const [editNoteBody, setEditNoteBody] = useState("");
   const [cvPreview, setCvPreview] = useState<CvPreview | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -397,8 +399,15 @@ function AdminCandidatesPage() {
   const handleRowClick = (candidate: Candidate) => {
     setSelectedId(candidate.id);
     setEditStage(candidate.stage);
+    setEditRating(candidate.rating);
+    setHoveredRating(0);
     setEditNoteBody("");
   };
+
+  // Keep the edit value in sync with the selected row after list reloads or save responses.
+  useEffect(() => {
+    setEditRating(selected ? selected.rating : null);
+  }, [selected?.id, selected?.rating]);
   async function submitCandidate() {
     if (!selected || isSubmitting) return;
     setIsSubmitting(true);
@@ -411,6 +420,7 @@ function AdminCandidatesPage() {
         cvFile: selected.cvFile,
         jobId: selected.jobId,
         status: editStage,
+        rating: editRating ?? selected.rating,
         notes: editNoteBody.trim()
           ? [
               ...selected.notes,
@@ -617,7 +627,7 @@ function AdminCandidatesPage() {
             <button
               key={candidate.id}
               type="button"
-              onClick={() => setSelectedId(candidate.id)}
+              onClick={() => handleRowClick(candidate)}
               className="rounded-lg border border-border bg-card p-4 text-left"
             >
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
@@ -677,10 +687,40 @@ function AdminCandidatesPage() {
                   <MapPin className="h-4 w-4 shrink-0" />
                   <span className="truncate">{selected.address || tr(selected.location)}</span>
                 </span>
-                <span className="flex items-center gap-2 text-muted-foreground">
+                <div className="flex items-center gap-2 text-muted-foreground">
                   <Star className="h-4 w-4 shrink-0" />
-                  <Rating value={selected.rating} />
-                </span>
+                  <div
+                    role="group"
+                    aria-label={tr({ vi: "Đánh giá ứng viên", en: "Candidate rating" })}
+                    className="flex items-center"
+                    onMouseLeave={() => setHoveredRating(0)}
+                  >
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        type="button"
+                        aria-label={tr({ vi: `${rating} sao`, en: `${rating} stars` })}
+                        aria-pressed={editRating === rating}
+                        disabled={isSubmitting}
+                        onMouseEnter={() => setHoveredRating(rating)}
+                        onFocus={() => setHoveredRating(rating)}
+                        onBlur={() => setHoveredRating(0)}
+                        onClick={() => setEditRating(rating)}
+                        className="rounded-sm p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
+                      >
+                        <Star
+                          aria-hidden="true"
+                          className={cn(
+                            "h-5 w-5 transition-colors",
+                            rating <= (hoveredRating || editRating || 0)
+                              ? "fill-accent text-accent"
+                              : "text-muted-foreground/40",
+                          )}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="rounded-md border border-border bg-surface p-4">

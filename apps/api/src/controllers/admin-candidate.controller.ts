@@ -189,6 +189,7 @@ export class AdminCandidateController {
           ? payload.jobId.trim() || null
           : "__invalid__";
       const status = payload.status;
+      const rating = payload.rating ?? 0;
 
       const missing: string[] = [];
       if (!name) missing.push("name");
@@ -196,6 +197,9 @@ export class AdminCandidateController {
       if (!phone) missing.push("phone");
       if (!cvFile) missing.push("cvFile");
       if (!status) missing.push("status");
+      if (typeof rating !== "number" || !Number.isInteger(rating) || rating < 0 || rating > 5) {
+        return res.status(400).json({ success: false, error: "rating must be an integer between 1 and 5" });
+      }
       if (!Array.isArray(notes)) {
         return res.status(400).json({ success: false, error: "notes must be an array" });
       }
@@ -260,6 +264,7 @@ export class AdminCandidateController {
         cvFile,
         jobId,
         status: status as AdminCandidateStatus,
+        rating,
         notes: normalizedNotes,
       }, req.user?.name ?? "");
 
