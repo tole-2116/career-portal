@@ -3,7 +3,7 @@ import { BaseService, readLocalized, slugify as baseSlugify, softDeleteData } fr
 
 export type Localized = { vi: string; en: string };
 export type TaxonomyType = "department" | "workType" | "salary" | "experience" | "location";
-export type TaxonomyItemDto = { id: string; code: string; type: string; label: Localized };
+export type TaxonomyItemDto = { id: string; code: string; type: string; label: Localized; usageCount?: number };
 export type CustomGroupDto = { key: string; label: Localized; items: TaxonomyItemDto[] };
 export type TaxonomyResult = {
   taxonomies: Record<TaxonomyType, TaxonomyItemDto[]>;
@@ -72,12 +72,41 @@ function emptyTaxonomies(): Record<TaxonomyType, TaxonomyItemDto[]> {
 
 export class AdminTaxonomyService extends BaseService {
   async list(): Promise<TaxonomyResult> {
-    const rows = await db.taxonomy.findMany({ where: { isdelete: false }, orderBy: { created_at: "asc" } });
+    const [rows, jobs] = await Promise.all([
+      db.taxonomy.findMany({ where: { isdelete: false }, orderBy: { created_at: "asc" } }),
+      db.job.findMany({
+        where: { isdelete: false },
+        select: {
+          departmentId: true,
+          workTypeId: true,
+          salaryId: true,
+          experienceId: true,
+          locationIds: true,
+        },
+      }),
+    ]);
+    const usageCounts = new Map<string, number>();
+    const addUsage = (id: string | null) => {
+      if (id) usageCounts.set(id, (usageCounts.get(id) ?? 0) + 1);
+    };
+    for (const job of jobs) {
+      addUsage(job.departmentId);
+      addUsage(job.workTypeId);
+      addUsage(job.salaryId);
+      addUsage(job.experienceId);
+      for (const locationId of new Set((job.locationIds ?? "").split(",").map((id) => id.trim()).filter(Boolean))) {
+        addUsage(locationId);
+      }
+    }
+    const withUsage = (item: TaxonomyItemDto): TaxonomyItemDto => ({
+      ...item,
+      usageCount: usageCounts.get(item.id) ?? 0,
+    });
     const taxonomies = emptyTaxonomies();
     const groups = new Map<string, CustomGroupDto>();
     for (const row of rows) {
       if (BUILT_IN_TYPES.includes(row.type as TaxonomyType)) {
-        taxonomies[row.type as TaxonomyType].push(readItem(row));
+        taxonomies[row.type as TaxonomyType].push(withUsage(readItem(row)));
         continue;
       }
       if (row.type === "newsCategory") continue;
@@ -88,7 +117,7 @@ export class AdminTaxonomyService extends BaseService {
         groups.set(key, group);
       }
       if (row.code === "__group__") group.label = localized(row.name);
-      else group.items.push(readItem(row));
+      else group.items.push(withUsage(readItem(row)));
     }
     return { taxonomies, customGroups: [...groups.values()] };
   }

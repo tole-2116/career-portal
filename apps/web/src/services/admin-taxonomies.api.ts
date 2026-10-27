@@ -4,7 +4,7 @@ import type { Localized } from "@/lib/i18n";
 
 const BASE = "/api/admin/taxonomies";
 
-type ApiItem = { id: string; code: string; type: string; label: Localized };
+type ApiItem = { id: string; code: string; type: string; label: Localized; usageCount?: number };
 type ApiGroup = { key: string; label: Localized; items: ApiItem[] };
 type ApiResult = {
   taxonomies: Record<"department" | "workType" | "salary" | "experience" | "location", ApiItem[]>;
@@ -16,7 +16,7 @@ async function request<T>(input: string, init?: RequestInit): Promise<T> {
 }
 
 function mapItem(item: ApiItem): TaxonomyItem {
-  return { id: item.id, label: item.label };
+  return { id: item.id, label: item.label, usageCount: item.usageCount ?? 0 };
 }
 
 /** Backend dùng type số ít; UI dùng key số nhiều của taxonomy-store. */
