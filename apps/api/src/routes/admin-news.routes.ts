@@ -7,6 +7,7 @@ export const adminNewsRoutes: RouterType = Router();
 adminNewsRoutes.use(requireAuth, requireRole("ADMIN", "RECRUITER"));
 
 // GET /api/admin/news — danh sách bài viết (phân trang, lọc, tìm kiếm)
+adminNewsRoutes.get("/stats", adminNewsController.getStats);
 adminNewsRoutes.get("/", adminNewsController.getPaginated);
 
 // GET /api/admin/news/categories — chuyên mục tin tức từ Taxonomy type=newsCategory

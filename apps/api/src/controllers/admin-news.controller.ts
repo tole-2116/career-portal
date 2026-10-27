@@ -82,6 +82,7 @@ function readNewsPayload(body: unknown, partial = false): NewsModel {
 export class AdminNewsController {
   constructor() {
     this.getPaginated = this.getPaginated.bind(this);
+    this.getStats = this.getStats.bind(this);
     this.getDetail = this.getDetail.bind(this);
     this.create = this.create.bind(this);
     this.update = this.update.bind(this);
@@ -90,6 +91,15 @@ export class AdminNewsController {
     this.createCategory = this.createCategory.bind(this);
     this.deleteCategory = this.deleteCategory.bind(this);
     this.uploadCover = this.uploadCover.bind(this);
+  }
+
+  async getStats(_req: Request, res: Response) {
+    try {
+      return res.json({ success: true, data: await adminNewsService.countByCategory() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to fetch news statistics";
+      return res.status(500).json({ success: false, error: message });
+    }
   }
 
   async getPaginated(req: Request, res: Response) {
