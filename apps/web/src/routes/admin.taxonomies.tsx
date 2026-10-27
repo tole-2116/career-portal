@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { LocalizedField } from "@/components/admin/LocalizedInput";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useI18n, type Localized, type TranslationKey } from "@/lib/i18n";
 import { type Taxonomies, type TaxonomyKey } from "@/lib/taxonomy-store";
@@ -211,11 +212,25 @@ function AdminTaxonomiesPage() {
                     const used = entry.usageCount ?? 0;
                     return (
                       <li key={entry.id} className="rounded-lg border border-border p-3">
-                        <LocalizedField
-                          label={group.title}
-                          value={entry.label}
-                          onChange={(next) => updateItem(group.key, entry.id, next)}
-                        />
+                        <div className="space-y-2">
+                          <Label>{group.title}</Label>
+                          <div className="space-y-3">
+                            {(["vi", "en"] as const).map((language) => (
+                              <Input
+                                key={language}
+                                value={entry.label[language] ?? ""}
+                                placeholder={language === "vi" ? "Tiếng Việt" : "English"}
+                                aria-label={`${group.title} — ${language === "vi" ? "Tiếng Việt" : "English"}`}
+                                onChange={(event) =>
+                                  updateItem(group.key, entry.id, {
+                                    ...entry.label,
+                                    [language]: event.target.value,
+                                  })
+                                }
+                              />
+                            ))}
+                          </div>
+                        </div>
                         <div className="mt-2 flex items-center justify-between gap-2">
                           <span className="text-xs text-muted-foreground">
                             {group.field ? `${used} ${t("taxonomy.usage")}` : ""}

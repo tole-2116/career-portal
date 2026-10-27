@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { jobs } from "@/data/jobs";
 import {
@@ -48,7 +49,7 @@ import {
   type FormField,
   type FormSection,
 } from "@/lib/form-config";
-import { LocalizedField } from "@/components/admin/LocalizedInput";
+import { languageLabel } from "@/lib/language-config";
 import { useI18n, type Localized } from "@/lib/i18n";
 import {
   fetchAdminFormConfig,
@@ -96,10 +97,11 @@ const copy = {
   type: { vi: "Kiểu câu hỏi", en: "Question type" },
   required: { vi: "Bắt buộc", en: "Required" },
   fullWidth: { vi: "Chiếm cả hàng", en: "Full width" },
-  options: {
-    vi: "Lựa chọn (mỗi dòng: Tiếng Việt | English)",
-    en: "Options (one per line: Vietnamese | English)",
-  },
+  options: { vi: "Lựa chọn", en: "Options" },
+  addOption: { vi: "Thêm lựa chọn", en: "Add option" },
+  removeOption: { vi: "Xóa lựa chọn", en: "Remove option" },
+  moveOptionUp: { vi: "Di chuyển lựa chọn lên", en: "Move option up" },
+  moveOptionDown: { vi: "Di chuyển lựa chọn xuống", en: "Move option down" },
   submitLabel: { vi: "Chữ trên nút gửi", en: "Submit button label" },
   successTitle: { vi: "Tiêu đề khi gửi thành công", en: "Success title" },
   successBody: { vi: "Nội dung khi gửi thành công", en: "Success message" },
@@ -122,13 +124,34 @@ function LocalizedInput({
   label: string;
   multiline?: boolean;
 }) {
+  const languages = ["vi", "en"] as const;
+
   return (
-    <LocalizedField
-      label={label}
-      value={value}
-      onChange={onChange}
-      {...(multiline ? { multiline: true } : {})}
-    />
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="space-y-3">
+        {languages.map((language) =>
+          multiline ? (
+            <Textarea
+              key={language}
+              rows={3}
+              value={value[language] ?? ""}
+              placeholder={languageLabel(language)}
+              aria-label={`${label} — ${languageLabel(language)}`}
+              onChange={(event) => onChange({ ...value, [language]: event.target.value })}
+            />
+          ) : (
+            <Input
+              key={language}
+              value={value[language] ?? ""}
+              placeholder={languageLabel(language)}
+              aria-label={`${label} — ${languageLabel(language)}`}
+              onChange={(event) => onChange({ ...value, [language]: event.target.value })}
+            />
+          ),
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -145,7 +168,8 @@ function FieldEditor({
 }) {
   const { tr } = useI18n();
 
-  const optionsText = (field.options ?? []).map((o) => `${o.vi} | ${o.en}`).join("\n");
+  const [draggedOptionIndex, setDraggedOptionIndex] = useState<number | null>(null);
+  const options = field.options ?? [];
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -204,25 +228,93 @@ function FieldEditor({
           )}
 
           {field.type === "select" && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label className="text-xs text-muted-foreground">{tr(copy.options)}</Label>
-              <Textarea
-                rows={3}
-                value={optionsText}
-                onChange={(e) =>
-                  onChange({
-                    ...field,
-                    options: e.target.value
-                      .split("\n")
-                      .map((line) => line.trim())
-                      .filter(Boolean)
-                      .map((line) => {
-                        const [vi, en] = line.split("|").map((part) => part.trim());
-                        return { vi: vi ?? "", en: en ?? vi ?? "" };
-                      }),
-                  })
-                }
-              />
+              <div className="space-y-3">
+                {options.map((option, optionIndex) => (
+                  <div
+                    key={optionIndex}
+                    className={`flex items-start gap-2 rounded-md border border-border p-3 ${draggedOptionIndex === optionIndex ? "opacity-50" : ""}`}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      if (draggedOptionIndex === null || draggedOptionIndex === optionIndex) return;
+                      const reordered = [...options];
+                      const [dragged] = reordered.splice(draggedOptionIndex, 1);
+                      reordered.splice(optionIndex, 0, dragged!);
+                      onChange({ ...field, options: reordered });
+                      setDraggedOptionIndex(null);
+                    }}
+                  >
+                    <button
+                      type="button"
+                      draggable
+                      aria-label={`${tr(copy.options)} ${optionIndex + 1}`}
+                      className="mt-2 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+                      onDragStart={(event) => {
+                        event.dataTransfer.effectAllowed = "move";
+                        setDraggedOptionIndex(optionIndex);
+                      }}
+                      onDragEnd={() => setDraggedOptionIndex(null)}
+                    >
+                      <GripVertical className="h-4 w-4" />
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <LocalizedInput
+                        label={`${tr(copy.options)} ${optionIndex + 1}`}
+                        value={option}
+                        onChange={(next) =>
+                          onChange({
+                            ...field,
+                            options: options.map((item, index) => index === optionIndex ? next : item),
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={tr(copy.moveOptionUp)}
+                        disabled={optionIndex === 0}
+                        onClick={() => onChange({ ...field, options: move(options, optionIndex, -1) })}
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={tr(copy.moveOptionDown)}
+                        disabled={optionIndex === options.length - 1}
+                        onClick={() => onChange({ ...field, options: move(options, optionIndex, 1) })}
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive"
+                        aria-label={tr(copy.removeOption)}
+                        onClick={() => onChange({ ...field, options: options.filter((_, index) => index !== optionIndex) })}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onChange({ ...field, options: [...options, { vi: "", en: "" }] })}
+              >
+                <Plus className="mr-1.5 h-4 w-4" />
+                {tr(copy.addOption)}
+              </Button>
             </div>
           )}
         </div>
@@ -413,11 +505,26 @@ function FormBuilderPage() {
                 </div>
               </div>
 
-              <LocalizedInput
-                label={tr(copy.sectionTitle)}
-                value={section.title}
-                onChange={(title) => updateSection(sectionIndex, { ...section, title })}
-              />
+              <div className="space-y-2">
+                <Label>{tr(copy.sectionTitle)}</Label>
+                <div className="space-y-3">
+                  {(["vi", "en"] as const).map((language) => (
+                    <Input
+                      key={language}
+                      id={`${section.id}-title-${language}`}
+                      value={section.title[language] ?? ""}
+                      placeholder={languageLabel(language)}
+                      aria-label={`${tr(copy.sectionTitle)} — ${languageLabel(language)}`}
+                      onChange={(event) =>
+                        updateSection(sectionIndex, {
+                          ...section,
+                          title: { ...section.title, [language]: event.target.value },
+                        })
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
               <LocalizedInput
                 label={tr(copy.sectionDesc)}
                 value={section.description ?? { vi: "", en: "" }}
