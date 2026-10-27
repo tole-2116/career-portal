@@ -82,6 +82,10 @@ function toPayload(article: Article) {
   };
 }
 
+export async function fetchAdminNewsStats(): Promise<{ total: number; categories: Record<string, number> }> {
+  return request<{ total: number; categories: Record<string, number> }>(`${ADMIN_BASE}/stats`);
+}
+
 export async function fetchNews(params: {
   page?: number;
   limit?: number;
@@ -103,6 +107,10 @@ export async function fetchNews(params: {
     page: result?.page ?? 1,
     totalPages: result?.totalPages ?? 1,
   };
+}
+
+export async function fetchPublicNewsStats(): Promise<{ total: number; categories: Record<string, number> }> {
+  return request<{ total: number; categories: Record<string, number> }>(`${PUBLIC_BASE}/stats`, undefined, false);
 }
 
 export async function fetchPublicNews(): Promise<Article[]> {

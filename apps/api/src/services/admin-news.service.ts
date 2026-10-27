@@ -46,6 +46,19 @@ async function ensureUniqueSlug(baseSlug: string, excludeId?: string): Promise<s
 }
 
 export class AdminNewsService extends BaseService {
+  async countByCategory(published?: boolean) {
+    const rows = await db.news.groupBy({
+      by: ["categoryId"],
+      where: { isdelete: false, ...(published !== undefined && { published }) },
+      _count: { _all: true },
+    });
+    const total = rows.reduce((sum, row) => sum + row._count._all, 0);
+    return {
+      total,
+      categories: Object.fromEntries(rows.map((row) => [row.categoryId, row._count._all])),
+    };
+  }
+
   async findMany(query: NewsModelQuery = {}) {
     const page = query.page ?? 1;
     const limit = Math.min(query.limit ?? 10, 100);

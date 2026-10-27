@@ -65,6 +65,7 @@ import {
   deleteNewsCategory,
   fetchNews,
   fetchNewsCategories,
+  fetchAdminNewsStats,
   updateNews,
   uploadNewsCover,
 } from "@/services/admin-news.api";
@@ -104,6 +105,7 @@ function AdminNewsPage() {
   // Danh sách bài viết lấy trực tiếp qua API (phân trang phía server).
   const [articles, setArticles] = useState<Article[]>([]);
   const [categories, setCategories] = useState<NewsCategory[]>([]);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [keyword, setKeyword] = useState("");
   const [categoryFilter, setCategoryFilter] = useState(ALL);
   const [publishedFilter, setPublishedFilter] = useState(ALL);
@@ -125,9 +127,12 @@ function AdminNewsPage() {
   // Tải danh sách chuyên mục một lần cho dropdown lọc + select trong form.
   useEffect(() => {
     let cancelled = false;
-    fetchNewsCategories()
-      .then((items) => {
-        if (!cancelled) setCategories(items);
+    Promise.all([fetchNewsCategories(), fetchAdminNewsStats()])
+      .then(([items, stats]) => {
+        if (!cancelled) {
+          setCategories(items);
+          setCategoryCounts(stats.categories);
+        }
       })
       .catch((error) => {
         if (!cancelled) {
@@ -502,7 +507,7 @@ function AdminNewsPage() {
                 <span className="min-w-0 truncate text-sm font-medium">{tr(category.label)}</span>
                 <span className="flex shrink-0 items-center gap-3">
                   <span className="text-xs text-muted-foreground">
-                    {articles.filter((item) => item.categoryId === category.id).length}{" "}
+                    {categoryCounts[category.id] ?? 0}{" "}
                     {tr({ vi: "bài", en: "articles" })}
                   </span>
                   <Button

@@ -1,33 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { LocalizedField } from "@/components/admin/LocalizedInput";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Job } from "@/data/jobs";
 import { useI18n, type Localized, type TranslationKey } from "@/lib/i18n";
 import { useJobs } from "@/lib/jobs-store";
-import {
-  type CustomGroup,
-  type Taxonomies,
-  type TaxonomyKey,
-} from "@/lib/taxonomy-store";
+import { type Taxonomies, type TaxonomyKey } from "@/lib/taxonomy-store";
 import {
   createTaxonomyItem,
-  deleteCustomGroup,
   deleteTaxonomyItem,
   fetchAdminTaxonomies,
   moveTaxonomyItem,
@@ -65,17 +50,17 @@ function AdminTaxonomiesPage() {
     experiences: [],
     locations: [],
   });
-  const [customGroups, setCustomGroups] = useState<CustomGroup[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [pendingGroup, setPendingGroup] = useState<string | null>(null);
+  const [activeGroup, setActiveGroup] = useState(builtInGroups[0]!.key);
+  const [draftIds, setDraftIds] = useState<Set<string>>(() => new Set());
+  const [nextDraftId, setNextDraftId] = useState(0);
 
   const loadTaxonomies = useCallback(async () => {
     setIsLoading(true);
     try {
       const result = await fetchAdminTaxonomies();
       setTaxonomies(result.taxonomies);
-      setCustomGroups(result.customGroups);
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -91,35 +76,37 @@ function AdminTaxonomiesPage() {
     void loadTaxonomies();
   }, [loadTaxonomies]);
 
-  const addItem = async (key: string) => {
-    if (isSaving) return;
-    setIsSaving(true);
-    try {
-      await createTaxonomyItem(key, { vi: "", en: "" });
-      await loadTaxonomies();
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : tr({ vi: "Không thêm được mục.", en: "Failed to add item." }),
-      );
-    } finally {
-      setIsSaving(false);
-    }
+  const addItem = (key: string) => {
+    const id = `draft-${nextDraftId}`;
+    const item = { id, label: { vi: "", en: "" } };
+    setNextDraftId((current) => current + 1);
+    setDraftIds((current) => new Set(current).add(id));
+    setTaxonomies((current) => ({ ...current, [key]: [...current[key as TaxonomyKey], item] }));
   };
 
-  const updateItem = async (key: string, id: string, label: Localized) => {
+  const updateItem = (key: string, id: string, label: Localized) => {
+    const update = (item: Taxonomies[TaxonomyKey]) => item.map((entry) =>
+      entry.id === id ? { ...entry, label } : entry,
+    );
+    setTaxonomies((current) => ({ ...current, [key]: update(current[key as TaxonomyKey]) }));
+  };
+
+  const saveItem = async (key: string, id: string, label: Localized) => {
     if (isSaving) return;
     setIsSaving(true);
     try {
-      await updateTaxonomyItem(id, label);
-      await loadTaxonomies();
+      const saved = draftIds.has(id)
+        ? await createTaxonomyItem(key, label)
+        : await updateTaxonomyItem(id, label);
+      const replace = (items: Taxonomies[TaxonomyKey]) => items.map((item) => item.id === id ? saved : item);
+      setTaxonomies((current) => ({ ...current, [key]: replace(current[key as TaxonomyKey]) }));
+      setDraftIds((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : tr({ vi: "Không cập nhật được mục.", en: "Failed to update item." }),
-      );
+      toast.error(error instanceof Error ? error.message : tr({ vi: "Không lưu được mục.", en: "Failed to save item." }));
     } finally {
       setIsSaving(false);
     }
@@ -143,6 +130,18 @@ function AdminTaxonomiesPage() {
   };
 
   const removeItem = async (key: string, id: string) => {
+    if (draftIds.has(id)) {
+      setTaxonomies((current) => ({
+        ...current,
+        [key]: current[key as TaxonomyKey].filter((item) => item.id !== id),
+      }));
+      setDraftIds((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
+      return;
+    }
     if (isSaving) return;
     setIsSaving(true);
     try {
@@ -159,41 +158,12 @@ function AdminTaxonomiesPage() {
     }
   };
 
-  const removeGroup = async (key: string) => {
-    if (isSaving) return;
-    setIsSaving(true);
-    try {
-      await deleteCustomGroup(key);
-      setPendingGroup(null);
-      await loadTaxonomies();
-      toast.success(tr({ vi: "Đã xóa nhóm.", en: "Group deleted." }));
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : tr({ vi: "Không xoá được nhóm.", en: "Failed to delete group." }),
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const groups = [
-    ...builtInGroups.map((group) => ({
-      key: group.key as string,
-      title: t(group.label),
-      field: group.field as keyof Job | null,
-      items: taxonomies[group.key],
-      builtIn: true,
-    })),
-    ...customGroups.map((group) => ({
-      key: group.key,
-      title: tr(group.label) || tr({ vi: "Nhóm mới", en: "New group" }),
-      field: null,
-      items: group.items,
-      builtIn: false,
-    })),
-  ];
+  const groups = builtInGroups.map((group) => ({
+    key: group.key,
+    title: t(group.label),
+    field: group.field as keyof Job | null,
+    items: taxonomies[group.key],
+  }));
 
   const usageCount = (field: keyof Job | null, en: string, vi: string) => {
     if (!field) return 0;
@@ -220,7 +190,7 @@ function AdminTaxonomiesPage() {
           {tr({ vi: "Đang tải danh mục...", en: "Loading taxonomies..." })}
         </div>
       )}
-      {!isLoading && groups.length > 0 && <Tabs defaultValue={groups[0]!.key}>
+      {!isLoading && groups.length > 0 && <Tabs value={activeGroup} onValueChange={setActiveGroup}>
         <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-5">
           {groups.map((group) => (
             <TabsTrigger key={group.key} value={group.key} className="min-w-0 truncate">
@@ -241,19 +211,7 @@ function AdminTaxonomiesPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="font-display text-base font-semibold">{group.title}</h2>
                 <div className="flex items-center gap-2">
-                  {!group.builtIn && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setPendingGroup(group.key)}
-                      className="text-destructive"
-                      disabled={isSaving}
-                    >
-                      <Trash2 className="mr-1.5 h-4 w-4" />
-                      {tr({ vi: "Xóa nhóm", en: "Delete group" })}
-                    </Button>
-                  )}
-                  <Button size="sm" variant="outline" onClick={() => void addItem(group.key)} disabled={isSaving}>
+                  <Button size="sm" variant="outline" onClick={() => addItem(group.key)} disabled={isSaving}>
                     {isSaving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plus className="mr-1.5 h-4 w-4" />}{" "}
                     {t("taxonomy.add")}
                   </Button>
@@ -284,7 +242,7 @@ function AdminTaxonomiesPage() {
                               size="sm"
                               variant="ghost"
                               aria-label={t("taxonomy.moveUp")}
-                              disabled={isSaving || index === 0}
+                              disabled={isSaving || draftIds.has(entry.id) || index === 0}
                               onClick={() => void moveItem(group.key, entry.id, -1)}
                             >
                               <ArrowUp className="h-4 w-4" />
@@ -293,10 +251,19 @@ function AdminTaxonomiesPage() {
                               size="sm"
                               variant="ghost"
                               aria-label={t("taxonomy.moveDown")}
-                              disabled={isSaving || index === list.length - 1}
+                              disabled={isSaving || draftIds.has(entry.id) || index === list.length - 1}
                               onClick={() => void moveItem(group.key, entry.id, 1)}
                             >
                               <ArrowDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              aria-label={tr({ vi: "Lưu mục", en: "Save item" })}
+                              disabled={isSaving || (!draftIds.has(entry.id) && !entry.label.vi.trim() && !entry.label.en.trim())}
+                              onClick={() => void saveItem(group.key, entry.id, entry.label)}
+                            >
+                              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                             </Button>
                             <Button
                               size="sm"
@@ -318,35 +285,6 @@ function AdminTaxonomiesPage() {
           );
         })}
       </Tabs>}
-
-      <AlertDialog open={pendingGroup !== null} onOpenChange={(open) => !open && setPendingGroup(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {tr({ vi: "Xóa nhóm danh mục này?", en: "Delete this group?" })}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {tr({
-                vi: "Toàn bộ mục con trong nhóm sẽ bị xóa và không khôi phục được.",
-                en: "All items inside this group will be removed permanently.",
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSaving}>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={isSaving}
-              onClick={(event) => {
-                event.preventDefault();
-                if (pendingGroup) void removeGroup(pendingGroup);
-              }}
-            >
-              {isSaving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-              {tr({ vi: "Xóa", en: "Delete" })}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </AdminLayout>
   );
 }

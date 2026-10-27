@@ -3,6 +3,15 @@ import { adminNewsService } from "../services/admin-news.service";
 
 export const newsRoutes: RouterType = Router();
 
+newsRoutes.get("/stats", async (_req, res) => {
+  try {
+    return res.json({ success: true, data: await adminNewsService.countByCategory(true) });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to fetch news statistics";
+    return res.status(500).json({ success: false, error: message });
+  }
+});
+
 // Public list — chỉ trả bài đã xuất bản.
 newsRoutes.get("/", async (req, res) => {
   try {

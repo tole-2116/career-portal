@@ -17,6 +17,7 @@ import {
   deleteNewsCategory,
   fetchNews,
   fetchNewsCategories,
+  fetchPublicNewsStats,
   updateNews,
 } from "@/services/admin-news.api";
 
@@ -161,6 +162,7 @@ export function emptyArticle(author = "TalentHub"): Article {
 type NewsValue = {
   articles: Article[];
   categories: NewsCategory[];
+  stats: { total: number; categories: Record<string, number> };
   /** Trạng thái đang tải dữ liệu từ API (dùng cho spinner). */
   loading: boolean;
   /** Lỗi API cuối cùng nếu có (UI toast khi cần). */
@@ -179,6 +181,7 @@ const NewsContext = createContext<NewsValue | null>(null);
 export function NewsProvider({ children }: { children: ReactNode }) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [categories, setCategories] = useState<NewsCategory[]>([]);
+  const [stats, setStats] = useState<{ total: number; categories: Record<string, number> }>({ total: 0, categories: {} });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -186,12 +189,14 @@ export function NewsProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const [newsResult, categoryResult] = await Promise.all([
+      const [newsResult, categoryResult, statsResult] = await Promise.all([
         fetchNews({ limit: 100 }),
         fetchNewsCategories(),
+        fetchPublicNewsStats(),
       ]);
       setArticles(newsResult.articles);
       setCategories(categoryResult.length ? categoryResult : defaultCategories);
+      setStats(statsResult);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không tải được tin tức");
     } finally {
@@ -241,6 +246,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
     () => ({
       articles,
       categories,
+      stats,
       loading,
       error,
       saveArticle,
@@ -249,7 +255,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
       deleteCategory,
       refresh,
     }),
-    [articles, categories, loading, error, saveArticle, deleteArticle, saveCategory, deleteCategory, refresh],
+    [articles, categories, stats, loading, error, saveArticle, deleteArticle, saveCategory, deleteCategory, refresh],
   );
 
   return <NewsContext.Provider value={value}>{children}</NewsContext.Provider>;

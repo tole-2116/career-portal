@@ -101,9 +101,18 @@ export class AdminTaxonomyService extends BaseService {
     const codeBase = slugify(normalized.en || normalized.vi || "muc-moi");
     let code = codeBase;
     let suffix = 2;
-    while (await db.taxonomy.findFirst({ where: { code, isdelete: false } })) code = `${codeBase}-${suffix++}`;
-    const row = await db.taxonomy.create({ data: { code, type: storedType, name: normalized, slug: `${storedType}-${code}`, usercreate_at: "admin" } });
-    return readItem(row);
+    while (await db.taxonomy.findFirst({ where: { code } })) code = `${codeBase}-${suffix++}`;
+
+    while (true) {
+      try {
+        const row = await db.taxonomy.create({ data: { code, type: storedType, name: normalized, slug: `${storedType}-${code}`, usercreate_at: "admin" } });
+        return readItem(row);
+      } catch (error) {
+        if (typeof error !== "object" || error === null || !("code" in error) || error.code !== "P2002") throw error;
+        code = `${codeBase}-${suffix++}`;
+        while (await db.taxonomy.findFirst({ where: { code } })) code = `${codeBase}-${suffix++}`;
+      }
+    }
   }
 
   private async findActive(idOrCode: string) {

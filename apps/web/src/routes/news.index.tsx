@@ -24,7 +24,7 @@ const PAGE_SIZE = 6;
 function NewsListPage() {
   const { tr } = useI18n();
   const { config } = useSiteConfig();
-  const { articles, categories } = useNews();
+  const { articles, categories, stats } = useNews();
   const navigate = useNavigate();
   const enabled = config.modules.news;
 
@@ -81,7 +81,7 @@ function NewsListPage() {
                   : "border-border bg-card text-muted-foreground hover:text-foreground",
               )}
             >
-              {tr(item.label)}
+              {tr(item.label)} ({item.id === "all" ? stats.total : stats.categories[item.id] ?? 0})
             </button>
           ))}
         </div>
