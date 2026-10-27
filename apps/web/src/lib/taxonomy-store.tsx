@@ -16,7 +16,7 @@ export type TaxonomyKey =
   | "experiences"
   | "locations";
 
-export type TaxonomyItem = { id: string; label: Localized };
+export type TaxonomyItem = { id: string; label: Localized; usageCount?: number };
 
 export type Taxonomies = Record<TaxonomyKey, TaxonomyItem[]>;
 

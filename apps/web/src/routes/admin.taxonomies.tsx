@@ -7,9 +7,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { LocalizedField } from "@/components/admin/LocalizedInput";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Job } from "@/data/jobs";
 import { useI18n, type Localized, type TranslationKey } from "@/lib/i18n";
-import { useJobs } from "@/lib/jobs-store";
 import { type Taxonomies, type TaxonomyKey } from "@/lib/taxonomy-store";
 import {
   createTaxonomyItem,
@@ -42,7 +40,6 @@ const builtInGroups: { key: TaxonomyKey; label: TranslationKey; field: keyof Job
 
 function AdminTaxonomiesPage() {
   const { t, tr } = useI18n();
-  const { jobs } = useJobs();
   const [taxonomies, setTaxonomies] = useState<Taxonomies>({
     departments: [],
     workTypes: [],
@@ -161,23 +158,9 @@ function AdminTaxonomiesPage() {
   const groups = builtInGroups.map((group) => ({
     key: group.key,
     title: t(group.label),
-    field: group.field as keyof Job | null,
+    field: group.field,
     items: taxonomies[group.key],
   }));
-
-  const usageCount = (field: keyof Job | null, en: string, vi: string) => {
-    if (!field) return 0;
-    return jobs.filter((job) => {
-      const raw = job[field] as unknown;
-      const values = (Array.isArray(raw) ? raw : [raw]) as (
-        | { vi?: string; en?: string }
-        | undefined
-      )[];
-      return values.some((value) =>
-        value ? (en && value.en === en) || (vi && value.vi === vi) : false,
-      );
-    }).length;
-  };
 
   return (
     <AdminLayout
@@ -225,7 +208,7 @@ function AdminTaxonomiesPage() {
               ) : (
                 <ul className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {list.map((entry, index) => {
-                    const used = usageCount(group.field, entry.label.en, entry.label.vi);
+                    const used = entry.usageCount ?? 0;
                     return (
                       <li key={entry.id} className="rounded-lg border border-border p-3">
                         <LocalizedField
