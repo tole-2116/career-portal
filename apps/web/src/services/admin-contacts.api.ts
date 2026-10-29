@@ -10,8 +10,11 @@ type ApiContact = {
   phone: string | null;
   subject: string;
   body: string;
+  status: ContactStatus;
   createdAt: string;
 };
+
+export type ContactStatus = "NEW" | "READ" | "RESOLVED";
 
 type ApiListResult = {
   contacts: ApiContact[];
@@ -31,6 +34,7 @@ function mapContact(contact: ApiContact): AdminContact {
     phone: contact.phone ?? null,
     subject: contact.subject,
     body: contact.body,
+    status: contact.status,
     createdAt: contact.createdAt,
   };
 }
@@ -56,5 +60,13 @@ export async function fetchAdminContacts(params: {
 
 export async function fetchAdminContact(id: string): Promise<AdminContact> {
   const result = await apiRequest<ApiContact>(`${BASE}/${encodeURIComponent(id)}`);
+  return mapContact(result);
+}
+
+export async function updateAdminContactStatus(id: string, status: ContactStatus): Promise<AdminContact> {
+  const result = await apiRequest<ApiContact>(`${BASE}/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
   return mapContact(result);
 }

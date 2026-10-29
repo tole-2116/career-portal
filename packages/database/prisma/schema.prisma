@@ -118,6 +118,7 @@ model Contact {
   phone          String?  @db.VarChar(50)
   subject        String   @db.VarChar(150)
   body           String   @db.Text
+  status         ContactStatus @default(NEW)
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
   usercreate_at  String?  @db.VarChar(255)
@@ -248,4 +249,10 @@ enum CandidateStatus {
   OFFER
   HIRED
   REJECTED
+}
+
+enum ContactStatus {
+  NEW
+  READ
+  RESOLVED
 }
