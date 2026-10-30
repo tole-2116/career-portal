@@ -12,6 +12,7 @@ export interface AdminContactDto {
   phone: string | null;
   subject: string;
   body: string;
+  status: "NEW" | "READ" | "RESOLVED";
   createdAt: string;
 }
 

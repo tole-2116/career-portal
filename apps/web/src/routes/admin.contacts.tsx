@@ -22,7 +22,9 @@ import { useI18n } from "@/lib/i18n";
 import {
   fetchAdminContact,
   fetchAdminContacts,
+  updateAdminContactStatus,
   type AdminContact,
+  type ContactStatus,
 } from "@/services/admin-contacts.api";
 import { createRouteMeta } from "@/lib/route-meta";
 
@@ -76,15 +78,42 @@ function AdminContactsPage() {
     setPage(1);
   }, [keyword]);
 
+  const updateContactStatus = async (contact: AdminContact, status: ContactStatus) => {
+    try {
+      const updated = await updateAdminContactStatus(contact.id, status);
+      setContacts((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setSelected((current) => (current?.id === updated.id ? updated : current));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : tr({ vi: "Không cập nhật được trạng thái.", en: "Failed to update status." }));
+    }
+  };
+
   const openView = async (contact: AdminContact) => {
     setSelected(contact);
     try {
       const detail = await fetchAdminContact(contact.id);
-      setSelected(detail);
+      const updated = detail.status === "NEW" ? await updateAdminContactStatus(detail.id, "READ") : detail;
+      setSelected(updated);
+      setContacts((current) => current.map((item) => (item.id === updated.id ? updated : item)));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : tr({ vi: "Không tải được chi tiết liên hệ.", en: "Failed to load contact details." }));
     }
   };
+
+  const statusLabel = (status: ContactStatus) => {
+    const labels: Record<ContactStatus, { vi: string; en: string }> = {
+      NEW: { vi: "Chưa xem", en: "Unread" },
+      READ: { vi: "Đã xem", en: "Read" },
+      RESOLVED: { vi: "Đã xử lý / Đã phản hồi", en: "Resolved" },
+    };
+    return tr(labels[status]);
+  };
+
+  const statusClassName = (status: ContactStatus) => ({
+    NEW: "font-semibold text-orange-600 dark:text-orange-400",
+    READ: "text-blue-600 dark:text-blue-400",
+    RESOLVED: "text-green-600 dark:text-green-400",
+  })[status];
 
   const formatDate = (value: string) => {
     const date = new Date(value);
@@ -101,6 +130,11 @@ function AdminContactsPage() {
     { header: tr({ vi: "Tiêu đề", en: "Subject" }), className: "min-w-0 truncate", cell: (c) => c.subject },
     { header: tr({ vi: "Điện thoại", en: "Phone" }), className: "w-[140px] text-sm text-muted-foreground", cell: (c) => c.phone || "—" },
     { header: tr({ vi: "Ngày tạo", en: "Created" }), className: "w-[130px] text-sm text-muted-foreground", cell: (c) => formatDate(c.createdAt) },
+    {
+      header: tr({ vi: "Trạng thái", en: "Status" }),
+      className: "w-[170px]",
+      cell: (c) => <span className={statusClassName(c.status)}>{statusLabel(c.status)}</span>,
+    },
     {
       header: tr({ vi: "Hành động", en: "Actions" }),
       className: "w-[100px] text-center",
@@ -157,6 +191,7 @@ function AdminContactsPage() {
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   {contact.phone && <span>{contact.phone}</span>}
                   <span>{formatDate(contact.createdAt)}</span>
+                  <span className={statusClassName(contact.status)}>{statusLabel(contact.status)}</span>
                 </div>
               </div>
               <div className="flex shrink-0 flex-col">
@@ -205,6 +240,19 @@ function AdminContactsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="view-created">{tr({ vi: "Ngày tạo", en: "Created" })}</Label>
                     <Input id="view-created" readOnly value={formatDate(selected.createdAt)} tabIndex={-1} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{tr({ vi: "Trạng thái", en: "Status" })}</Label>
+                    <select
+                      aria-label={tr({ vi: "Trạng thái liên hệ", en: "Contact status" })}
+                      value={selected.status}
+                      onChange={(event) => void updateContactStatus(selected, event.target.value as ContactStatus)}
+                      className={`h-10 w-full rounded-md border border-input bg-background px-3 text-sm ${statusClassName(selected.status)}`}
+                    >
+                      <option value="NEW">{tr({ vi: "Chưa xem", en: "Unread" })}</option>
+                      <option value="READ">{tr({ vi: "Đã xem", en: "Read" })}</option>
+                      <option value="RESOLVED">{tr({ vi: "Đã xử lý / Đã phản hồi", en: "Resolved" })}</option>
+                    </select>
                   </div>
                 </div>
                 <div className="space-y-2">

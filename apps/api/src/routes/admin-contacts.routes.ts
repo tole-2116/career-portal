@@ -7,5 +7,6 @@ adminContactRoutes.use(requireAuth, requireRole("ADMIN"));
 
 adminContactRoutes.get("/", adminContactController.getPaginated);
 adminContactRoutes.get("/:id", adminContactController.getOne);
+adminContactRoutes.patch("/:id/status", adminContactController.updateStatus);
 
 export default adminContactRoutes;
