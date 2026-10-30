@@ -2,7 +2,7 @@
   "name": "@career-portal/api",
   "version": "1.0.0",
   "scripts": {
-    "dev": "bun --watch src/index.ts",
+    "dev": "bun run --cwd ../.. db:setup:dev && bun --watch src/index.ts",
     "build": "tsc"
   },
   "dependencies": {

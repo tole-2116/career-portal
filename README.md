@@ -85,7 +85,9 @@ Không commit file `.env` hoặc đưa thông tin xác thực thật vào README
 
 ### 3. Tạo schema và dữ liệu
 
-Tạo migration trong môi trường phát triển và seed dữ liệu mẫu:
+Migration hiện tại là một baseline tạo schema final cho database mới. Database đã ghi nhận các migration cũ không tự áp dụng baseline này; giữ nguyên dữ liệu hiện có và xử lý riêng trước khi dùng baseline.
+
+Lệnh API dev tự chạy migration và seed dữ liệu mẫu trước khi khởi động. Cần PostgreSQL đang hoạt động và `DATABASE_URL` hợp lệ. Có thể chạy setup độc lập:
 
 ```bash
 bun run db:setup:dev
