@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Eye, Search, X } from "lucide-react";
+import { Eye, Save, Search, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -50,6 +50,8 @@ function AdminContactsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [selected, setSelected] = useState<AdminContact | null>(null);
+  const [draftStatus, setDraftStatus] = useState<ContactStatus | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const loadContacts = useCallback(async () => {
     setIsLoading(true);
@@ -78,23 +80,29 @@ function AdminContactsPage() {
     setPage(1);
   }, [keyword]);
 
-  const updateContactStatus = async (contact: AdminContact, status: ContactStatus) => {
+  const saveContactStatus = async () => {
+    if (!selected || !draftStatus || isSaving) return;
+    setIsSaving(true);
     try {
-      const updated = await updateAdminContactStatus(contact.id, status);
+      const updated = await updateAdminContactStatus(selected.id, draftStatus);
       setContacts((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      setSelected((current) => (current?.id === updated.id ? updated : current));
+      toast.success(tr({ vi: "Đã lưu trạng thái liên hệ.", en: "Contact status saved." }));
+      setSelected(null);
+      setDraftStatus(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : tr({ vi: "Không cập nhật được trạng thái.", en: "Failed to update status." }));
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const openView = async (contact: AdminContact) => {
     setSelected(contact);
+    setDraftStatus(contact.status);
     try {
       const detail = await fetchAdminContact(contact.id);
-      const updated = detail.status === "NEW" ? await updateAdminContactStatus(detail.id, "READ") : detail;
-      setSelected(updated);
-      setContacts((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setSelected(detail);
+      setDraftStatus(detail.status);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : tr({ vi: "Không tải được chi tiết liên hệ.", en: "Failed to load contact details." }));
     }
@@ -202,7 +210,7 @@ function AdminContactsPage() {
         />
       </div>
 
-      <Dialog open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>
+      <Dialog open={selected !== null} onOpenChange={(open) => { if (!open && !isSaving) { setSelected(null); setDraftStatus(null); } }}>
         <DialogContent
           className="max-h-[90vh] overflow-hidden rounded-xl border border-border p-0 shadow-lg sm:max-w-2xl"
           onPointerDownOutside={(event) => event.preventDefault()}
@@ -245,9 +253,9 @@ function AdminContactsPage() {
                     <Label>{tr({ vi: "Trạng thái", en: "Status" })}</Label>
                     <select
                       aria-label={tr({ vi: "Trạng thái liên hệ", en: "Contact status" })}
-                      value={selected.status}
-                      onChange={(event) => void updateContactStatus(selected, event.target.value as ContactStatus)}
-                      className={`h-10 w-full rounded-md border border-input bg-background px-3 text-sm ${statusClassName(selected.status)}`}
+                      value={draftStatus ?? selected.status}
+                      onChange={(event) => setDraftStatus(event.target.value as ContactStatus)}
+                      className={`h-10 w-full rounded-md border border-input bg-background px-3 text-sm ${statusClassName(draftStatus ?? selected.status)}`}
                     >
                       <option value="NEW">{tr({ vi: "Chưa xem", en: "Unread" })}</option>
                       <option value="READ">{tr({ vi: "Đã xem", en: "Read" })}</option>
@@ -262,9 +270,13 @@ function AdminContactsPage() {
               </div>
 
               <DialogFooter className="shrink-0 border-t border-border/70 bg-muted/20 px-6 py-3.5 flex flex-row items-center justify-end gap-2">
-                <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 rounded-md px-3.5 text-xs" onClick={() => setSelected(null)}>
+                <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 rounded-md px-3.5 text-xs" onClick={() => { setSelected(null); setDraftStatus(null); }} disabled={isSaving}>
                   <X className="h-3.5 w-3.5" />
                   {tr({ vi: "Hủy", en: "Cancel" })}
+                </Button>
+                <Button type="button" size="sm" className="h-8 gap-1.5 rounded-md px-3.5 text-xs" onClick={() => void saveContactStatus()} disabled={isSaving || draftStatus === selected.status}>
+                  <Save className="h-3.5 w-3.5" />
+                  {isSaving ? tr({ vi: "Đang lưu...", en: "Saving..." }) : tr({ vi: "Lưu", en: "Save" })}
                 </Button>
               </DialogFooter>
             </div>
