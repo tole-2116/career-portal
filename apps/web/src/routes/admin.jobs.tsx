@@ -15,7 +15,6 @@ import { toast } from "sonner";
 
 import { AdminDataTable, type AdminColumn } from "@/components/admin/AdminDataTable";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { LanguageTabs, LocalizedField as BiField } from "@/components/admin/LocalizedInput";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -45,7 +45,7 @@ import { useTaxonomies, type TaxonomyKey } from "@/lib/taxonomy-store";
 import { fetchJobs, createJob, updateJob, deleteJob, toApiPayload, fetchJobTaxonomies } from "@/lib/api/jobs";
 import { requireAdminSession } from "@/lib/admin-route-guard";
 import { createRouteMeta } from "@/lib/route-meta";
-import { useLanguageConfig } from "@/lib/language-config";
+import { languageLabel } from "@/lib/language-config";
 
 const RichTextEditor = lazy(() =>
   import("@/components/admin/RichTextEditor").then((m) => ({ default: m.RichTextEditor })),
@@ -85,6 +85,46 @@ const PAGE_SIZE = 10;
 
 const emptyLocalized: Localized = { vi: "", en: "" };
 
+function LocalizedInput({
+  label,
+  value,
+  onChange,
+  multiline = false,
+}: {
+  label: string;
+  value: Localized;
+  onChange: (value: Localized) => void;
+  multiline?: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="space-y-3">
+        {(["vi", "en"] as const).map((language) => (
+          <div key={language}>
+            {multiline ? (
+              <Textarea
+                rows={3}
+                value={value[language] ?? ""}
+                placeholder={languageLabel(language)}
+                aria-label={`${label} — ${languageLabel(language)}`}
+                onChange={(event) => onChange({ ...value, [language]: event.target.value })}
+              />
+            ) : (
+              <Input
+                value={value[language] ?? ""}
+                placeholder={languageLabel(language)}
+                aria-label={`${label} — ${languageLabel(language)}`}
+                onChange={(event) => onChange({ ...value, [language]: event.target.value })}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function JobRichTextField({
   label,
   value,
@@ -94,25 +134,22 @@ function JobRichTextField({
   value: Localized;
   onChange: (value: Localized) => void;
 }) {
-  const { enabled } = useLanguageConfig();
-  const [language, setLanguage] = useState(enabled[0] ?? "vi");
-  const activeLanguage = enabled.includes(language) ? language : (enabled[0] ?? "vi");
-
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Label>{label}</Label>
-        <LanguageTabs active={activeLanguage} onChange={setLanguage} languages={enabled} />
-      </div>
-      <Suspense
-        fallback={<div className="h-48 animate-pulse rounded-md border border-border bg-muted" />}
-      >
-        <RichTextEditor
-          key={activeLanguage}
-          value={value[activeLanguage] ?? ""}
-          onChange={(content) => onChange({ ...value, [activeLanguage]: content })}
-        />
-      </Suspense>
+    <div className="space-y-3">
+      <Label>{label}</Label>
+      {(["vi", "en"] as const).map((language) => (
+        <div key={language} className="space-y-1.5">
+          <Suspense
+            fallback={<div className="h-48 animate-pulse rounded-md border border-border bg-muted" />}
+          >
+            <RichTextEditor
+              value={value[language] ?? ""}
+              onChange={(content) => onChange({ ...value, [language]: content })}
+              placeholder={languageLabel(language)}
+            />
+          </Suspense>
+        </div>
+      ))}
     </div>
   );
 }
@@ -551,10 +588,9 @@ function AdminJobsPage() {
                       {t("admin.jobs.group.basic") || "Thông tin cơ bản"}
                     </p>
                   </div>
-                <BiField
+                <LocalizedInput
                   label={t("admin.jobs.col.title")}
                   value={draft.title}
-                  required
                   onChange={(title) => patch({ title })}
                 />
                 <TaxonomyField
@@ -568,9 +604,10 @@ function AdminJobsPage() {
                   ids={draft.locationIds ?? []}
                   onChange={(locationIds, locations) => patch({ locationIds, locations })}
                 />
-                <BiField
+                <LocalizedInput
                   label={t("admin.jobs.field.summary")}
                   value={draft.summary}
+                  multiline
                   onChange={(summary) => patch({ summary })}
                 />
                 </section>
@@ -648,7 +685,7 @@ function AdminJobsPage() {
                   valueId={draft.workTypeId}
                   onChange={(workTypeId, workType) => patch({ workTypeId, workType })}
                 />
-                <BiField
+                <LocalizedInput
                   label={t("admin.jobs.field.level")}
                   value={draft.level}
                   onChange={(level) => patch({ level })}
@@ -665,7 +702,7 @@ function AdminJobsPage() {
                   valueId={draft.experienceId}
                   onChange={(experienceId, experience) => patch({ experienceId, experience })}
                 />
-                <BiField
+                <LocalizedInput
                   label={t("admin.jobs.field.languages")}
                   value={draft.languages ?? { vi: "", en: "" }}
                   onChange={(languages) => patch({ languages })}

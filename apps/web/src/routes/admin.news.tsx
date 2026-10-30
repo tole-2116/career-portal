@@ -14,7 +14,6 @@ import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { requireAdminSession } from "@/lib/admin-route-guard";
-import { LanguageTabs, LocalizedField } from "@/components/admin/LocalizedInput";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +36,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -49,7 +49,7 @@ import { AdminDataTable, type AdminColumn } from "@/components/admin/AdminDataTa
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { heroLibrary, cultureLibrary } from "@/data/media";
 import { useI18n } from "@/lib/i18n";
-import { useLanguageConfig } from "@/lib/language-config";
+import { languageLabel } from "@/lib/language-config";
 import {
   emptyArticle,
   makeSlug,
@@ -95,7 +95,7 @@ const PAGE_SIZE = 10;
 const ALL = "__all__";
 
 function AdminNewsPage() {
-  const { t, tr, lang } = useI18n();
+  const { t, tr } = useI18n();
   const { config } = useSiteConfig();
   // Store chỉ dùng để đồng bộ dữ liệu cho các trang public (/news, /news/$slug).
   const { refresh: refreshStore } = useNews();
@@ -120,8 +120,6 @@ function AdminNewsPage() {
   const [categoryName, setCategoryName] = useState({ vi: "", en: "" });
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const { enabled: enabledLanguages } = useLanguageConfig();
-  const [bodyLang, setBodyLang] = useState(lang);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Tải danh sách chuyên mục một lần cho dropdown lọc + select trong form.
@@ -489,11 +487,22 @@ function AdminNewsPage() {
 
         <TabsContent value="categories" className="mt-5 min-h-0 flex-1 space-y-4 overflow-auto">
           <div className="rounded-xl border border-border bg-card p-5">
-            <LocalizedField
-              label={tr({ vi: "Tên chuyên mục", en: "Category name" })}
-              value={categoryName}
-              onChange={setCategoryName}
-            />
+            <div className="space-y-2">
+              <Label>{tr({ vi: "Tên chuyên mục", en: "Category name" })}</Label>
+              <div className="space-y-3">
+                {(["vi", "en"] as const).map((language) => (
+                  <Input
+                    key={language}
+                    value={categoryName[language]}
+                    placeholder={languageLabel(language)}
+                    aria-label={`${tr({ vi: "Tên chuyên mục", en: "Category name" })} — ${languageLabel(language)}`}
+                    onChange={(event) =>
+                      setCategoryName((current) => ({ ...current, [language]: event.target.value }))
+                    }
+                  />
+                ))}
+              </div>
+            </div>
             <Button className="mt-4" size="sm" onClick={() => void addCategory()}>
               <Plus className="h-4 w-4" /> {tr({ vi: "Thêm chuyên mục", en: "Add category" })}
             </Button>
@@ -550,21 +559,31 @@ function AdminNewsPage() {
               </DialogHeader>
 
               <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-4">
-                <LocalizedField
-                  label={tr({ vi: "Tiêu đề", en: "Title" })}
-                  value={draft.title}
-                  onChange={(title) =>
-                    setDraft((current) => {
-                      if (!current) return current;
-                      const next = { ...current, title };
-                      if (!slugTouched) {
-                        const raw = title.vi || title.en;
-                        next.slug = raw.trim() ? autoSlug(raw, current.id) : "";
-                      }
-                      return next;
-                    })
-                  }
-                />
+                <div className="space-y-2">
+                  <Label>{tr({ vi: "Tiêu đề", en: "Title" })}</Label>
+                  <div className="space-y-3">
+                    {(["vi", "en"] as const).map((language) => (
+                      <Input
+                        key={language}
+                        value={draft.title[language] ?? ""}
+                        placeholder={languageLabel(language)}
+                        aria-label={`${tr({ vi: "Tiêu đề", en: "Title" })} — ${languageLabel(language)}`}
+                        onChange={(event) =>
+                          setDraft((current) => {
+                            if (!current) return current;
+                            const title = { ...current.title, [language]: event.target.value };
+                            const next = { ...current, title };
+                            if (!slugTouched) {
+                              const raw = title.vi || title.en;
+                              next.slug = raw.trim() ? autoSlug(raw, current.id) : "";
+                            }
+                            return next;
+                          })
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="article-slug">
@@ -582,41 +601,52 @@ function AdminNewsPage() {
                   <p className="text-xs text-muted-foreground">/news/{draft.slug || "..."}</p>
                 </div>
 
-                <LocalizedField
-                  label={tr({ vi: "Tóm tắt", en: "Excerpt" })}
-                  multiline
-                  value={draft.excerpt}
-                  onChange={(excerpt) => setDraft({ ...draft, excerpt })}
-                />
+                <div className="space-y-2">
+                  <Label>{tr({ vi: "Tóm tắt", en: "Excerpt" })}</Label>
+                  <div className="space-y-3">
+                    {(["vi", "en"] as const).map((language) => (
+                      <Textarea
+                        key={language}
+                        rows={3}
+                        value={draft.excerpt[language] ?? ""}
+                        placeholder={languageLabel(language)}
+                        aria-label={`${tr({ vi: "Tóm tắt", en: "Excerpt" })} — ${languageLabel(language)}`}
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            excerpt: { ...draft.excerpt, [language]: event.target.value },
+                          })
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
 
                 <div className="space-y-2">
                   <Label>{tr({ vi: "Nội dung chi tiết", en: "Content" })}</Label>
-                  <LanguageTabs
-                    active={bodyLang}
-                    onChange={setBodyLang}
-                    languages={enabledLanguages}
-                  />
-                  <Suspense
-                    fallback={
-                      <div className="h-48 animate-pulse rounded-md border border-border bg-muted" />
-                    }
-                  >
-                    <RichTextEditor
-                      key={bodyLang}
-                      value={draft.body[bodyLang] ?? ""}
-                      onChange={(html) =>
-                        setDraft((current) =>
-                          current
-                            ? { ...current, body: { ...current.body, [bodyLang]: html } }
-                            : current,
-                        )
-                      }
-                      placeholder={tr({
-                        vi: "Nhập nội dung bài viết...",
-                        en: "Write the article...",
-                      })}
-                    />
-                  </Suspense>
+                  <div className="space-y-3">
+                    {(["vi", "en"] as const).map((language) => (
+                      <div key={language} className="space-y-1.5">
+                        <Suspense
+                          fallback={
+                            <div className="h-48 animate-pulse rounded-md border border-border bg-muted" />
+                          }
+                        >
+                          <RichTextEditor
+                            value={draft.body[language] ?? ""}
+                            onChange={(html) =>
+                              setDraft((current) =>
+                                current
+                                  ? { ...current, body: { ...current.body, [language]: html } }
+                                  : current,
+                              )
+                            }
+                            placeholder={languageLabel(language)}
+                          />
+                        </Suspense>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
