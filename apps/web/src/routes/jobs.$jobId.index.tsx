@@ -55,7 +55,7 @@ function JobDetailPage() {
   const [similarJobs, setSimilarJobs] = useState<Job[]>([]);
 
   useEffect(() => {
-    if (!job || (job.status !== "expired" && job.status !== "closed")) {
+    if (!job?.departmentId) {
       setSimilarJobs([]);
       return;
     }
@@ -68,7 +68,7 @@ function JobDetailPage() {
           setSimilarJobs(
             result.jobs
               .filter((candidate) => candidate.status === "open" && candidate.id !== currentJob.id)
-              .slice(0, 3),
+              .slice(0, 6),
           );
         }
       })
@@ -79,7 +79,7 @@ function JobDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [job?.id, job?.status, job?.departmentId]);
+  }, [job?.id, job?.departmentId]);
 
   if (!job) {
     return (
@@ -190,18 +190,6 @@ function JobDetailPage() {
             </section>
           )}
 
-          {similarJobs.length > 0 && (
-            <section aria-labelledby="similar-jobs-title">
-              <h2 id="similar-jobs-title" className="font-display text-xl font-semibold">
-                {t("jobs.similar.title")}
-              </h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                {similarJobs.map((similarJob) => (
-                  <JobCard key={similarJob.id} job={similarJob} />
-                ))}
-              </div>
-            </section>
-          )}
         </article>
 
         <aside className="lg:sticky lg:top-24 lg:h-fit">
@@ -317,6 +305,34 @@ function JobDetailPage() {
           </div>
         </aside>
       </div>
+
+      {similarJobs.length > 0 && (
+        <section
+          aria-labelledby="similar-jobs-title"
+          className="border-t border-border bg-surface/60"
+        >
+          <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-12">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-border pb-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent">
+                  {tr(department)}
+                </p>
+                <h2 id="similar-jobs-title" className="mt-1 font-display text-xl font-semibold sm:text-2xl">
+                  {t("jobs.similar.title")}
+                </h2>
+              </div>
+              <span className="text-sm text-muted-foreground">
+                {similarJobs.length} {tr({ vi: "vị trí phù hợp", en: "matching roles" })}
+              </span>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {similarJobs.map((similarJob) => (
+                <JobCard key={similarJob.id} job={similarJob} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </SiteLayout>
   );
 }
