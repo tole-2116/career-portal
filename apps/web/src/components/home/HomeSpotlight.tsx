@@ -197,14 +197,16 @@ export function HomeSpotlight() {
               })}
             </div>
           </div>
-          <img
-            src={config.images.culture}
-            alt={tr(culture.title)}
-            loading="lazy"
-            width={1408}
-            height={1008}
-            className="h-72 w-full rounded-xl object-cover lg:h-96"
-          />
+          {config.images.culture.trim() && (
+            <img
+              src={config.images.culture}
+              alt={tr(culture.title)}
+              loading="lazy"
+              width={1408}
+              height={1008}
+              className="h-72 w-full rounded-xl object-cover lg:h-96"
+            />
+          )}
         </div>
       </section>
     ),

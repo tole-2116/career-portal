@@ -21,8 +21,7 @@ import { NewsProvider } from "@/lib/news-store";
 import { InboxProvider } from "@/lib/inbox-store";
 import { AuthProvider } from "@/lib/auth-store";
 import { Toaster } from "@/components/ui/sonner";
-import { fetchSiteConfig } from "@/services/site-config.api";
-import { getSiteBrand, setCachedSiteConfig } from "@/lib/route-meta";
+import { getSiteBrand } from "@/lib/route-meta";
 import { getFaviconLink, getInitialSiteConfig } from "@/lib/site-config-cache";
 import { translate } from "@/lib/i18n";
 
@@ -114,17 +113,7 @@ function RouteProgressBar() {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  loader: async () => {
-    try {
-      const config = await fetchSiteConfig();
-      setCachedSiteConfig(config);
-      return { siteConfig: config };
-    } catch {
-      const fallback = getInitialSiteConfig();
-      if (fallback) setCachedSiteConfig(fallback);
-      return { siteConfig: fallback };
-    }
-  },
+  loader: () => ({ siteConfig: getInitialSiteConfig() }),
   head: () => ({
     meta: [
       { charSet: "utf-8" },

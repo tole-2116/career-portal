@@ -102,14 +102,18 @@ function NewsListPage() {
                     params={{ slug: article.slug }}
                     className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-accent/50"
                   >
-                    <img
-                      src={article.cover}
-                      alt={tr(article.title)}
-                      loading="lazy"
-                      width={800}
-                      height={480}
-                      className="h-44 w-full object-cover"
-                    />
+                    {article.cover.trim() ? (
+                      <img
+                        src={article.cover}
+                        alt={tr(article.title)}
+                        loading="lazy"
+                        width={800}
+                        height={480}
+                        className="h-44 w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-44 bg-muted" aria-hidden="true" />
+                    )}
                     <div className="flex min-w-0 flex-1 flex-col p-5">
                       <div className="flex flex-wrap items-center gap-2">
                         {cat && <Badge variant="secondary">{tr(cat.label)}</Badge>}

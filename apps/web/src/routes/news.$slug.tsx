@@ -89,15 +89,17 @@ function ArticlePage() {
         </h1>
         <p className="mt-4 text-base text-muted-foreground">{tr(article.excerpt)}</p>
 
-        <img
-          src={article.cover}
-          alt={tr(article.title)}
-          width={1200}
-          height={720}
-          decoding="async"
-          fetchPriority="high"
-          className="mt-8 h-72 w-full rounded-xl object-cover sm:h-96"
-        />
+        {article.cover.trim() && (
+          <img
+            src={article.cover}
+            alt={tr(article.title)}
+            width={1200}
+            height={720}
+            decoding="async"
+            fetchPriority="high"
+            className="mt-8 h-72 w-full rounded-xl object-cover sm:h-96"
+          />
+        )}
 
         <div
           className="rich-text mt-8 text-base leading-relaxed"
@@ -120,14 +122,18 @@ function ArticlePage() {
                   params={{ slug: item.slug }}
                   className="group min-w-0 overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-accent/50"
                 >
-                  <img
-                    src={item.cover}
-                    alt={tr(item.title)}
-                    loading="lazy"
-                    width={600}
-                    height={360}
-                    className="h-36 w-full object-cover"
-                  />
+                  {item.cover.trim() ? (
+                    <img
+                      src={item.cover}
+                      alt={tr(item.title)}
+                      loading="lazy"
+                      width={600}
+                      height={360}
+                      className="h-36 w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-36 bg-muted" aria-hidden="true" />
+                  )}
                   <div className="p-4">
                     <h3 className="font-display text-base font-semibold leading-snug group-hover:text-accent">
                       {tr(item.title)}

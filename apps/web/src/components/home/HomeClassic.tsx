@@ -142,14 +142,18 @@ export function HomeClassic() {
       <section className={homeSectionClass(s.tone)}>
         <div className={cn("mx-auto w-full max-w-6xl px-4 sm:px-6", homeInnerClass(s.spacing))}>
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
-            <img
-              src={config.images.culture}
-              alt={tr(benefits.title)}
-              loading="lazy"
-              width={1408}
-              height={1008}
-              className="h-72 w-full rounded-xl object-cover lg:h-96"
-            />
+            {config.images.culture.trim() ? (
+              <img
+                src={config.images.culture}
+                alt={tr(benefits.title)}
+                loading="lazy"
+                width={1408}
+                height={1008}
+                className="h-72 w-full rounded-xl object-cover lg:h-96"
+              />
+            ) : (
+              <div className="h-72 rounded-xl bg-muted lg:h-96" aria-hidden="true" />
+            )}
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
                 {tr(benefits.eyebrow)}

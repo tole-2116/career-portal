@@ -146,14 +146,16 @@ export function HomeSplit() {
             {tr(culture.description) && (
               <p className="mt-3 text-sm leading-relaxed opacity-75">{tr(culture.description)}</p>
             )}
-            <img
-              src={config.images.culture}
-              alt={tr(culture.title)}
-              loading="lazy"
-              width={1408}
-              height={1008}
-              className="mt-8 h-56 w-full rounded-xl object-cover"
-            />
+            {config.images.culture.trim() && (
+              <img
+                src={config.images.culture}
+                alt={tr(culture.title)}
+                loading="lazy"
+                width={1408}
+                height={1008}
+                className="mt-8 h-56 w-full rounded-xl object-cover"
+              />
+            )}
           </div>
           <div className={cn("grid gap-6", homeCols(s.layout))}>
             {culture.items.map((value) => {

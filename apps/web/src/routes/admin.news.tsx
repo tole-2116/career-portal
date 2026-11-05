@@ -325,7 +325,7 @@ function AdminNewsPage() {
       : tr({ vi: "Nháp", en: "Draft" });
 
   const columns: AdminColumn<Article>[] = [
-    { header: tr({ vi: "Ảnh", en: "Thumb" }), className: "w-[110px] pl-4", cell: (article) => <img src={article.cover} alt="" className="h-12 w-20 rounded-md object-cover" /> },
+    { header: tr({ vi: "Ảnh", en: "Thumb" }), className: "w-[110px] pl-4", cell: (article) => article.cover.trim() ? <img src={article.cover} alt="" className="h-12 w-20 rounded-md object-cover" /> : null },
     {
       header: tr({ vi: "Tiêu đề", en: "Title" }),
       className: "min-w-0",
@@ -463,7 +463,7 @@ function AdminNewsPage() {
             onRefresh={() => void loadArticles()}
             renderCard={(article) => (
               <div key={article.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-card p-3">
-                <img src={article.cover} alt="" className="h-14 w-20 rounded-lg object-cover" />
+                {article.cover.trim() ? <img src={article.cover} alt="" className="h-14 w-20 rounded-lg object-cover" /> : <div className="h-14 w-20 rounded-lg bg-muted" aria-hidden="true" />}
                 <div className="min-w-0">
                   <p className="truncate font-medium">{tr(article.title)}</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

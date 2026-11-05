@@ -26,6 +26,7 @@ import { JobCard } from "@/components/site/JobCard";
 
 export const Route = createFileRoute("/jobs/$jobId/")({
   loader: async ({ params }) => ({ job: await fetchPublicJob(params.jobId) }),
+  pendingComponent: JobDetailPending,
   head: createDynamicRouteMeta<{ job: Awaited<ReturnType<typeof fetchPublicJob>> }>({
     title: (data) => (data?.job ? data.job.title.vi : "Không tìm thấy vị trí"),
     description: (data) => (data?.job ? data.job.summary.vi : ""),
@@ -33,6 +34,18 @@ export const Route = createFileRoute("/jobs/$jobId/")({
   }),
   component: JobDetailPage,
 });
+
+function JobDetailPending() {
+  const { t } = useI18n();
+
+  return (
+    <SiteLayout>
+      <div className="mx-auto w-full max-w-5xl px-4 py-16 text-center text-sm text-muted-foreground sm:px-6" role="status" aria-live="polite">
+        {t("jobs.loading")}
+      </div>
+    </SiteLayout>
+  );
+}
 
 function JobDetailPage() {
   const { job } = Route.useLoaderData();

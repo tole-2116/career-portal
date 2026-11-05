@@ -30,6 +30,7 @@ export function JobCard({ job }: { job: Job }) {
     <Link
       to="/jobs/$jobId"
       params={{ jobId: job.id }}
+      preload="intent"
       className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card p-6 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-accent/50 hover:shadow-lift"
     >
       <span className="absolute inset-x-0 top-0 h-0.5 scale-x-0 bg-accent transition-transform duration-300 group-hover:scale-x-100" />
