@@ -221,6 +221,7 @@ function AdminCandidatesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editStage, setEditStage] = useState<Stage>("new");
   const [editRating, setEditRating] = useState<number | null>(null);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [editNoteBody, setEditNoteBody] = useState("");
   const [cvPreview, setCvPreview] = useState<CvPreview | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -399,11 +400,11 @@ function AdminCandidatesPage() {
     setSelectedId(candidate.id);
     setEditStage(candidate.stage);
     setEditRating(candidate.rating);
+    setHoverRating(null);
     setEditNoteBody("");
   };
 
-  // Keep the displayed rating tied to the selected DB-backed candidate value.
-  const displayedRating = selected?.rating ?? 0;
+  const displayedRating = hoverRating ?? editRating ?? selected?.rating ?? 0;
   async function submitCandidate() {
     if (!selected || isSubmitting) return;
     setIsSubmitting(true);
@@ -696,6 +697,8 @@ function AdminCandidatesPage() {
                         aria-label={tr({ vi: `${rating} sao`, en: `${rating} stars` })}
                         aria-pressed={editRating === rating}
                         disabled={isSubmitting}
+                        onMouseEnter={() => setHoverRating(rating)}
+                        onMouseLeave={() => setHoverRating(null)}
                         onClick={() => setEditRating(rating)}
                         className="rounded-sm p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
                       >
