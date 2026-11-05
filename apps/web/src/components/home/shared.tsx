@@ -15,6 +15,7 @@ import {
   type HomeWidgetKey,
 } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
+import { isPublicJob } from "@/lib/jobs-store";
 import { fetchPublicJobs } from "@/services/jobs.api";
 
 const fallbackStyle: AboutWidgetStyle = { layout: "default", tone: "white", spacing: "normal" };
@@ -57,7 +58,7 @@ export function useHomeData() {
     fetchPublicJobs({ limit: 1000 })
       .then((result) => {
         if (!cancelled) {
-          const liveJobs = result.jobs.filter((job) => job.status === "open");
+          const liveJobs = result.jobs.filter(isPublicJob);
           setJobs(liveJobs);
           setOpenCount(result.total);
         }

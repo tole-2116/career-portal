@@ -17,6 +17,7 @@ import {
 import { useI18n, type Localized } from "@/lib/i18n";
 import type { Job } from "@/data/jobs";
 import { useTaxonomies, type TaxonomyItem } from "@/lib/taxonomy-store";
+import { isPublicJob } from "@/lib/jobs-store";
 import { useSiteConfig } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 import { fetchPublicJobs } from "@/services/jobs.api";
@@ -116,7 +117,7 @@ function JobsPage() {
     })
       .then((result) => {
         if (!cancelled) {
-          setJobs(result.jobs.filter((job) => job.status === "open"));
+          setJobs(result.jobs.filter(isPublicJob));
         }
       })
       .catch(() => {

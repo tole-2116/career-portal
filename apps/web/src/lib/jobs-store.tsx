@@ -143,9 +143,10 @@ function normalize(raw: unknown): Job | null {
   };
 }
 
-/** Postings visible on the career site: only live "open" ones. */
+/** Postings visible on the career site: open and not past their deadline. */
 export function isPublicJob(job: Job): boolean {
-  return job.status === "open";
+  const today = new Date().toISOString().slice(0, 10);
+  return job.status === "open" && /^\d{4}-\d{2}-\d{2}$/.test(job.deadline) && job.deadline >= today;
 }
 
 /** Flips expired postings ("open" past their deadline) to the expired status. */
