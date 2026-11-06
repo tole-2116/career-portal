@@ -102,6 +102,8 @@ export class AdminCandidateController {
         jobId: req.query.jobId as string | undefined,
         experienceId: req.query.experienceId as string | undefined,
         search: req.query.search as string | undefined,
+        hiredAtFrom: req.query.hiredAtFrom as string | undefined,
+        hiredAtTo: req.query.hiredAtTo as string | undefined,
       };
       const result = await adminCandidateService.findMany(query);
 

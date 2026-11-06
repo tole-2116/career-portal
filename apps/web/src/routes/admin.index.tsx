@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Briefcase, CalendarCheck, UserPlus, UserCheck } from "lucide-react";
 import {
   Bar,
@@ -13,7 +14,8 @@ import {
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Badge } from "@/components/ui/badge";
 import { activity, candidates, stageLabels, stageOrder, weeklyApplications } from "@/data/candidates";
-import { jobs } from "@/data/jobs";
+import { fetchJobs } from "@/lib/api/jobs";
+import { adminCandidateApi } from "@/services/admin-candidate.api";
 import { useI18n } from "@/lib/i18n";
 import { requireAdminSession } from "@/lib/admin-route-guard";
 import { createRouteMeta } from "@/lib/route-meta";
@@ -30,11 +32,62 @@ export const Route = createFileRoute("/admin/")({
 
 function AdminOverview() {
   const { t, tr } = useI18n();
+  const [kpiValues, setKpiValues] = useState({
+    openJobs: null as number | null,
+    newCandidates: null as number | null,
+    interviews: null as number | null,
+    hires: null as number | null,
+  });
+  const [kpiLoading, setKpiLoading] = useState(true);
 
-  const openJobs = jobs.filter((job) => job.status === "open").length;
-  const newCandidates = candidates.filter((c) => c.stage === "new" || c.stage === "screening").length;
-  const interviews = candidates.filter((c) => c.stage === "interview").length;
-  const hires = candidates.filter((c) => c.stage === "hired").length;
+  useEffect(() => {
+    let active = true;
+    const loadKpis = () => {
+      setKpiLoading(true);
+      void fetchJobs({ status: "open", limit: 1 })
+        .then((result) => {
+          if (active) setKpiValues((current) => ({ ...current, openJobs: result.total }));
+        })
+        .catch(() => {
+          if (active) setKpiValues((current) => ({ ...current, openJobs: null }));
+        });
+
+      void Promise.all([
+        adminCandidateApi.getCandidates({ status: "new", page: 1, pageSize: 1 }),
+        adminCandidateApi.getCandidates({ status: "interview", page: 1, pageSize: 1 }),
+        adminCandidateApi.getCandidates({ status: "hired", page: 1, pageSize: 1 }),
+      ]).then(([newResult, interviewResult, hiresResult]) => {
+        if (!active) return;
+        setKpiValues((current) => ({
+          ...current,
+          newCandidates: newResult.total,
+          interviews: interviewResult.total,
+          hires: hiresResult.total,
+        }));
+      }).catch(() => {
+        if (active) {
+          setKpiValues((current) => ({
+            ...current,
+            newCandidates: null,
+            interviews: null,
+            hires: null,
+          }));
+        }
+      }).finally(() => {
+        if (active) setKpiLoading(false);
+      });
+    };
+
+    loadKpis();
+    const onFocus = () => loadKpis();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", onFocus);
+    };
+  }, []);
+
+  const { openJobs, newCandidates, interviews, hires } = kpiValues;
 
   const kpis = [
     { label: t("admin.kpi.openJobs"), value: openJobs, icon: Briefcase },
@@ -60,7 +113,7 @@ function AdminOverview() {
               <p className="min-w-0 text-xs text-muted-foreground">{kpi.label}</p>
               <kpi.icon className="h-4 w-4 shrink-0 text-accent" />
             </div>
-            <p className="mt-3 font-display text-3xl font-semibold">{kpi.value}</p>
+            <p className="mt-3 font-display text-3xl font-semibold">{kpiLoading && kpi.value === null ? "—" : (kpi.value ?? "—")}</p>
           </div>
         ))}
       </div>

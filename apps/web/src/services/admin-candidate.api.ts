@@ -41,6 +41,7 @@ interface ApiCandidate {
   status: ApiCandidateStatus;
   rating: number;
   appliedAt: string;
+  hiredAt: string | null;
   cvFile: string;
   experienceId: string | null;
   location: ApiLocalizedText;
@@ -126,6 +127,8 @@ export interface CandidateListParams {
   jobId?: string | undefined;
   experienceId?: string | undefined;
   search?: string | undefined;
+  hiredAtFrom?: string | undefined;
+  hiredAtTo?: string | undefined;
 }
 
 export interface CandidateListResult {
@@ -169,6 +172,8 @@ async function getCandidates(params: CandidateListParams = {}): Promise<Candidat
   if (params.jobId) query.set("jobId", params.jobId);
   if (params.experienceId) query.set("experienceId", params.experienceId);
   if (params.search) query.set("search", params.search);
+  if (params.hiredAtFrom) query.set("hiredAtFrom", params.hiredAtFrom);
+  if (params.hiredAtTo) query.set("hiredAtTo", params.hiredAtTo);
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
   const result = await request<{

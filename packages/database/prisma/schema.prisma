@@ -140,6 +140,7 @@ model Candidate {
   currentCompany  String?        @db.VarChar(255)
   experienceYears Int            @default(0)
   status          CandidateStatus @default(NEW)
+  hiredAt         DateTime?
   appliedAt       DateTime       @default(now())
   cvFile          String?        @db.Text
   experienceId     String?
@@ -161,6 +162,7 @@ model Candidate {
   @@index([experienceId])
   @@index([email])
   @@index([status])
+  @@index([hiredAt])
   @@map("candidates")
 }
 

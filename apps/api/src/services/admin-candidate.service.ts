@@ -84,6 +84,7 @@ function mapCandidate(candidate: {
   status: AdminCandidateStatus;
   rating: number | null;
   appliedAt: Date;
+  hiredAt: Date | null;
   cvFile: string | null;
   experienceId: string | null;
   experienceYears: number;
@@ -115,6 +116,7 @@ function mapCandidate(candidate: {
     status: candidate.status,
     rating: candidate.rating ?? 0,
     appliedAt: candidate.appliedAt.toISOString(),
+    hiredAt: candidate.hiredAt?.toISOString() ?? null,
     cvFile: candidate.cvFile ?? "",
     experienceId: candidate.experienceId,
     location: readFormLocation(candidate.formData),
@@ -152,6 +154,13 @@ export class AdminCandidateService extends BaseService {
     else where.jobId = { not: null };
     if (query.experienceId?.trim()) where.experienceId = query.experienceId.trim();
     if (query.status && candidateStatuses.includes(query.status)) where.status = query.status;
+    if (query.hiredAtFrom || query.hiredAtTo) {
+      where.status = "HIRED";
+      where.hiredAt = {
+        ...(query.hiredAtFrom ? { gte: new Date(query.hiredAtFrom) } : {}),
+        ...(query.hiredAtTo ? { lt: new Date(query.hiredAtTo) } : {}),
+      };
+    }
     if (query.search?.trim()) {
       const search = query.search.trim();
       where.OR = [
@@ -215,9 +224,20 @@ export class AdminCandidateService extends BaseService {
       throw new Error(`Invalid status: ${status}`);
     }
 
+    const current = await db.candidate.findFirst({
+      where: { id, isdelete: false },
+      select: { status: true },
+    });
     const updated = await db.candidate.update({
       where: { id, isdelete: false },
-      data: { status },
+      data: {
+        status,
+        hiredAt: status === "HIRED" && current?.status !== "HIRED"
+          ? new Date()
+          : status !== "HIRED"
+            ? null
+            : undefined,
+      },
       include: {
         job: { select: { title: true } },
         experienceTaxonomy: { select: { name: true, type: true } },
@@ -247,7 +267,7 @@ export class AdminCandidateService extends BaseService {
     // Notes hiện có trong DB — dùng để nhận diện note cũ vs note mới.
     const current = await db.candidate.findFirst({
       where: { id, isdelete: false },
-      select: { notes: true },
+      select: { notes: true, status: true },
     });
     const storedNotes = readNotes(current?.notes);
     const storedKeys = new Set(storedNotes.map(noteKey));
@@ -271,6 +291,11 @@ export class AdminCandidateService extends BaseService {
         cvFile: payload.cvFile.trim(),
         jobId: payload.jobId,
         status: payload.status,
+        hiredAt: payload.status === "HIRED" && current?.status !== "HIRED"
+          ? new Date()
+          : payload.status !== "HIRED"
+            ? null
+            : undefined,
         rating: payload.rating,
         notes: nextNotes,
       },
