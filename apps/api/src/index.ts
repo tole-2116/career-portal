@@ -130,19 +130,27 @@ app.post("/api/jobs/:jobId/apply", applyCvUpload, async (req, res) => {
       });
     }
 
-    const candidate = await db.candidate.create({
-      data: {
-        code: `CAND-${Date.now()}`,
-        jobId,
-        name,
-        email,
-        phone,
-        address: address || null,
-        coverLetter,
-        cvFile: `/uploads/${req.file.filename}`,
-        formData: validation.data.formData ?? {},
-        usercreate_at: "candidate_public",
-      },
+    const candidate = await db.$transaction(async (tx) => {
+      const created = await tx.candidate.create({
+        data: {
+          code: `CAND-${Date.now()}`,
+          jobId,
+          name,
+          email,
+          phone,
+          address: address || null,
+          coverLetter,
+          cvFile: `/uploads/${req.file!.filename}`,
+          formData: validation.data.formData ?? {},
+          usercreate_at: "candidate_public",
+        },
+      });
+
+      await tx.job.update({
+        where: { id: jobId },
+        data: { applicants: { increment: 1 } },
+      });
+      return created;
     });
 
     return res.status(201).json({ success: true, candidate });
