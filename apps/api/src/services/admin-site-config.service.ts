@@ -24,6 +24,7 @@ function mergeSiteConfig(partial: Partial<SiteConfigPayload>): SiteConfigPayload
     sections: { ...base.sections, ...asRecord(partial.sections) },
     company: { ...base.company, ...asRecord(partial.company) },
     about: { ...base.about, ...asRecord(partial.about) },
+    recruitmentProcess: { ...base.recruitmentProcess, ...asRecord(partial.recruitmentProcess) },
     jobsPage: { ...base.jobsPage, ...asRecord(partial.jobsPage) },
     modules: {
       news: typeof partial.modules?.news === "boolean" ? partial.modules.news : base.modules.news,
@@ -31,6 +32,10 @@ function mergeSiteConfig(partial: Partial<SiteConfigPayload>): SiteConfigPayload
         typeof partial.modules?.openApplication === "boolean"
           ? partial.modules.openApplication
           : base.modules.openApplication,
+      recruitmentProcess:
+        typeof partial.modules?.recruitmentProcess === "boolean"
+          ? partial.modules.recruitmentProcess
+          : base.modules.recruitmentProcess,
     },
   };
 }
@@ -86,6 +91,7 @@ export class AdminSiteConfigService extends BaseService {
       sections: config.sections,
       company: config.company,
       about: config.about,
+      recruitmentProcess: config.recruitmentProcess,
       jobsPage: config.jobsPage,
       modules: config.modules,
       code: existing?.code ?? "site-config",

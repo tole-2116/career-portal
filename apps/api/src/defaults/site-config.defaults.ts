@@ -9,8 +9,9 @@ export type SiteConfigPayload = {
   sections: Record<string, unknown>;
   company: Record<string, unknown>;
   about: Record<string, unknown>;
+  recruitmentProcess: Record<string, unknown>;
   jobsPage: Record<string, unknown>;
-  modules: { news: boolean; openApplication: boolean };
+  modules: { news: boolean; openApplication: boolean; recruitmentProcess: boolean };
 };
 
 /**
@@ -54,6 +55,7 @@ export const defaultSiteConfig: SiteConfigPayload = {
     copyright: { vi: "", en: "" },
   },
   about: {},
+  recruitmentProcess: {},
   jobsPage: {
     filterLayout: "sidebar",
     filters: {
@@ -70,5 +72,5 @@ export const defaultSiteConfig: SiteConfigPayload = {
     title: { vi: "Vị trí đang tuyển", en: "Open positions" },
     subtitle: { vi: "Chọn bộ lọc để tìm vị trí phù hợp.", en: "Use the filters to find a role that fits." },
   },
-  modules: { news: true, openApplication: true },
+  modules: { news: true, openApplication: true, recruitmentProcess: true },
 };

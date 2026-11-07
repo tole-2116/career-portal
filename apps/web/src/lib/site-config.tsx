@@ -259,6 +259,20 @@ export type AboutConfig = {
 };
 
 
+export type RecruitmentStep = { id: string; title: Localized; body: Localized };
+export type RecruitmentProcessConfig = { title: Localized; subtitle: Localized; steps: RecruitmentStep[] };
+
+export const defaultRecruitmentProcess: RecruitmentProcessConfig = {
+  title: { vi: "Quy trình tuyển dụng", en: "Our hiring process" },
+  subtitle: { vi: "Các bước đồng hành cùng bạn trên hành trình gia nhập đội ngũ.", en: "What to expect as you explore joining our team." },
+  steps: [
+    { id: "apply", title: { vi: "Ứng tuyển", en: "Apply" }, body: { vi: "Gửi hồ sơ cho vị trí phù hợp với bạn.", en: "Submit your application for a role that fits." } },
+    { id: "screen", title: { vi: "Trao đổi ban đầu", en: "Initial conversation" }, body: { vi: "Tìm hiểu kinh nghiệm, mong muốn và sự phù hợp.", en: "We learn about your experience, goals and fit." } },
+    { id: "interview", title: { vi: "Phỏng vấn", en: "Interview" }, body: { vi: "Gặp gỡ đội ngũ và cùng trao đổi chuyên môn.", en: "Meet the team and discuss your expertise." } },
+    { id: "offer", title: { vi: "Nhận kết quả", en: "Decision" }, body: { vi: "Chúng tôi phản hồi kết quả và thống nhất bước tiếp theo.", en: "We share our decision and align on next steps." } },
+  ],
+};
+
 export type JobsPageConfig = {
   /** "sidebar" = filters in a left column, "bar" = horizontal filter bar */
   filterLayout: "sidebar" | "bar";
@@ -289,10 +303,11 @@ export type SiteConfig = {
   sections: SiteSections;
   company: CompanyInfo;
   about: AboutConfig;
+  recruitmentProcess: RecruitmentProcessConfig;
 
   jobsPage: JobsPageConfig;
   /** Optional modules each project can switch on or off. */
-  modules: { news: boolean; openApplication: boolean };
+  modules: { news: boolean; openApplication: boolean; recruitmentProcess: boolean };
 };
 
 const empty: Localized = { vi: "", en: "" };
@@ -700,9 +715,10 @@ export const defaultSiteConfig: SiteConfig = {
   sections: structuredClone(defaultSections),
   company: structuredClone(defaultCompany),
   about: structuredClone(defaultAbout),
+  recruitmentProcess: structuredClone(defaultRecruitmentProcess),
 
   jobsPage: structuredClone(defaultJobsPage),
-  modules: { news: true, openApplication: true },
+  modules: { news: true, openApplication: true, recruitmentProcess: true },
 };
 
 function hexToRgb(hex: string): [number, number, number] | null {
@@ -977,6 +993,13 @@ function mergeConfig(stored: SiteConfig): SiteConfig {
         contact: { ...da.contact, ...(a.contact ?? {}) },
       };
     })(),
+    recruitmentProcess: {
+      ...defaultRecruitmentProcess,
+      ...(stored.recruitmentProcess ?? {}),
+      title: { ...defaultRecruitmentProcess.title, ...(stored.recruitmentProcess?.title ?? {}) },
+      subtitle: { ...defaultRecruitmentProcess.subtitle, ...(stored.recruitmentProcess?.subtitle ?? {}) },
+      steps: stored.recruitmentProcess?.steps ?? defaultRecruitmentProcess.steps,
+    },
 
     jobsPage: {
       ...defaultJobsPage,
