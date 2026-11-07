@@ -13,7 +13,7 @@ import {
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Badge } from "@/components/ui/badge";
-import { candidates, stageLabels, stageOrder, weeklyApplications } from "@/data/candidates";
+import { candidates, stageLabels, stageOrder } from "@/data/candidates";
 import { fetchAdminActivity, type AdminActivity } from "@/lib/api/admin-activity";
 import { fetchJobs } from "@/lib/api/jobs";
 import { adminCandidateApi } from "@/services/admin-candidate.api";
@@ -34,6 +34,7 @@ export const Route = createFileRoute("/admin/")({
 function AdminOverview() {
   const { t, tr, language } = useI18n();
   const [activityItems, setActivityItems] = useState<AdminActivity[]>([]);
+  const [weeklyApplications, setWeeklyApplications] = useState<{ week: string; applications: number }[]>([]);
   const [kpiValues, setKpiValues] = useState({
     openJobs: null as number | null,
     newCandidates: null as number | null,
@@ -51,6 +52,11 @@ function AdminOverview() {
     });
     const loadKpis = () => {
       setKpiLoading(true);
+      void adminCandidateApi.getWeeklyApplications().then((items) => {
+        if (active) setWeeklyApplications(items);
+      }).catch(() => {
+        if (active) setWeeklyApplications([]);
+      });
       void fetchJobs({ status: "open", limit: 1 })
         .then((result) => {
           if (active) setKpiValues((current) => ({ ...current, openJobs: result.total }));

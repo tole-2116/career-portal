@@ -127,6 +127,33 @@ function mapCandidate(candidate: {
 }
 
 export class AdminCandidateService extends BaseService {
+  async findWeeklyApplications(now = new Date()) {
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const weekday = (start.getUTCDay() + 6) % 7;
+    start.setUTCDate(start.getUTCDate() - weekday - 7 * 7);
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 8 * 7);
+
+    const weeks = Array.from({ length: 8 }, (_, index) => {
+      const monday = new Date(start);
+      monday.setUTCDate(start.getUTCDate() + index * 7);
+      const thursday = new Date(monday);
+      thursday.setUTCDate(monday.getUTCDate() + 3);
+      const week = Math.ceil((Date.UTC(thursday.getUTCFullYear(), thursday.getUTCMonth(), thursday.getUTCDate()) - Date.UTC(thursday.getUTCFullYear(), 0, 1)) / 604800000) + 1;
+      return { week: `T${String(week).padStart(2, "0")}`, applications: 0 };
+    });
+
+    const applications = await db.candidate.findMany({
+      where: { isdelete: false, appliedAt: { gte: start, lt: end } },
+      select: { appliedAt: true },
+    });
+    for (const candidate of applications) {
+      const weekIndex = Math.floor((Date.UTC(candidate.appliedAt.getUTCFullYear(), candidate.appliedAt.getUTCMonth(), candidate.appliedAt.getUTCDate()) - start.getTime()) / 604800000);
+      if (weekIndex >= 0 && weekIndex < weeks.length) weeks[weekIndex].applications += 1;
+    }
+    return weeks;
+  }
+
   async findExperienceTaxonomies() {
     const rows = await db.taxonomy.findMany({
       where: { type: "experience", isdelete: false },

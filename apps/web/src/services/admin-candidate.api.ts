@@ -249,12 +249,22 @@ async function updateCandidate(id: string, payload: CandidateUpdatePayload): Pro
   return mapApiCandidate(raw);
 }
 
+export interface WeeklyApplication {
+  week: string;
+  applications: number;
+}
+
+async function getWeeklyApplications(): Promise<WeeklyApplication[]> {
+  return request<WeeklyApplication[]>(`${API_BASE}/weekly-applications`);
+}
+
 /** GET /api/admin/candidates/:id/cv — tải bytes file CV (authenticated) để preview. */
 async function getCvBlob(id: string): Promise<Blob> {
   return apiRequestBlob(`${API_BASE}/${encodeURIComponent(id)}/cv`);
 }
 
 export const adminCandidateApi = {
+  getWeeklyApplications,
   getCandidates,
   getExperienceTaxonomies,
   getOpenApplications,

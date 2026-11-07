@@ -8,6 +8,9 @@ adminCandidateRoutes.use(requireAuth, requireRole("ADMIN"));
 // GET /api/admin/candidates — danh sách ứng viên (phân trang, lọc, tìm kiếm)
 adminCandidateRoutes.get("/", adminCandidateController.getPaginated);
 
+// GET /api/admin/candidates/weekly-applications — lượt ứng tuyển trong 8 tuần gần nhất
+adminCandidateRoutes.get("/weekly-applications", adminCandidateController.getWeeklyApplications);
+
 // GET /api/admin/candidates/taxonomies — taxonomy experience dùng filter có ID thực từ DB
 adminCandidateRoutes.get("/taxonomies", adminCandidateController.getExperienceTaxonomies);
 

@@ -29,6 +29,7 @@ function parsePositiveInteger(value: unknown, field: string): number | undefined
 export class AdminCandidateController {
   constructor() {
     this.getPaginated = this.getPaginated.bind(this);
+    this.getWeeklyApplications = this.getWeeklyApplications.bind(this);
     this.getExperienceTaxonomies = this.getExperienceTaxonomies.bind(this);
     this.streamCv = this.streamCv.bind(this);
     this.updateStatus = this.updateStatus.bind(this);
@@ -70,6 +71,17 @@ export class AdminCandidateController {
         return res.status(404).json({ success: false, error: "CV file not found" });
       }
       console.error("GET /api/admin/candidates/:id/cv error:", error);
+      return res.status(500).json({ success: false, error: message });
+    }
+  }
+
+  async getWeeklyApplications(_req: Request, res: Response) {
+    try {
+      const weeklyApplications = await adminCandidateService.findWeeklyApplications();
+      return res.json({ success: true, data: weeklyApplications });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to fetch weekly applications";
+      console.error("GET /api/admin/candidates/weekly-applications error:", error);
       return res.status(500).json({ success: false, error: message });
     }
   }
