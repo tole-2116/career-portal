@@ -74,6 +74,11 @@ export function SiteFooter() {
             <Link to="/jobs" className="w-fit text-muted-foreground hover:text-accent">
               {t("nav.jobs")}
             </Link>
+            {config.modules.recruitmentProcess && (
+              <Link to="/recruitment-process" className="w-fit text-muted-foreground hover:text-accent">
+                {t("nav.recruitmentProcess")}
+              </Link>
+            )}
             {config.modules.news && (
               <Link to="/news" className="w-fit text-muted-foreground hover:text-accent">
                 {t("nav.news")}

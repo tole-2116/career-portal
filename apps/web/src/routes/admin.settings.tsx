@@ -78,6 +78,7 @@ import {
   type SiteConfig,
   type SiteSections,
   type SurfaceTone,
+  type RecruitmentProcessConfig,
 } from "@/lib/site-config";
 import { refreshDocumentBrand } from "@/lib/route-meta";
 import { cn } from "@/lib/utils";
@@ -1345,6 +1346,37 @@ function AboutPanel({
   );
 }
 
+function RecruitmentProcessPanel({
+  value,
+  onChange,
+  onSave,
+}: {
+  value: RecruitmentProcessConfig;
+  onChange: (value: RecruitmentProcessConfig) => void;
+  onSave: () => void;
+}) {
+  const { tr } = useI18n();
+  const updateStep = (id: string, patch: Partial<RecruitmentProcessConfig["steps"][number]>) =>
+    onChange({ ...value, steps: value.steps.map((step) => step.id === id ? { ...step, ...patch } : step) });
+  return (
+    <section className="grid gap-5 rounded-lg border border-border bg-card p-5">
+      <p className="text-sm text-muted-foreground">{tr({ vi: "Nội dung hiển thị trên trang Quy trình tuyển dụng.", en: "Content shown on the Hiring process page." })}</p>
+      <CopyField label={tr({ vi: "Tiêu đề", en: "Title" })} value={value.title} onChange={(title) => onChange({ ...value, title })} />
+      <CopyField label={tr({ vi: "Mô tả", en: "Description" })} value={value.subtitle} multiline onChange={(subtitle) => onChange({ ...value, subtitle })} />
+      {value.steps.map((step, index) => (
+        <ItemRow key={step.id} index={index} total={value.steps.length} onMove={(dir) => onChange({ ...value, steps: move(value.steps, index, dir) })} onRemove={() => onChange({ ...value, steps: value.steps.filter((item) => item.id !== step.id) })}>
+          <CopyField label={tr({ vi: "Tên bước", en: "Step title" })} value={step.title} onChange={(title) => updateStep(step.id, { title })} />
+          <CopyField label={tr({ vi: "Mô tả", en: "Description" })} value={step.body} multiline onChange={(body) => updateStep(step.id, { body })} />
+        </ItemRow>
+      ))}
+      <Button type="button" variant="outline" className="justify-self-start" onClick={() => onChange({ ...value, steps: [...value.steps, { id: uid("step"), title: { vi: "Bước mới", en: "New step" }, body: { vi: "", en: "" } }] })}>
+        <Plus className="h-4 w-4" />{tr({ vi: "Thêm bước", en: "Add step" })}
+      </Button>
+      <div className="flex justify-end"><Button onClick={onSave}><Save className="h-4 w-4" />{tr({ vi: "Lưu thay đổi", en: "Save changes" })}</Button></div>
+    </section>
+  );
+}
+
 function AdminSettings() {
   const { t, tr } = useI18n();
   const { config, save, reset } = useSiteConfig();
@@ -1556,6 +1588,7 @@ function AdminSettings() {
             <TabsTrigger value="images">{t("settings.tab.images")}</TabsTrigger>
             <TabsTrigger value="content">{t("settings.tab.content")}</TabsTrigger>
             <TabsTrigger value="about">{tr({ vi: "Về chúng tôi", en: "About us" })}</TabsTrigger>
+            <TabsTrigger value="recruitmentProcess">{tr({ vi: "Quy trình tuyển dụng", en: "Hiring process" })}</TabsTrigger>
             <TabsTrigger value="modules">{tr({ vi: "Mô-đun", en: "Modules" })}</TabsTrigger>
           </TabsList>
 
@@ -2278,6 +2311,10 @@ function AdminSettings() {
             />
           </TabsContent>
 
+          <TabsContent value="recruitmentProcess" className="mt-5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
+            <RecruitmentProcessPanel value={draft.recruitmentProcess} onChange={(recruitmentProcess) => update({ recruitmentProcess })} onSave={saveDraft} />
+          </TabsContent>
+
           <TabsContent value="modules" className="mt-5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
             <section className="rounded-lg border border-border bg-card p-5">
               <h2 className="font-display text-base font-semibold">
@@ -2297,6 +2334,13 @@ function AdminSettings() {
                   checked={draft.modules.news}
                   onCheckedChange={(news) => update({ modules: { ...draft.modules, news } })}
                 />
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-4 rounded-md border border-border p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{tr({ vi: "Quy trình tuyển dụng", en: "Hiring process" })}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{tr({ vi: "Tắt sẽ ẩn liên kết và chặn truy cập trực tiếp.", en: "Turning this off hides the link and blocks direct access." })}</p>
+                </div>
+                <Switch checked={draft.modules.recruitmentProcess} onCheckedChange={(recruitmentProcess) => update({ modules: { ...draft.modules, recruitmentProcess } })} />
               </div>
               <div className="mt-3 flex items-center justify-between gap-4 rounded-md border border-border p-4">
                 <div className="min-w-0">

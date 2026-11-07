@@ -15,15 +15,19 @@ const baseLinks = [
 ] as const;
 
 const newsLink = { to: "/news", key: "nav.news" } as const;
+const recruitmentLink = { to: "/recruitment-process", key: "nav.recruitmentProcess" } as const;
 const contactLink = { to: "/contact", key: "nav.contact" } as const;
 
 export function SiteHeader() {
   const { t, tr } = useI18n();
   const { config } = useSiteConfig();
   const [open, setOpen] = useState(false);
-  const links = config.modules.news
-    ? [...baseLinks, newsLink, contactLink]
-    : [...baseLinks, contactLink];
+  const links = [
+    ...baseLinks,
+    ...(config.modules.recruitmentProcess ? [recruitmentLink] : []),
+    ...(config.modules.news ? [newsLink] : []),
+    contactLink,
+  ];
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-xl">
