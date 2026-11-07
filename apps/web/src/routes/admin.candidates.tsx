@@ -672,19 +672,19 @@ function AdminCandidatesPage() {
               </DialogHeader>
 
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
-              <div className="grid gap-3 text-sm sm:grid-cols-2">
+              <div className="grid gap-3 text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <Mail className="h-4 w-4 shrink-0" />
                   <span className="truncate">{selected.email}</span>
                 </span>
-                <span className="flex items-center gap-2 text-muted-foreground">
+                <span className="flex items-center gap-2 text-muted-foreground sm:col-start-3">
                   <Phone className="h-4 w-4 shrink-0" /> {selected.phone}
                 </span>
-                <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                <span className="flex min-w-0 items-center gap-2 text-muted-foreground sm:col-span-2">
                   <MapPin className="h-4 w-4 shrink-0" />
                   <span className="truncate">{selected.address || tr(selected.location)}</span>
                 </span>
-                <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="flex items-center gap-2 text-muted-foreground sm:col-start-3">
                   <div
                     role="group"
                     aria-label={tr({ vi: "Đánh giá ứng viên", en: "Candidate rating" })}
