@@ -13,7 +13,8 @@ import {
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Badge } from "@/components/ui/badge";
-import { activity, candidates, stageLabels, stageOrder, weeklyApplications } from "@/data/candidates";
+import { candidates, stageLabels, stageOrder, weeklyApplications } from "@/data/candidates";
+import { fetchAdminActivity, type AdminActivity } from "@/lib/api/admin-activity";
 import { fetchJobs } from "@/lib/api/jobs";
 import { adminCandidateApi } from "@/services/admin-candidate.api";
 import { useI18n } from "@/lib/i18n";
@@ -31,7 +32,8 @@ export const Route = createFileRoute("/admin/")({
 });
 
 function AdminOverview() {
-  const { t, tr } = useI18n();
+  const { t, tr, language } = useI18n();
+  const [activityItems, setActivityItems] = useState<AdminActivity[]>([]);
   const [kpiValues, setKpiValues] = useState({
     openJobs: null as number | null,
     newCandidates: null as number | null,
@@ -42,6 +44,11 @@ function AdminOverview() {
 
   useEffect(() => {
     let active = true;
+    void fetchAdminActivity().then((items) => {
+      if (active) setActivityItems(items);
+    }).catch(() => {
+      if (active) setActivityItems([]);
+    });
     const loadKpis = () => {
       setKpiLoading(true);
       void fetchJobs({ status: "open", limit: 1 })
@@ -166,10 +173,10 @@ function AdminOverview() {
       <div className="mt-6 rounded-lg border border-border bg-card p-5">
         <h2 className="font-display text-base font-semibold">{t("admin.activity.title")}</h2>
         <ul className="mt-4 divide-y divide-border">
-          {activity.map((item) => (
-            <li key={item.text.en} className="flex items-start gap-4 py-3">
+          {activityItems.map((item) => (
+            <li key={`${item.type}-${item.at}-${item.text.en}`} className="flex items-start gap-4 py-3">
               <Badge variant="secondary" className="shrink-0">
-                {item.at}
+                {new Intl.DateTimeFormat(language, { dateStyle: "short", timeStyle: "short" }).format(new Date(item.at))}
               </Badge>
               <p className="min-w-0 text-sm text-muted-foreground">{tr(item.text)}</p>
             </li>
