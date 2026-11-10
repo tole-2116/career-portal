@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as ApplyRouteImport } from './routes/apply'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as RecruitmentGuideRouteImport } from './routes/recruitment-guide'
 import { Route as RecruitmentProcessRouteImport } from './routes/recruitment-process'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminCandidatesRouteImport } from './routes/admin.candidates'
@@ -48,6 +49,11 @@ const ApplyRoute = ApplyRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecruitmentGuideRoute = RecruitmentGuideRouteImport.update({
+  id: '/recruitment-guide',
+  path: '/recruitment-guide',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecruitmentProcessRoute = RecruitmentProcessRouteImport.update({
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/apply': typeof ApplyRoute
   '/contact': typeof ContactRoute
+  '/recruitment-guide': typeof RecruitmentGuideRoute
   '/recruitment-process': typeof RecruitmentProcessRoute
   '/admin/candidates': typeof AdminCandidatesRoute
   '/admin/contacts': typeof AdminContactsRoute
@@ -158,6 +165,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/apply': typeof ApplyRoute
   '/contact': typeof ContactRoute
+  '/recruitment-guide': typeof RecruitmentGuideRoute
   '/recruitment-process': typeof RecruitmentProcessRoute
   '/admin/candidates': typeof AdminCandidatesRoute
   '/admin/contacts': typeof AdminContactsRoute
@@ -181,6 +189,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/apply': typeof ApplyRoute
   '/contact': typeof ContactRoute
+  '/recruitment-guide': typeof RecruitmentGuideRoute
   '/recruitment-process': typeof RecruitmentProcessRoute
   '/admin/candidates': typeof AdminCandidatesRoute
   '/admin/contacts': typeof AdminContactsRoute
@@ -205,6 +214,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/apply'
     | '/contact'
+    | '/recruitment-guide'
     | '/recruitment-process'
     | '/admin/candidates'
     | '/admin/contacts'
@@ -227,6 +237,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/apply'
     | '/contact'
+    | '/recruitment-guide'
     | '/recruitment-process'
     | '/admin/candidates'
     | '/admin/contacts'
@@ -249,6 +260,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/apply'
     | '/contact'
+    | '/recruitment-guide'
     | '/recruitment-process'
     | '/admin/candidates'
     | '/admin/contacts'
@@ -272,6 +284,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   ApplyRoute: typeof ApplyRoute
   ContactRoute: typeof ContactRoute
+  RecruitmentGuideRoute: typeof RecruitmentGuideRoute
   RecruitmentProcessRoute: typeof RecruitmentProcessRoute
   AdminCandidatesRoute: typeof AdminCandidatesRoute
   AdminContactsRoute: typeof AdminContactsRoute
@@ -318,6 +331,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recruitment-guide': {
+      id: '/recruitment-guide'
+      path: '/recruitment-guide'
+      fullPath: '/recruitment-guide'
+      preLoaderRoute: typeof RecruitmentGuideRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recruitment-process': {
@@ -440,6 +460,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   ApplyRoute: ApplyRoute,
   ContactRoute: ContactRoute,
+  RecruitmentGuideRoute: RecruitmentGuideRoute,
   RecruitmentProcessRoute: RecruitmentProcessRoute,
   AdminCandidatesRoute: AdminCandidatesRoute,
   AdminContactsRoute: AdminContactsRoute,

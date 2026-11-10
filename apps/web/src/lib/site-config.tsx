@@ -262,6 +262,37 @@ export type AboutConfig = {
 export type RecruitmentStep = { id: string; title: Localized; body: Localized };
 export type RecruitmentProcessConfig = { title: Localized; subtitle: Localized; steps: RecruitmentStep[] };
 
+export type RecruitmentGuideKey = "hero" | "articles";
+export type RecruitmentGuideConfig = {
+  order: RecruitmentGuideKey[];
+  styles: Record<RecruitmentGuideKey, AboutWidgetStyle>;
+  hero: { enabled: boolean; eyebrow: Localized; title: Localized; subtitle: Localized };
+  articles: { enabled: boolean; title: Localized; items: RecruitmentStep[] };
+};
+
+export const defaultRecruitmentGuide: RecruitmentGuideConfig = {
+  order: ["hero", "articles"],
+  styles: {
+    hero: { layout: "left", tone: "brand", spacing: "spacious" },
+    articles: { layout: "2", tone: "white", spacing: "normal" },
+  },
+  hero: {
+    enabled: true,
+    eyebrow: { vi: "Cẩm nang tuyển dụng", en: "Recruitment guide" },
+    title: { vi: "Chuẩn bị tốt hơn cho hành trình nghề nghiệp", en: "Prepare for your next career move" },
+    subtitle: { vi: "Những hướng dẫn thiết thực giúp bạn tự tin trong từng bước ứng tuyển.", en: "Practical guidance to help you feel confident at every step of your application." },
+  },
+  articles: {
+    enabled: true,
+    title: { vi: "Bài viết nổi bật", en: "Featured guides" },
+    items: [
+      { id: "resume", title: { vi: "Xây dựng CV nổi bật", en: "Build a standout CV" }, body: { vi: "Tập trung vào thành tựu, kỹ năng phù hợp và trình bày thông tin rõ ràng, súc tích.", en: "Highlight achievements and relevant skills, and keep your information clear and concise." } },
+      { id: "interview", title: { vi: "Chuẩn bị phỏng vấn", en: "Prepare for interviews" }, body: { vi: "Tìm hiểu vị trí, chuẩn bị ví dụ cụ thể và dành câu hỏi để trao đổi với nhà tuyển dụng.", en: "Research the role, prepare specific examples and bring questions for the hiring team." } },
+      { id: "followup", title: { vi: "Theo dõi sau ứng tuyển", en: "Follow up after applying" }, body: { vi: "Kiểm tra email thường xuyên và phản hồi lịch hẹn đúng hạn để quá trình diễn ra thuận lợi.", en: "Check your email regularly and respond to scheduling requests promptly." } },
+    ],
+  },
+};
+
 export const defaultRecruitmentProcess: RecruitmentProcessConfig = {
   title: { vi: "Quy trình tuyển dụng", en: "Our hiring process" },
   subtitle: { vi: "Các bước đồng hành cùng bạn trên hành trình gia nhập đội ngũ.", en: "What to expect as you explore joining our team." },
@@ -304,10 +335,11 @@ export type SiteConfig = {
   company: CompanyInfo;
   about: AboutConfig;
   recruitmentProcess: RecruitmentProcessConfig;
+  recruitmentGuide: RecruitmentGuideConfig;
 
   jobsPage: JobsPageConfig;
   /** Optional modules each project can switch on or off. */
-  modules: { news: boolean; openApplication: boolean; recruitmentProcess: boolean };
+  modules: { news: boolean; openApplication: boolean; recruitmentProcess: boolean; recruitmentGuide: boolean };
 };
 
 const empty: Localized = { vi: "", en: "" };
@@ -716,9 +748,10 @@ export const defaultSiteConfig: SiteConfig = {
   company: structuredClone(defaultCompany),
   about: structuredClone(defaultAbout),
   recruitmentProcess: structuredClone(defaultRecruitmentProcess),
+  recruitmentGuide: structuredClone(defaultRecruitmentGuide),
 
   jobsPage: structuredClone(defaultJobsPage),
-  modules: { news: true, openApplication: true, recruitmentProcess: true },
+  modules: { news: true, openApplication: true, recruitmentProcess: true, recruitmentGuide: true },
 };
 
 function hexToRgb(hex: string): [number, number, number] | null {
@@ -1000,6 +1033,19 @@ function mergeConfig(stored: SiteConfig): SiteConfig {
       subtitle: { ...defaultRecruitmentProcess.subtitle, ...(stored.recruitmentProcess?.subtitle ?? {}) },
       steps: stored.recruitmentProcess?.steps ?? defaultRecruitmentProcess.steps,
     },
+    recruitmentGuide: (() => {
+      const guide = (stored.recruitmentGuide ?? {}) as Partial<RecruitmentGuideConfig>;
+      const base = defaultRecruitmentGuide;
+      const storedOrder = Array.isArray(guide.order)
+        ? guide.order.filter((key): key is RecruitmentGuideKey => base.order.includes(key as RecruitmentGuideKey))
+        : [];
+      return {
+        order: [...storedOrder, ...base.order.filter((key) => !storedOrder.includes(key))],
+        styles: Object.fromEntries(base.order.map((key) => [key, { ...base.styles[key], ...(guide.styles?.[key] ?? {}) }])) as RecruitmentGuideConfig["styles"],
+        hero: { ...base.hero, ...(guide.hero ?? {}), eyebrow: { ...base.hero.eyebrow, ...(guide.hero?.eyebrow ?? {}) }, title: { ...base.hero.title, ...(guide.hero?.title ?? {}) }, subtitle: { ...base.hero.subtitle, ...(guide.hero?.subtitle ?? {}) } },
+        articles: { ...base.articles, ...(guide.articles ?? {}), title: { ...base.articles.title, ...(guide.articles?.title ?? {}) }, items: guide.articles?.items ?? base.articles.items },
+      };
+    })(),
 
     jobsPage: {
       ...defaultJobsPage,

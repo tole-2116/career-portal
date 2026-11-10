@@ -79,6 +79,8 @@ import {
   type SiteSections,
   type SurfaceTone,
   type RecruitmentProcessConfig,
+  type RecruitmentGuideConfig,
+  type RecruitmentGuideKey,
 } from "@/lib/site-config";
 import { refreshDocumentBrand } from "@/lib/route-meta";
 import { cn } from "@/lib/utils";
@@ -1377,6 +1379,43 @@ function RecruitmentProcessPanel({
   );
 }
 
+function RecruitmentGuidePanel({ value, onChange, onSave }: { value: RecruitmentGuideConfig; onChange: (value: RecruitmentGuideConfig) => void; onSave: () => void }) {
+  const { tr } = useI18n();
+  const set = <K extends "hero" | "articles">(key: K, patch: Partial<RecruitmentGuideConfig[K]>) => onChange({ ...value, [key]: { ...value[key], ...patch } });
+  const setStyle = (key: RecruitmentGuideKey, patch: Partial<AboutWidgetStyle>) => onChange({ ...value, styles: { ...value.styles, [key]: { ...value.styles[key], ...patch } } });
+  const onDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    const from = value.order.indexOf(active.id as RecruitmentGuideKey);
+    const to = value.order.indexOf(over.id as RecruitmentGuideKey);
+    if (from >= 0 && to >= 0) onChange({ ...value, order: arrayMove(value.order, from, to) });
+  };
+  const widgetProps = (key: RecruitmentGuideKey) => ({
+    widgetKey: key,
+    widgetStyle: value.styles[key],
+    orderIndex: value.order.indexOf(key),
+    onWidgetStyle: (patch: Partial<AboutWidgetStyle>) => setStyle(key, patch),
+  });
+  return <div className="grid gap-6">
+    <div className="flex justify-end"><Button size="sm" onClick={onSave}><Save className="h-4 w-4" />{tr({ vi: "Lưu thay đổi", en: "Save changes" })}</Button></div>
+    <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}><SortableContext items={value.order} strategy={verticalListSortingStrategy}><div className="grid gap-4">
+      <ContentBlock {...widgetProps("hero")} title={tr({ vi: "Ảnh bìa", en: "Cover" })} enabled={value.hero.enabled} onToggle={(enabled) => set("hero", { enabled })}>
+        <CopyField label={tr({ vi: "Nhãn", en: "Eyebrow" })} value={value.hero.eyebrow} onChange={(eyebrow) => set("hero", { eyebrow })} />
+        <CopyField label={tr({ vi: "Tiêu đề", en: "Title" })} value={value.hero.title} onChange={(title) => set("hero", { title })} />
+        <CopyField label={tr({ vi: "Mô tả", en: "Description" })} value={value.hero.subtitle} multiline onChange={(subtitle) => set("hero", { subtitle })} />
+      </ContentBlock>
+      <ContentBlock {...widgetProps("articles")} title={tr({ vi: "Bài viết", en: "Guides" })} enabled={value.articles.enabled} onToggle={(enabled) => set("articles", { enabled })}>
+        <CopyField label={tr({ vi: "Tiêu đề khối", en: "Section title" })} value={value.articles.title} onChange={(title) => set("articles", { title })} />
+        {value.articles.items.map((item, index) => <ItemRow key={item.id} index={index} total={value.articles.items.length} onMove={(dir) => set("articles", { items: move(value.articles.items, index, dir) })} onRemove={() => set("articles", { items: value.articles.items.filter((entry) => entry.id !== item.id) })}>
+          <CopyField label={tr({ vi: "Tiêu đề", en: "Title" })} value={item.title} onChange={(title) => set("articles", { items: value.articles.items.map((entry) => entry.id === item.id ? { ...entry, title } : entry) })} />
+          <CopyField label={tr({ vi: "Nội dung", en: "Body" })} value={item.body} multiline onChange={(body) => set("articles", { items: value.articles.items.map((entry) => entry.id === item.id ? { ...entry, body } : entry) })} />
+        </ItemRow>)}
+        <Button type="button" variant="outline" className="justify-self-start" onClick={() => set("articles", { items: [...value.articles.items, { id: uid("guide"), title: { vi: "Bài viết mới", en: "New guide" }, body: { vi: "", en: "" } }] })}><Plus className="h-4 w-4" />{tr({ vi: "Thêm bài viết", en: "Add guide" })}</Button>
+      </ContentBlock>
+    </div></SortableContext></DndContext>
+    <div className="flex justify-end"><Button onClick={onSave}><Save className="h-4 w-4" />{tr({ vi: "Lưu thay đổi", en: "Save changes" })}</Button></div>
+  </div>;
+}
+
 function AdminSettings() {
   const { t, tr } = useI18n();
   const { config, save, reset } = useSiteConfig();
@@ -1589,6 +1628,7 @@ function AdminSettings() {
             <TabsTrigger value="content">{t("settings.tab.content")}</TabsTrigger>
             <TabsTrigger value="about">{tr({ vi: "Về chúng tôi", en: "About us" })}</TabsTrigger>
             <TabsTrigger value="recruitmentProcess">{tr({ vi: "Quy trình tuyển dụng", en: "Hiring process" })}</TabsTrigger>
+            <TabsTrigger value="recruitmentGuide">{tr({ vi: "Cẩm nang tuyển dụng", en: "Recruitment guide" })}</TabsTrigger>
             <TabsTrigger value="modules">{tr({ vi: "Mô-đun", en: "Modules" })}</TabsTrigger>
           </TabsList>
 
@@ -2314,6 +2354,9 @@ function AdminSettings() {
           <TabsContent value="recruitmentProcess" className="mt-5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
             <RecruitmentProcessPanel value={draft.recruitmentProcess} onChange={(recruitmentProcess) => update({ recruitmentProcess })} onSave={saveDraft} />
           </TabsContent>
+          <TabsContent value="recruitmentGuide" className="mt-5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
+            <RecruitmentGuidePanel value={draft.recruitmentGuide} onChange={(recruitmentGuide) => update({ recruitmentGuide })} onSave={saveDraft} />
+          </TabsContent>
 
           <TabsContent value="modules" className="mt-5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.2)_transparent]">
             <section className="rounded-lg border border-border bg-card p-5">
@@ -2341,6 +2384,13 @@ function AdminSettings() {
                   <p className="mt-1 text-xs text-muted-foreground">{tr({ vi: "Tắt sẽ ẩn liên kết và chặn truy cập trực tiếp.", en: "Turning this off hides the link and blocks direct access." })}</p>
                 </div>
                 <Switch checked={draft.modules.recruitmentProcess} onCheckedChange={(recruitmentProcess) => update({ modules: { ...draft.modules, recruitmentProcess } })} />
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-4 rounded-md border border-border p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{tr({ vi: "Cẩm nang tuyển dụng", en: "Recruitment guide" })}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{tr({ vi: "Tắt sẽ ẩn liên kết và chặn truy cập trực tiếp.", en: "Turning this off hides the link and blocks direct access." })}</p>
+                </div>
+                <Switch checked={draft.modules.recruitmentGuide} onCheckedChange={(recruitmentGuide) => update({ modules: { ...draft.modules, recruitmentGuide } })} />
               </div>
               <div className="mt-3 flex items-center justify-between gap-4 rounded-md border border-border p-4">
                 <div className="min-w-0">

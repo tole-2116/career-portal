@@ -16,6 +16,7 @@ const baseLinks = [
 
 const newsLink = { to: "/news", key: "nav.news" } as const;
 const recruitmentLink = { to: "/recruitment-process", key: "nav.recruitmentProcess" } as const;
+const guideLink = { to: "/recruitment-guide", key: "nav.recruitmentGuide" } as const;
 const contactLink = { to: "/contact", key: "nav.contact" } as const;
 
 export function SiteHeader() {
@@ -25,6 +26,7 @@ export function SiteHeader() {
   const links = [
     ...baseLinks,
     ...(config.modules.recruitmentProcess ? [recruitmentLink] : []),
+    ...(config.modules.recruitmentGuide ? [guideLink] : []),
     ...(config.modules.news ? [newsLink] : []),
     contactLink,
   ];

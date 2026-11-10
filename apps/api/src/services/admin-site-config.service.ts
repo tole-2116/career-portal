@@ -25,6 +25,7 @@ function mergeSiteConfig(partial: Partial<SiteConfigPayload>): SiteConfigPayload
     company: { ...base.company, ...asRecord(partial.company) },
     about: { ...base.about, ...asRecord(partial.about) },
     recruitmentProcess: { ...base.recruitmentProcess, ...asRecord(partial.recruitmentProcess) },
+    recruitmentGuide: { ...base.recruitmentGuide, ...asRecord(partial.recruitmentGuide) },
     jobsPage: { ...base.jobsPage, ...asRecord(partial.jobsPage) },
     modules: {
       news: typeof partial.modules?.news === "boolean" ? partial.modules.news : base.modules.news,
@@ -36,6 +37,10 @@ function mergeSiteConfig(partial: Partial<SiteConfigPayload>): SiteConfigPayload
         typeof partial.modules?.recruitmentProcess === "boolean"
           ? partial.modules.recruitmentProcess
           : base.modules.recruitmentProcess,
+      recruitmentGuide:
+        typeof partial.modules?.recruitmentGuide === "boolean"
+          ? partial.modules.recruitmentGuide
+          : base.modules.recruitmentGuide,
     },
   };
 }
