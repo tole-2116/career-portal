@@ -64,7 +64,12 @@ function readConfig(row: {
     copy: asRecord(row.copy),
     sections: asRecord(row.sections),
     company: asRecord(row.company),
-    about: asRecord(row.about),
+    about: (() => {
+      const about = asRecord(row.about);
+      const { recruitmentProcess: _storedRecruitmentProcess, ...aboutConfig } = about;
+      return aboutConfig;
+    })(),
+    recruitmentProcess: asRecord(asRecord(row.about).recruitmentProcess),
     jobsPage: asRecord(row.jobsPage),
     modules: asRecord(row.modules) as SiteConfigPayload["modules"],
   });
@@ -90,8 +95,7 @@ export class AdminSiteConfigService extends BaseService {
       copy: config.copy,
       sections: config.sections,
       company: config.company,
-      about: config.about,
-      recruitmentProcess: config.recruitmentProcess,
+      about: { ...config.about, recruitmentProcess: config.recruitmentProcess },
       jobsPage: config.jobsPage,
       modules: config.modules,
       code: existing?.code ?? "site-config",
