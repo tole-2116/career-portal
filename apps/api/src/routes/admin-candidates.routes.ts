@@ -8,6 +8,12 @@ adminCandidateRoutes.use(requireAuth, requireRole("ADMIN"));
 // GET /api/admin/candidates — danh sách ứng viên (phân trang, lọc, tìm kiếm)
 adminCandidateRoutes.get("/", adminCandidateController.getPaginated);
 
+// GET /api/admin/candidates/recruitment-funnel — phân bố trạng thái ứng viên hiện tại
+adminCandidateRoutes.get("/recruitment-funnel", adminCandidateController.getRecruitmentFunnel);
+
+// GET /api/admin/candidates/applications-by-job — lượt ứng tuyển theo tin và khoảng ngày
+adminCandidateRoutes.get("/applications-by-job", adminCandidateController.getApplicationsByJob);
+
 // GET /api/admin/candidates/weekly-applications — lượt ứng tuyển trong 8 tuần gần nhất
 adminCandidateRoutes.get("/weekly-applications", adminCandidateController.getWeeklyApplications);
 

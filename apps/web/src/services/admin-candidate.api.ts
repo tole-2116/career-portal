@@ -249,13 +249,25 @@ async function updateCandidate(id: string, payload: CandidateUpdatePayload): Pro
   return mapApiCandidate(raw);
 }
 
-export interface WeeklyApplication {
-  week: string;
+export interface JobApplicationCount {
+  jobId: string;
+  title: ApiLocalizedText;
   applications: number;
 }
 
-async function getWeeklyApplications(): Promise<WeeklyApplication[]> {
-  return request<WeeklyApplication[]>(`${API_BASE}/weekly-applications`);
+async function getApplicationsByJob(from: string, to: string): Promise<JobApplicationCount[]> {
+  const query = new URLSearchParams({ from, to });
+  return request<JobApplicationCount[]>(`${API_BASE}/applications-by-job?${query}`);
+}
+
+export interface RecruitmentFunnelItem {
+  status: ApiCandidateStatus;
+  count: number;
+}
+
+async function getRecruitmentFunnel(from: string, to: string): Promise<RecruitmentFunnelItem[]> {
+  const query = new URLSearchParams({ from, to });
+  return request<RecruitmentFunnelItem[]>(`${API_BASE}/recruitment-funnel?${query}`);
 }
 
 /** GET /api/admin/candidates/:id/cv — tải bytes file CV (authenticated) để preview. */
@@ -264,7 +276,8 @@ async function getCvBlob(id: string): Promise<Blob> {
 }
 
 export const adminCandidateApi = {
-  getWeeklyApplications,
+  getApplicationsByJob,
+  getRecruitmentFunnel,
   getCandidates,
   getExperienceTaxonomies,
   getOpenApplications,

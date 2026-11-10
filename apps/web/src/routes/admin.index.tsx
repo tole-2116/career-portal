@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Briefcase, CalendarCheck, UserPlus, UserCheck } from "lucide-react";
+import { Briefcase, CalendarCheck, UserPlus, UserCheck, CalendarDays, RefreshCw, ChevronDown } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -13,7 +13,7 @@ import {
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Badge } from "@/components/ui/badge";
-import { candidates, stageLabels, stageOrder } from "@/data/candidates";
+import { stageLabels, stageOrder } from "@/data/candidates";
 import { fetchAdminActivity, type AdminActivity } from "@/lib/api/admin-activity";
 import { fetchJobs } from "@/lib/api/jobs";
 import { adminCandidateApi } from "@/services/admin-candidate.api";
@@ -31,10 +31,29 @@ export const Route = createFileRoute("/admin/")({
   component: AdminOverview,
 });
 
+function formatDate(value: string): string {
+  if (!value) return "";
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function getMonthEnd(month: string): string {
+  const [year, monthNumber] = month.split("-").map(Number);
+  return new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10);
+}
+
 function AdminOverview() {
   const { t, tr, language } = useI18n();
   const [activityItems, setActivityItems] = useState<AdminActivity[]>([]);
-  const [weeklyApplications, setWeeklyApplications] = useState<{ week: string; applications: number }[]>([]);
+  const [applicationCounts, setApplicationCounts] = useState<{ jobId: string; title: { vi: string; en: string }; applications: number }[]>([]);
+  const [funnelCounts, setFunnelCounts] = useState<Record<string, number>>({});
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [draftDateRange, setDraftDateRange] = useState(() => {
+    const month = new Date().toISOString().slice(0, 7);
+    return { from: `${month}-01`, to: getMonthEnd(month) };
+  });
+  const [dateRange, setDateRange] = useState(draftDateRange);
+  const [chartLoading, setChartLoading] = useState(true);
   const [kpiValues, setKpiValues] = useState({
     openJobs: null as number | null,
     newCandidates: null as number | null,
@@ -52,11 +71,6 @@ function AdminOverview() {
     });
     const loadKpis = () => {
       setKpiLoading(true);
-      void adminCandidateApi.getWeeklyApplications().then((items) => {
-        if (active) setWeeklyApplications(items);
-      }).catch(() => {
-        if (active) setWeeklyApplications([]);
-      });
       void fetchJobs({ status: "open", limit: 1 })
         .then((result) => {
           if (active) setKpiValues((current) => ({ ...current, openJobs: result.total }));
@@ -100,6 +114,24 @@ function AdminOverview() {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    setChartLoading(true);
+    void Promise.all([
+      adminCandidateApi.getApplicationsByJob(dateRange.from, dateRange.to),
+      adminCandidateApi.getRecruitmentFunnel(dateRange.from, dateRange.to),
+    ]).then(([applications, funnel]) => {
+      if (!active) return;
+      setApplicationCounts(applications);
+      setFunnelCounts(Object.fromEntries(funnel.map((item) => [item.status.toLowerCase(), item.count])));
+    }).catch(() => {
+      if (!active) return;
+      setApplicationCounts([]);
+      setFunnelCounts({});
+    }).finally(() => { if (active) setChartLoading(false); });
+    return () => { active = false; };
+  }, [dateRange]);
+
   const { openJobs, newCandidates, interviews, hires } = kpiValues;
 
   const kpis = [
@@ -109,16 +141,14 @@ function AdminOverview() {
     { label: t("admin.kpi.hires"), value: hires, icon: UserCheck },
   ];
 
-  const funnel = stageOrder
-    .filter((stage) => stage !== "rejected")
-    .map((stage) => ({
-      stage,
-      count: candidates.filter((c) => c.stage === stage).length,
-    }));
+  const funnel = stageOrder.map((stage) => ({
+    stage,
+    count: funnelCounts[stage] ?? 0,
+  }));
   const maxFunnel = Math.max(...funnel.map((f) => f.count), 1);
 
   return (
-    <AdminLayout title={t("admin.title")} description={t("admin.demoNote")}>
+    <AdminLayout title={t("admin.title")} description={t("admin.subtitle")}>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map((kpi) => (
           <div key={kpi.label} className="rounded-lg border border-border bg-card p-5">
@@ -132,31 +162,59 @@ function AdminOverview() {
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="col-span-full flex flex-wrap items-center gap-4 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm sm:px-5">
+          <label className="grid min-w-[220px] gap-1 text-[11px] font-medium text-slate-500">
+            {t("admin.chart.month")}
+            <span className="relative flex h-9 items-center rounded-full border border-slate-200 bg-white shadow-sm">
+              <CalendarDays className="ml-3 h-4 w-4 shrink-0 text-slate-700" aria-hidden="true" />
+              <input className="h-full min-w-0 flex-1 appearance-none bg-transparent px-2 text-sm font-medium text-slate-800 outline-none" type="month" value={selectedMonth} aria-label={t("admin.chart.month")} onChange={(event) => {
+                const month = event.target.value;
+                if (!month) return;
+                setSelectedMonth(month);
+                setDraftDateRange({ from: `${month}-01`, to: getMonthEnd(month) });
+              }} />
+              <ChevronDown className="mr-3 h-4 w-4 shrink-0 text-slate-600" aria-hidden="true" />
+            </span>
+          </label>
+          <div className="hidden h-10 w-px bg-slate-300 sm:block" aria-hidden="true" />
+          <fieldset className="grid min-w-[290px] gap-1 border-0 p-0">
+            <legend className="text-[11px] font-medium text-slate-500">{t("admin.chart.dateRange")}</legend>
+            <div className="relative flex h-9 items-center rounded-full border border-slate-200 bg-white shadow-sm">
+              <CalendarDays className="ml-3 h-4 w-4 shrink-0 text-slate-700" aria-hidden="true" />
+              <span className="pointer-events-none flex-1 whitespace-nowrap px-2 text-sm font-medium text-slate-800">{formatDate(draftDateRange.from)} - {formatDate(draftDateRange.to)}</span>
+              <span className="absolute inset-y-0 left-9 right-2 flex items-center gap-1 opacity-0 focus-within:opacity-100">
+                <input className="h-8 min-w-0 w-1/2 cursor-pointer" type="date" min={`${selectedMonth}-01`} max={getMonthEnd(selectedMonth)} value={draftDateRange.from} aria-label={t("admin.chart.from")} onChange={(event) => { const from = event.target.value; if (from && from <= draftDateRange.to) setDraftDateRange((range) => ({ ...range, from })); }} />
+                <input className="h-8 min-w-0 w-1/2 cursor-pointer" type="date" min={`${selectedMonth}-01`} max={getMonthEnd(selectedMonth)} value={draftDateRange.to} aria-label={t("admin.chart.to")} onChange={(event) => { const to = event.target.value; if (to && to >= draftDateRange.from) setDraftDateRange((range) => ({ ...range, to })); }} />
+              </span>
+              <span className="sr-only">{t("admin.chart.from")}: {formatDate(draftDateRange.from)}. {t("admin.chart.to")}: {formatDate(draftDateRange.to)}</span>
+            </div>
+          </fieldset>
+          <button type="button" disabled={chartLoading || draftDateRange.from > draftDateRange.to} onClick={() => setDateRange(draftDateRange)} className="ml-auto inline-flex h-9 items-center justify-center gap-2 rounded-full bg-amber-500 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
+            <RefreshCw className={`h-4 w-4 ${chartLoading ? "animate-spin" : ""}`} aria-hidden="true" />
+            {t("admin.chart.apply")}
+          </button>
+        </div>
         <div className="rounded-lg border border-border bg-card p-5">
           <h2 className="font-display text-base font-semibold">{t("admin.chart.title")}</h2>
-          <div className="mt-5 h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyApplications}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="week" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} />
-                <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--popover)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                    color: "var(--popover-foreground)",
-                  }}
-                />
-                <Bar dataKey="applications" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <p className="mt-1 text-xs text-muted-foreground">{t("admin.chart.subtitle")}</p>
+          <div className="mt-5 h-72 w-full" aria-busy={chartLoading}>
+            {chartLoading ? <p className="flex h-full items-center justify-center text-sm text-muted-foreground">{t("admin.chart.loading")}</p> : applicationCounts.length === 0 ? <p className="flex h-full items-center justify-center text-sm text-muted-foreground">{t("admin.chart.empty")}</p> : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={applicationCounts} margin={{ top: 12, right: 8, bottom: 38, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="jobId" interval={0} angle={-25} textAnchor="end" height={70} stroke="var(--muted-foreground)" fontSize={11} tickLine={false} tickFormatter={(jobId) => { const title = applicationCounts.find((item) => item.jobId === jobId)?.title; return title ? tr(title) : ""; }} />
+                  <YAxis allowDecimals={false} stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip labelFormatter={(jobId) => { const title = applicationCounts.find((item) => item.jobId === jobId)?.title; return title ? tr(title) : ""; }} formatter={(value) => [value, t("admin.chart.applicants")]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", color: "var(--popover-foreground)" }} />
+                  <Bar dataKey="applications" name={t("admin.chart.applicants")} fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={56} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-5">
+        <div className="rounded-lg border border-border bg-card p-5" aria-busy={chartLoading}>
           <h2 className="font-display text-base font-semibold">{t("admin.funnel.title")}</h2>
+          <p className="mt-1 text-xs text-muted-foreground">{t("admin.funnel.subtitle")}</p>
           <ul className="mt-5 space-y-4">
             {funnel.map((item) => (
               <li key={item.stage}>
@@ -166,8 +224,13 @@ function AdminOverview() {
                 </div>
                 <div className="mt-2 h-2 w-full rounded-full bg-muted">
                   <div
-                    className="h-2 rounded-full bg-accent"
+                    className="h-2 rounded-full bg-accent transition-[width] duration-300"
                     style={{ width: `${(item.count / maxFunnel) * 100}%` }}
+                    role="meter"
+                    aria-label={tr(stageLabels[item.stage])}
+                    aria-valuemin={0}
+                    aria-valuemax={maxFunnel}
+                    aria-valuenow={item.count}
                   />
                 </div>
               </li>

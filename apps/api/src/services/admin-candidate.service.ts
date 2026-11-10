@@ -127,6 +127,43 @@ function mapCandidate(candidate: {
 }
 
 export class AdminCandidateService extends BaseService {
+  async findRecruitmentFunnel(start: Date, endExclusive: Date) {
+    const grouped = await db.candidate.groupBy({
+      by: ["status"],
+      where: { isdelete: false, appliedAt: { gte: start, lt: endExclusive } },
+      _count: { _all: true },
+    });
+    return candidateStatuses.map((status) => ({
+      status,
+      count: grouped.find((item) => item.status === status)?._count._all ?? 0,
+    }));
+  }
+
+  async findApplicationsByJob(start: Date, endExclusive: Date) {
+    const [jobs, grouped] = await Promise.all([
+      db.job.findMany({
+        where: { isdelete: false },
+        select: { id: true, title: true },
+        orderBy: { posted: "desc" },
+      }),
+      db.candidate.groupBy({
+        by: ["jobId"],
+        where: {
+          isdelete: false,
+          jobId: { not: null },
+          appliedAt: { gte: start, lt: endExclusive },
+        },
+        _count: { _all: true },
+      }),
+    ]);
+    const counts = new Map(grouped.map((row) => [row.jobId, row._count._all]));
+    return jobs.map((job) => ({
+      jobId: job.id,
+      title: readLocalized(job.title),
+      applications: counts.get(job.id) ?? 0,
+    }));
+  }
+
   async findWeeklyApplications(now = new Date()) {
     const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const weekday = (start.getUTCDay() + 6) % 7;

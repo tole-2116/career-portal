@@ -17,6 +17,21 @@ const candidateStatuses: readonly AdminCandidateStatus[] = [
   "REJECTED",
 ];
 
+function parseAnalyticsDateRange(fromValue: unknown, toValue: unknown): { start: Date; endExclusive: Date } | null {
+  if (typeof fromValue !== "string" || typeof toValue !== "string") return null;
+  const validDate = (value: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+    const date = new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value ? date : null;
+  };
+  const start = validDate(fromValue);
+  const end = validDate(toValue);
+  if (!start || !end || start > end) return null;
+  const endExclusive = new Date(end);
+  endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+  return { start, endExclusive };
+}
+
 function parsePositiveInteger(value: unknown, field: string): number | undefined {
   if (value === undefined) return undefined;
   const parsed = Number(value);
@@ -30,6 +45,8 @@ export class AdminCandidateController {
   constructor() {
     this.getPaginated = this.getPaginated.bind(this);
     this.getWeeklyApplications = this.getWeeklyApplications.bind(this);
+    this.getApplicationsByJob = this.getApplicationsByJob.bind(this);
+    this.getRecruitmentFunnel = this.getRecruitmentFunnel.bind(this);
     this.getExperienceTaxonomies = this.getExperienceTaxonomies.bind(this);
     this.streamCv = this.streamCv.bind(this);
     this.updateStatus = this.updateStatus.bind(this);
@@ -71,6 +88,32 @@ export class AdminCandidateController {
         return res.status(404).json({ success: false, error: "CV file not found" });
       }
       console.error("GET /api/admin/candidates/:id/cv error:", error);
+      return res.status(500).json({ success: false, error: message });
+    }
+  }
+
+  async getRecruitmentFunnel(req: Request, res: Response) {
+    const range = parseAnalyticsDateRange(req.query.from, req.query.to);
+    if (!range) return res.status(400).json({ success: false, error: "from and to must be valid YYYY-MM-DD dates with from <= to" });
+    try {
+      const funnel = await adminCandidateService.findRecruitmentFunnel(range.start, range.endExclusive);
+      return res.json({ success: true, data: funnel });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to fetch recruitment funnel";
+      console.error("GET /api/admin/candidates/recruitment-funnel error:", error);
+      return res.status(500).json({ success: false, error: message });
+    }
+  }
+
+  async getApplicationsByJob(req: Request, res: Response) {
+    const range = parseAnalyticsDateRange(req.query.from, req.query.to);
+    if (!range) return res.status(400).json({ success: false, error: "from and to must be valid YYYY-MM-DD dates with from <= to" });
+    try {
+      const applications = await adminCandidateService.findApplicationsByJob(range.start, range.endExclusive);
+      return res.json({ success: true, data: applications });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to fetch applications by job";
+      console.error("GET /api/admin/candidates/applications-by-job error:", error);
       return res.status(500).json({ success: false, error: message });
     }
   }
