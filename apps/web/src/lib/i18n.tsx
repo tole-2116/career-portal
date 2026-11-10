@@ -18,7 +18,7 @@ const STORAGE_KEY = "talenthub-lang";
 
 const dict = {
   "nav.home": { vi: "Trang chủ", en: "Home" },
-  "nav.jobs": { vi: "Việc làm", en: "Jobs" },
+  "nav.jobs": { vi: "Cơ hội nghề nghiệp", en: "Career opportunities" },
   "nav.about": { vi: "Về chúng tôi", en: "About us" },
   "nav.news": { vi: "Tin tức", en: "News" },
   "nav.recruitmentProcess": { vi: "Quy trình tuyển dụng", en: "Hiring process" },
