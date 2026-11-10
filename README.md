@@ -87,18 +87,14 @@ Không commit file `.env` hoặc đưa thông tin xác thực thật vào README
 
 Migration hiện tại là một baseline tạo schema final cho database mới. Database đã ghi nhận các migration cũ không tự áp dụng baseline này; giữ nguyên dữ liệu hiện có và xử lý riêng trước khi dùng baseline.
 
-Lệnh API dev tự chạy migration và seed dữ liệu mẫu trước khi khởi động. Cần PostgreSQL đang hoạt động và `DATABASE_URL` hợp lệ. Có thể chạy setup độc lập:
-
-```bash
-bun run db:setup:dev
-```
-
-Có thể chạy riêng:
+Lệnh API dev tự chạy migration trước khi khởi động, nhưng không tự chạy seed mỗi lần restart. Với database dev mới, chạy seed một lần để tạo dữ liệu mẫu. Cần PostgreSQL đang hoạt động và `DATABASE_URL` hợp lệ:
 
 ```bash
 bun run db:migrate:dev
 bun run db:seed:dev
 ```
+
+Có thể chạy `bun run db:setup:dev` để thực hiện migration và seed cùng lúc. `bun run db:seed:dev` là lệnh chủ động và có thể chạy lại khi cần làm mới dữ liệu mẫu.
 
 `db:seed:dev` tạo dữ liệu phát triển/mẫu. Chỉ chạy seed production khi đã kiểm tra mã seed: chế độ production chỉ tạo admin nền tảng và cấu hình site mặc định, không tạo dữ liệu mẫu. Đổi mật khẩu khởi tạo admin theo biến `INITIAL_ADMIN_PASSWORD` trước khi seed production.
 

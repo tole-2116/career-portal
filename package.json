@@ -13,7 +13,7 @@
     "db:migrate:dev": "bun --filter @career-portal/database db:migrate:dev",
     "db:migrate:prod": "bun --filter @career-portal/database db:migrate:prod",
     "db:seed": "bun --filter @career-portal/database db:seed",
-    "db:seed:dev": "NODE_ENV=development bun --filter @career-portal/database db:seed",
+    "db:seed:dev": "bun --filter @career-portal/database db:seed:dev",
     "db:seed:prod": "NODE_ENV=production bun --filter @career-portal/database db:seed",
     "db:setup:dev": "bun run db:migrate:dev && bun run db:seed:dev",
     "db:setup:prod": "bun run db:migrate:prod"

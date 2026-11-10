@@ -10,7 +10,7 @@
     "db:studio": "prisma studio",
     "db:seed": "bun run prisma/seed.ts",
     "db:seed:prod": "NODE_ENV=production bun run prisma/seed.ts",
-    "db:seed:dev": "NODE_ENV=development bun run prisma/seed.ts"
+    "db:seed:dev": "bun run prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.18.0",
