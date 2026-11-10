@@ -5,6 +5,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -146,12 +147,13 @@ function AdminOverview() {
     count: funnelCounts[stage] ?? 0,
   }));
   const maxFunnel = Math.max(...funnel.map((f) => f.count), 1);
+  const visibleApplicationCounts = applicationCounts.filter((item) => item.applications > 0);
 
   return (
     <AdminLayout title={t("admin.title")} description={t("admin.subtitle")}>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className="rounded-lg border border-border bg-card p-5">
+          <div key={kpi.label} className="rounded-xl border border-border bg-card p-5 shadow-soft transition-shadow hover:shadow-md">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
               <p className="min-w-0 text-xs text-muted-foreground">{kpi.label}</p>
               <kpi.icon className="h-4 w-4 shrink-0 text-accent" />
@@ -162,26 +164,26 @@ function AdminOverview() {
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="col-span-full flex flex-wrap items-center gap-4 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm sm:px-5">
-          <label className="grid min-w-[220px] gap-1 text-[11px] font-medium text-slate-500">
+        <div className="col-span-full flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card px-4 py-4 shadow-soft sm:gap-4 sm:px-5">
+          <label className="grid min-w-0 flex-1 basis-[220px] gap-1 text-[11px] font-medium text-muted-foreground">
             {t("admin.chart.month")}
-            <span className="relative flex h-9 items-center rounded-full border border-slate-200 bg-white shadow-sm">
-              <CalendarDays className="ml-3 h-4 w-4 shrink-0 text-slate-700" aria-hidden="true" />
-              <input className="h-full min-w-0 flex-1 appearance-none bg-transparent px-2 text-sm font-medium text-slate-800 outline-none" type="month" value={selectedMonth} aria-label={t("admin.chart.month")} onChange={(event) => {
+            <span className="relative flex h-10 items-center rounded-lg border border-border bg-background">
+              <CalendarDays className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <input className="h-full min-w-0 flex-1 appearance-none bg-transparent px-2 text-sm font-medium text-foreground outline-none" type="month" value={selectedMonth} aria-label={t("admin.chart.month")} onChange={(event) => {
                 const month = event.target.value;
                 if (!month) return;
                 setSelectedMonth(month);
                 setDraftDateRange({ from: `${month}-01`, to: getMonthEnd(month) });
               }} />
-              <ChevronDown className="mr-3 h-4 w-4 shrink-0 text-slate-600" aria-hidden="true" />
+              <ChevronDown className="mr-3 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
             </span>
           </label>
-          <div className="hidden h-10 w-px bg-slate-300 sm:block" aria-hidden="true" />
-          <fieldset className="grid min-w-[290px] gap-1 border-0 p-0">
-            <legend className="text-[11px] font-medium text-slate-500">{t("admin.chart.dateRange")}</legend>
-            <div className="relative flex h-9 items-center rounded-full border border-slate-200 bg-white shadow-sm">
-              <CalendarDays className="ml-3 h-4 w-4 shrink-0 text-slate-700" aria-hidden="true" />
-              <span className="pointer-events-none flex-1 whitespace-nowrap px-2 text-sm font-medium text-slate-800">{formatDate(draftDateRange.from)} - {formatDate(draftDateRange.to)}</span>
+          <div className="hidden h-10 w-px bg-border sm:block" aria-hidden="true" />
+          <fieldset className="grid min-w-0 flex-1 basis-[290px] gap-1 border-0 p-0">
+            <legend className="text-[11px] font-medium text-muted-foreground">{t("admin.chart.dateRange")}</legend>
+            <div className="relative flex h-10 items-center rounded-lg border border-border bg-background">
+              <CalendarDays className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="pointer-events-none flex-1 whitespace-nowrap px-2 text-sm font-medium text-foreground">{formatDate(draftDateRange.from)} - {formatDate(draftDateRange.to)}</span>
               <span className="absolute inset-y-0 left-9 right-2 flex items-center gap-1 opacity-0 focus-within:opacity-100">
                 <input className="h-8 min-w-0 w-1/2 cursor-pointer" type="date" min={`${selectedMonth}-01`} max={getMonthEnd(selectedMonth)} value={draftDateRange.from} aria-label={t("admin.chart.from")} onChange={(event) => { const from = event.target.value; if (from && from <= draftDateRange.to) setDraftDateRange((range) => ({ ...range, from })); }} />
                 <input className="h-8 min-w-0 w-1/2 cursor-pointer" type="date" min={`${selectedMonth}-01`} max={getMonthEnd(selectedMonth)} value={draftDateRange.to} aria-label={t("admin.chart.to")} onChange={(event) => { const to = event.target.value; if (to && to >= draftDateRange.from) setDraftDateRange((range) => ({ ...range, to })); }} />
@@ -189,7 +191,7 @@ function AdminOverview() {
               <span className="sr-only">{t("admin.chart.from")}: {formatDate(draftDateRange.from)}. {t("admin.chart.to")}: {formatDate(draftDateRange.to)}</span>
             </div>
           </fieldset>
-          <button type="button" disabled={chartLoading || draftDateRange.from > draftDateRange.to} onClick={() => setDateRange(draftDateRange)} className="ml-auto inline-flex h-9 items-center justify-center gap-2 rounded-full bg-amber-500 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
+          <button type="button" disabled={chartLoading || draftDateRange.from > draftDateRange.to} onClick={() => setDateRange(draftDateRange)} className="ml-auto inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
             <RefreshCw className={`h-4 w-4 ${chartLoading ? "animate-spin" : ""}`} aria-hidden="true" />
             {t("admin.chart.apply")}
           </button>
@@ -200,12 +202,14 @@ function AdminOverview() {
           <div className="mt-5 h-72 w-full" aria-busy={chartLoading}>
             {chartLoading ? <p className="flex h-full items-center justify-center text-sm text-muted-foreground">{t("admin.chart.loading")}</p> : applicationCounts.length === 0 ? <p className="flex h-full items-center justify-center text-sm text-muted-foreground">{t("admin.chart.empty")}</p> : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={applicationCounts} margin={{ top: 12, right: 8, bottom: 38, left: 0 }}>
+                <BarChart data={visibleApplicationCounts} margin={{ top: 24, right: 8, bottom: 38, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                  <XAxis dataKey="jobId" interval={0} angle={-25} textAnchor="end" height={70} stroke="var(--muted-foreground)" fontSize={11} tickLine={false} tickFormatter={(jobId) => { const title = applicationCounts.find((item) => item.jobId === jobId)?.title; return title ? tr(title) : ""; }} />
+                  <XAxis dataKey="jobId" interval={0} angle={-25} textAnchor="end" height={70} stroke="var(--muted-foreground)" fontSize={11} tickLine={false} tickFormatter={(jobId) => { const title = visibleApplicationCounts.find((item) => item.jobId === jobId)?.title; return title ? tr(title) : ""; }} />
                   <YAxis allowDecimals={false} stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip labelFormatter={(jobId) => { const title = applicationCounts.find((item) => item.jobId === jobId)?.title; return title ? tr(title) : ""; }} formatter={(value) => [value, t("admin.chart.applicants")]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", color: "var(--popover-foreground)" }} />
-                  <Bar dataKey="applications" name={t("admin.chart.applicants")} fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={56} />
+                  <Tooltip labelFormatter={(jobId) => { const title = visibleApplicationCounts.find((item) => item.jobId === jobId)?.title; return title ? tr(title) : ""; }} formatter={(value) => [value, t("admin.chart.applicants")]} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", color: "var(--popover-foreground)" }} />
+                  <Bar dataKey="applications" name={t("admin.chart.applicants")} fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={56}>
+                    <LabelList dataKey="applications" position="top" fill="var(--foreground)" fontSize={12} formatter={(value: number | string) => (Number(value) === 0 ? "" : value)} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}

@@ -240,7 +240,7 @@ export function AdminLayout({
           </nav>
         </header>
 
-        <main className="flex h-full min-h-0 flex-1 flex-col space-y-3.5 overflow-hidden px-6 pt-5 pb-5">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col space-y-3.5 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pt-5 pb-5 sm:px-6">
           {children}
         </main>
       </div>
