@@ -6,7 +6,13 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+// Self-hosted Node server output (.output/server/index.mjs), run behind IIS via the
+// ASP.NET Core Module. compressPublicAssets pre-builds .br/.gz so Nitro serves them directly;
+// the Lovable wrapper forwards it to Nitro but its type only lists a few keys.
+const nitro = { preset: "node-server", compressPublicAssets: true };
+
 export default defineConfig({
+  nitro,
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this

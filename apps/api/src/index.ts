@@ -24,11 +24,17 @@ import { adminFormConfigService } from "./services/admin-form-config.service";
 import { adminSiteConfigService } from "./services/admin-site-config.service";
 import { newsRoutes } from "./routes/news.routes";
 import { authRoutes } from "./routes/auth.routes";
-import { uploadCv } from "./middleware/upload";
+import { UPLOAD_DIR, uploadCv } from "./middleware/upload";
 import multer from "multer";
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
+const HOST = process.env.HOST?.trim() || undefined;
+
+// IIS (ASP.NET Core Module) and the Vite dev proxy forward from loopback; trust their
+// X-Forwarded-* headers so req.ip / req.protocol reflect the real client.
+app.set("trust proxy", "loopback");
+app.disable("x-powered-by");
 
 app.use(cors({
   origin: process.env.CLIENT_URL || "http://localhost:5173",
@@ -43,8 +49,8 @@ app.use((_, res, next) => {
 app.use(cookieParser());
 app.use(express.json());
 
-// Phục vụ ảnh bìa tin tức đã upload (apps/api/uploads).
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+// Phục vụ file đã upload (ảnh bìa, CV). Trên IIS, /uploads do IIS phục vụ trực tiếp.
+app.use("/uploads", express.static(UPLOAD_DIR));
 
 // API: Jobs công khai (mở) — danh sách job đang tuyển + chi tiết, không cần đăng nhập.
 app.use("/api/jobs", publicJobsRoutes);
@@ -301,6 +307,8 @@ app.use("/api/admin/site-config", adminSiteConfigRoutes);
 // API public: published news
 app.use("/api/news", newsRoutes);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+const onListening = () => {
+  console.log(`🚀 Server running on http://${HOST ?? "localhost"}:${PORT}`);
+};
+if (HOST) app.listen(PORT, HOST, onListening);
+else app.listen(PORT, onListening);

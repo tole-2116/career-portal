@@ -22,6 +22,17 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Browsers resolve `/api/...` against the page origin, but SSR route loaders run in Node,
+ * where a relative URL is invalid. On the server, prefix with API_INTERNAL_URL
+ * (e.g. the IIS site's own URL, or http://127.0.0.1:5000 when the API runs standalone).
+ */
+function resolveApiUrl(input: string): string {
+  if (typeof window !== "undefined" || !input.startsWith("/")) return input;
+  const base = globalThis.process?.env?.["API_INTERNAL_URL"]?.trim() || "http://127.0.0.1:5000";
+  return new URL(input, base).toString();
+}
+
 let refreshPromise: Promise<string | null> | null = null;
 let authExpiryDispatched = false;
 
@@ -90,7 +101,7 @@ export async function apiRequest<T>(
   headers.set("Accept", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const response = await fetch(input, {
+  const response = await fetch(resolveApiUrl(input), {
     ...requestInit,
     headers,
     credentials: "include",
@@ -139,7 +150,7 @@ export async function apiRequestBlob(
   const headers = new Headers(requestInit.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const response = await fetch(input, {
+  const response = await fetch(resolveApiUrl(input), {
     ...requestInit,
     headers,
     credentials: "include",

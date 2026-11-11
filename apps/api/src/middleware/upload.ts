@@ -2,8 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import multer from "multer";
 
-/** Thư mục lưu file upload — cạnh app api (apps/api/uploads). */
-export const UPLOAD_DIR = path.join(__dirname, "../../uploads");
+/**
+ * Thư mục lưu file upload. Mặc định cạnh app api (apps/api/uploads); production (IIS)
+ * đặt UPLOAD_DIR ra ngoài thư mục release để file không bị mất khi deploy lại.
+ */
+export const UPLOAD_DIR = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : path.join(__dirname, "../../uploads");
 
 // Đảm bảo thư mục tồn tại trước khi multer ghi file.
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });

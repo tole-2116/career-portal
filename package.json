@@ -7,7 +7,9 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
-    "build": "turbo run build",
+    "build": "turbo run build && bun run deploy:stage",
+    "deploy:stage": "bun scripts/deploy/stage.ts",
+    "deploy:iis": "bun run build && powershell -NoProfile -ExecutionPolicy Bypass -File deploy/career-portal/deploy.ps1",
     "lint": "turbo run lint",
     "db:migrate": "bun --filter @career-portal/database db:migrate",
     "db:migrate:dev": "bun --filter @career-portal/database db:migrate:dev",

@@ -10,6 +10,7 @@ export type SiteConfigPayload = {
   company: Record<string, unknown>;
   about: Record<string, unknown>;
   recruitmentProcess: Record<string, unknown>;
+  recruitmentGuide: Record<string, unknown>;
   jobsPage: Record<string, unknown>;
   modules: { news: boolean; openApplication: boolean; recruitmentProcess: boolean; recruitmentGuide: boolean };
 };
@@ -56,6 +57,7 @@ export const defaultSiteConfig: SiteConfigPayload = {
   },
   about: {},
   recruitmentProcess: {},
+  recruitmentGuide: {},
   jobsPage: {
     filterLayout: "sidebar",
     filters: {

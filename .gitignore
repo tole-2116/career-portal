@@ -49,3 +49,6 @@ packages/*/tsconfig.tsbuildinfo
 
 # Uploaded files (served by API)
 apps/api/uploads/
+
+# Staged IIS release (scripts/deploy/stage.ts)
+/deploy/
