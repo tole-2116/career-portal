@@ -356,6 +356,7 @@ function CopyField({
       label={label}
       value={value}
       onChange={onChange}
+      showAllLanguages
       {...(multiline ? { multiline: true } : {})}
     />
   );

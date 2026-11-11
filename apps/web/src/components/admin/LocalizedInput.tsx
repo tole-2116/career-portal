@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,7 +46,7 @@ function useTabs() {
   return { languages: enabled, active: current, setActive };
 }
 
-/** Single-line (or multiline) value captured per language via tabs. */
+/** Single-line (or multiline) value captured per language. */
 export function LocalizedField({
   label,
   value,
@@ -54,6 +54,7 @@ export function LocalizedField({
   required,
   multiline,
   placeholder,
+  showAllLanguages = false,
 }: {
   label: string;
   value: Localized;
@@ -61,30 +62,45 @@ export function LocalizedField({
   required?: boolean;
   multiline?: boolean;
   placeholder?: string;
+  showAllLanguages?: boolean;
 }) {
   const { languages, active, setActive } = useTabs();
-  const text = value[active] ?? "";
+
+  const renderControl = (language: string) => {
+    const controlProps = {
+      value: value[language] ?? "",
+      placeholder: placeholder ?? languageLabel(language),
+      "aria-label": `${label} — ${languageLabel(language)}`,
+      onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+        onChange({ ...value, [language]: event.target.value }),
+    };
+
+    return multiline ? (
+      <Textarea key={language} rows={3} {...controlProps} />
+    ) : (
+      <Input
+        key={language}
+        {...controlProps}
+        required={required && language === "vi"}
+      />
+    );
+  };
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Label>{label}</Label>
-        <LanguageTabs active={active} onChange={setActive} languages={languages} />
-      </div>
-      {multiline ? (
-        <Textarea
-          rows={3}
-          value={text}
-          placeholder={placeholder ?? languageLabel(active)}
-          onChange={(e) => onChange({ ...value, [active]: e.target.value })}
-        />
+      {showAllLanguages ? (
+        <>
+          <Label>{label}</Label>
+          <div className="space-y-3">{languages.map(renderControl)}</div>
+        </>
       ) : (
-        <Input
-          value={text}
-          required={required && active === "vi"}
-          placeholder={placeholder ?? languageLabel(active)}
-          onChange={(e) => onChange({ ...value, [active]: e.target.value })}
-        />
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Label>{label}</Label>
+            <LanguageTabs active={active} onChange={setActive} languages={languages} />
+          </div>
+          {renderControl(active)}
+        </>
       )}
     </div>
   );
