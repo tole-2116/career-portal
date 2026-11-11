@@ -274,7 +274,7 @@ export const defaultRecruitmentGuide: RecruitmentGuideConfig = {
   order: ["hero", "articles"],
   styles: {
     hero: { layout: "left", tone: "brand", spacing: "spacious" },
-    articles: { layout: "2", tone: "white", spacing: "normal" },
+    articles: { layout: "left", tone: "white", spacing: "normal" },
   },
   hero: {
     enabled: true,
@@ -1041,7 +1041,13 @@ function mergeConfig(stored: SiteConfig): SiteConfig {
         : [];
       return {
         order: [...storedOrder, ...base.order.filter((key) => !storedOrder.includes(key))],
-        styles: Object.fromEntries(base.order.map((key) => [key, { ...base.styles[key], ...(guide.styles?.[key] ?? {}) }])) as RecruitmentGuideConfig["styles"],
+        styles: Object.fromEntries(
+          base.order.map((key) => {
+            const storedStyle = guide.styles?.[key] ?? {};
+            const layout = storedStyle.layout === "2" || storedStyle.layout === "3" ? "left" : storedStyle.layout;
+            return [key, { ...base.styles[key], ...storedStyle, layout }];
+          }),
+        ) as RecruitmentGuideConfig["styles"],
         hero: { ...base.hero, ...(guide.hero ?? {}), eyebrow: { ...base.hero.eyebrow, ...(guide.hero?.eyebrow ?? {}) }, title: { ...base.hero.title, ...(guide.hero?.title ?? {}) }, subtitle: { ...base.hero.subtitle, ...(guide.hero?.subtitle ?? {}) } },
         articles: { ...base.articles, ...(guide.articles ?? {}), title: { ...base.articles.title, ...(guide.articles?.title ?? {}) }, items: guide.articles?.items ?? base.articles.items },
       };

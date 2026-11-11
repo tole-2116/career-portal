@@ -646,6 +646,28 @@ const defaultSiteConfig = {
     copyright: { vi: "", en: "" },
   },
   about: {},
+  recruitmentGuide: {
+    order: ["hero", "articles"],
+    styles: {
+      hero: { layout: "left", tone: "brand", spacing: "spacious" },
+      articles: { layout: "left", tone: "white", spacing: "normal" },
+    },
+    hero: {
+      enabled: true,
+      eyebrow: { vi: "Cẩm nang tuyển dụng", en: "Recruitment guide" },
+      title: { vi: "Chuẩn bị tốt hơn cho hành trình nghề nghiệp", en: "Prepare for your next career move" },
+      subtitle: { vi: "Những hướng dẫn thiết thực giúp bạn tự tin trong từng bước ứng tuyển.", en: "Practical guidance to help you feel confident at every step of your application." },
+    },
+    articles: {
+      enabled: true,
+      title: { vi: "Bài viết nổi bật", en: "Featured guides" },
+      items: [
+        { id: "resume", title: { vi: "Xây dựng CV nổi bật", en: "Build a standout CV" }, body: { vi: "Tập trung vào thành tựu, kỹ năng phù hợp và trình bày thông tin rõ ràng, súc tích.", en: "Highlight achievements and relevant skills, and keep your information clear and concise." } },
+        { id: "interview", title: { vi: "Chuẩn bị phỏng vấn", en: "Prepare for interviews" }, body: { vi: "Tìm hiểu vị trí, chuẩn bị ví dụ cụ thể và dành câu hỏi để trao đổi với nhà tuyển dụng.", en: "Research the role, prepare specific examples and bring questions for the hiring team." } },
+        { id: "followup", title: { vi: "Theo dõi sau ứng tuyển", en: "Follow up after applying" }, body: { vi: "Kiểm tra email thường xuyên và phản hồi lịch hẹn đúng hạn để quá trình diễn ra thuận lợi.", en: "Check your email regularly and respond to scheduling requests promptly." } },
+      ],
+    },
+  },
   jobsPage: { filterLayout: "sidebar", filters: { department: true, location: true, workType: true, level: true, status: true, salary: true, experience: true }, card: { salary: true, deadline: true, featuredBadge: true }, pageSize: 8, title: { vi: "Vị trí đang tuyển", en: "Open positions" }, subtitle: { vi: "Chọn bộ lọc để tìm vị trí phù hợp.", en: "Use the filters to find a role that fits." } },
   modules: { news: true, openApplication: true },
 };
@@ -804,6 +826,7 @@ async function main() {
       sections: defaultSiteConfig.sections,
       company: defaultSiteConfig.company,
       about: defaultSiteConfig.about,
+      recruitmentGuide: defaultSiteConfig.recruitmentGuide,
       jobsPage: defaultSiteConfig.jobsPage,
       modules: defaultSiteConfig.modules,
     },

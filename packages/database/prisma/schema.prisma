@@ -219,6 +219,7 @@ model site_configs {
   sections       Json
   company        Json
   about          Json
+  recruitmentGuide Json
   jobsPage       Json
   modules        Json
   created_at     DateTime  @default(now())

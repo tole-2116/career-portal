@@ -56,6 +56,7 @@ function readConfig(row: {
   sections: unknown;
   company: unknown;
   about: unknown;
+  recruitmentGuide: unknown;
   jobsPage: unknown;
   modules: unknown;
 }): SiteConfigPayload {
@@ -75,6 +76,7 @@ function readConfig(row: {
       return aboutConfig;
     })(),
     recruitmentProcess: asRecord(asRecord(row.about).recruitmentProcess),
+    recruitmentGuide: asRecord(row.recruitmentGuide),
     jobsPage: asRecord(row.jobsPage),
     modules: asRecord(row.modules) as SiteConfigPayload["modules"],
   });
@@ -101,6 +103,7 @@ export class AdminSiteConfigService extends BaseService {
       sections: config.sections,
       company: config.company,
       about: { ...config.about, recruitmentProcess: config.recruitmentProcess },
+      recruitmentGuide: config.recruitmentGuide,
       jobsPage: config.jobsPage,
       modules: config.modules,
       code: existing?.code ?? "site-config",

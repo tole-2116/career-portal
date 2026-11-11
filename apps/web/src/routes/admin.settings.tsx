@@ -511,7 +511,7 @@ function ContentBlock({
   );
 }
 
-type WidgetKey = AboutWidgetKey | HomeWidgetKey;
+type WidgetKey = AboutWidgetKey | HomeWidgetKey | RecruitmentGuideKey;
 
 const widgetLayoutOptions: Record<WidgetKey, [string, string][]> = {
   stats: [
@@ -537,6 +537,10 @@ const widgetLayoutOptions: Record<WidgetKey, [string, string][]> = {
     ["center", "Căn giữa"],
   ],
   hero: [
+    ["left", "Căn trái"],
+    ["center", "Căn giữa"],
+  ],
+  articles: [
     ["left", "Căn trái"],
     ["center", "Căn giữa"],
   ],
