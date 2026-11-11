@@ -17,6 +17,7 @@ import { useSiteConfig } from "@/lib/site-config";
 
 const baseLinks = [{ to: "/", key: "nav.home" }] as const;
 
+const aboutLink = { to: "/about", key: "nav.about" } as const;
 const newsLink = { to: "/news", key: "nav.news" } as const;
 const recruitmentLink = { to: "/recruitment-process", key: "nav.recruitmentProcess" } as const;
 const guideLink = { to: "/recruitment-guide", key: "nav.recruitmentGuide" } as const;
@@ -29,6 +30,7 @@ export function SiteHeader() {
   const [mobileCareerOpen, setMobileCareerOpen] = useState(false);
   const links = [
     baseLinks[0],
+    aboutLink,
     ...(config.modules.news ? [newsLink] : []),
     contactLink,
   ];
