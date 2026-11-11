@@ -13,6 +13,7 @@
 import { PrismaClient, Prisma, Role, JobStatus, CandidateStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { defaultSiteConfig } from "../../../apps/api/src/defaults/site-config.defaults";
+import { defaultFormConfig } from "../../../apps/api/src/defaults/form-config.defaults";
 
 declare const process: { env: Record<string, string | undefined>; exitCode?: number };
 
@@ -236,6 +237,22 @@ async function main() {
       create: { ...siteConfigSeed, ...audit },
     });
     console.log("✅ Default SiteConfig seeded.");
+
+    // The public apply page needs a form config; create it once and never overwrite admin edits.
+    const { code: formCode, name: formName, sections, submitLabel, successTitle, successBody } = defaultFormConfig;
+    const formData = {
+      name: formName,
+      sections: sections as unknown as Prisma.InputJsonValue,
+      submitLabel: submitLabel as unknown as Prisma.InputJsonValue,
+      successTitle: successTitle as unknown as Prisma.InputJsonValue,
+      successBody: successBody as unknown as Prisma.InputJsonValue,
+    };
+    await prisma.form_configs.upsert({
+      where: { code: formCode },
+      update: {},
+      create: { code: formCode, ...formData, ...audit },
+    });
+    console.log("✅ Default FormConfig seeded.");
     console.log("[PRODUCTION] Essential data seeded. Skipping mock test data.");
     return; // KHÔNG chèn dữ liệu mock/Test nào vào DB ở production
   }
