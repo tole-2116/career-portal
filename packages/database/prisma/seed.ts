@@ -10,8 +10,9 @@
  * 6. Truncation child-first để có thể chạy lại seed nhiều lần an toàn (idempotency).
  */
 
-import { PrismaClient, Role, JobStatus, CandidateStatus } from "@prisma/client";
+import { PrismaClient, Prisma, Role, JobStatus, CandidateStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { defaultSiteConfig } from "../../../apps/api/src/defaults/site-config.defaults";
 
 declare const process: { env: Record<string, string | undefined>; exitCode?: number };
 
@@ -69,6 +70,8 @@ const siteConfigSeed = {
     copyright: { vi: "", en: "" },
   },
   about: {},
+  // Same baseline the API falls back to, so the seeded row matches the API defaults.
+  recruitmentGuide: defaultSiteConfig.recruitmentGuide as Prisma.InputJsonObject,
   jobsPage: {
     filterLayout: "sidebar",
     filters: {
