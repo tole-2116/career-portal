@@ -32,12 +32,6 @@ export const Route = createFileRoute("/admin/")({
   component: AdminOverview,
 });
 
-function formatDate(value: string): string {
-  if (!value) return "";
-  const [year, month, day] = value.split("-");
-  return `${day}/${month}/${year}`;
-}
-
 function getMonthEnd(month: string): string {
   const [year, monthNumber] = month.split("-").map(Number);
   return new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10);
@@ -181,14 +175,12 @@ function AdminOverview() {
           <div className="hidden h-10 w-px bg-border sm:block" aria-hidden="true" />
           <fieldset className="grid min-w-0 flex-1 basis-[290px] gap-1 border-0 p-0">
             <legend className="text-[11px] font-medium text-muted-foreground">{t("admin.chart.dateRange")}</legend>
-            <div className="relative flex h-10 items-center rounded-lg border border-border bg-background">
+            <div className="flex h-10 min-w-0 items-center rounded-lg border border-border bg-background">
               <CalendarDays className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <span className="pointer-events-none flex-1 whitespace-nowrap px-2 text-sm font-medium text-foreground">{formatDate(draftDateRange.from)} - {formatDate(draftDateRange.to)}</span>
-              <span className="absolute inset-y-0 left-9 right-2 flex items-center gap-1 opacity-0 focus-within:opacity-100">
-                <input className="h-8 min-w-0 w-1/2 cursor-pointer" type="date" min={`${selectedMonth}-01`} max={getMonthEnd(selectedMonth)} value={draftDateRange.from} aria-label={t("admin.chart.from")} onChange={(event) => { const from = event.target.value; if (from && from <= draftDateRange.to) setDraftDateRange((range) => ({ ...range, from })); }} />
-                <input className="h-8 min-w-0 w-1/2 cursor-pointer" type="date" min={`${selectedMonth}-01`} max={getMonthEnd(selectedMonth)} value={draftDateRange.to} aria-label={t("admin.chart.to")} onChange={(event) => { const to = event.target.value; if (to && to >= draftDateRange.from) setDraftDateRange((range) => ({ ...range, to })); }} />
-              </span>
-              <span className="sr-only">{t("admin.chart.from")}: {formatDate(draftDateRange.from)}. {t("admin.chart.to")}: {formatDate(draftDateRange.to)}</span>
+              <div className="grid min-w-0 flex-1 grid-cols-2 gap-1 px-2">
+                <input className="h-8 min-w-0 w-full cursor-pointer rounded-md border-0 bg-transparent px-1 text-xs font-medium text-foreground outline-none transition-colors focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring" type="date" min={`${selectedMonth}-01`} max={getMonthEnd(selectedMonth)} value={draftDateRange.from} aria-label={t("admin.chart.from")} onChange={(event) => { const from = event.target.value; if (from && from <= draftDateRange.to) setDraftDateRange((range) => ({ ...range, from })); }} />
+                <input className="h-8 min-w-0 w-full cursor-pointer rounded-md border-0 bg-transparent px-1 text-xs font-medium text-foreground outline-none transition-colors focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring" type="date" min={`${selectedMonth}-01`} max={getMonthEnd(selectedMonth)} value={draftDateRange.to} aria-label={t("admin.chart.to")} onChange={(event) => { const to = event.target.value; if (to && to >= draftDateRange.from) setDraftDateRange((range) => ({ ...range, to })); }} />
+              </div>
             </div>
           </fieldset>
           <button type="button" disabled={chartLoading || draftDateRange.from > draftDateRange.to} onClick={() => setDateRange(draftDateRange)} className="ml-auto inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
