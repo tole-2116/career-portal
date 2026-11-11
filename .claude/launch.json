@@ -1,0 +1,24 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["--filter", "@career-portal/api", "dev"],
+      "port": 5000
+    },
+    {
+      "name": "api-no-migrate",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["--cwd", "D:/Rec.Project/SourceCode/career-portal/apps/api", "--watch", "src/index.ts"],
+      "port": 5000,
+      "autoPort": false
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["--filter", "@career-portal/web", "dev"],
+      "port": 5173
+    }
+  ]
+}
