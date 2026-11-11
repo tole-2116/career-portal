@@ -46,7 +46,7 @@ bun run deploy:iis -- -HostName "tuyendung.example.com"
 `deploy.ps1` tự xin quyền Administrator (UAC) và lần lượt:
 
 1. Chép release vào `D:\sites\career-portal\releases\<thời-gian>`.
-2. Lần đầu: hỏi `DATABASE_URL`, `CLIENT_URL`, tự sinh `JWT_SECRET` và lưu vào `<DataDir>pi.env` (chỉ Administrators/SYSTEM và app pool API đọc được).
+2. Lần đầu: hỏi `DATABASE_URL`, `CLIENT_URL`, tự sinh `JWT_SECRET` và lưu vào `<DataDir>\api.env` (chỉ Administrators/SYSTEM và app pool API đọc được). Các lần sau giữ nguyên file; nếu truyền `-DatabaseUrl` / `-ClientUrl` thì hai giá trị đó được ghi đè (giữ `JWT_SECRET`).
 3. Sao lưu database bằng `pg_dump` vào `<DataDir>\backups` (nếu có `pg_dump` trong PATH).
 4. Chạy migration: `npx prisma migrate deploy`, đúng phiên bản Prisma của release (cần Internet).
 5. Cấu hình IIS và chuyển site sang release mới (`setup-iis.ps1`).
@@ -64,7 +64,7 @@ Log mỗi lần deploy: `<DataDir>\logs\deploy-<thời-gian>.log`. Các lần c�
 | `-DataDir` | `<InstallRoot>\data` | `api.env`, uploads, log, backup |
 | `-InstallRoot` | `D:\sites\career-portal` | Nơi chứa các release (đổi ổ đĩa: `-InstallRoot E:\sites\career-portal`) |
 | `-KeepReleases` | `5` | Số release giữ lại |
-| `-DatabaseUrl`, `-ClientUrl` | hỏi khi cần | Dùng cho lần đầu, không cần nhập tay |
+| `-DatabaseUrl`, `-ClientUrl` | hỏi khi cần | Lần đầu: tạo `api.env` không cần nhập tay. Lần sau: ghi đè giá trị trong `api.env` (ví dụ đổi mật khẩu DB) |
 | `-SkipBackup`, `-SkipMigrate` | tắt | Bỏ qua backup / migration |
 | `-NodePath` | dò từ PATH | Đường dẫn `node.exe` |
 

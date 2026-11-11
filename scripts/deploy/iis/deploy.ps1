@@ -10,7 +10,8 @@
   Steps (re-launches itself elevated if needed; full log in <DataDir>\logs\deploy-*.log):
     1. Copy this release to <InstallRoot>\releases\<timestamp> (IIS never runs from the copy source).
     2. First run only: create <DataDir>\api.env (asks for DATABASE_URL / CLIENT_URL,
-       generates JWT_SECRET).
+       generates JWT_SECRET). Later runs keep it, but -DatabaseUrl / -ClientUrl, when passed,
+       overwrite those two values (JWT_SECRET and other keys are kept).
     3. Back up the database with pg_dump, when pg_dump is on PATH (-SkipBackup to skip).
     4. Apply Prisma migrations with `npx prisma migrate deploy` (-SkipMigrate to skip).
     5. Configure IIS and switch the site to the new release (setup-iis.ps1).
@@ -65,6 +66,11 @@ if (-not $DataDir) { $DataDir = Join-Path $baseDir "data" }
 
 if (-not $LogFile) {
   $LogFile = Join-Path $DataDir ("logs\deploy-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".log")
+}
+
+# Checked before elevating so the error shows in the caller's window.
+if ($DatabaseUrl -and $DatabaseUrl -like "*<*") {
+  throw "-DatabaseUrl still contains a placeholder such as <password>. Pass the real connection string."
 }
 
 # --- Elevate -----------------------------------------------------------------------------
@@ -122,11 +128,35 @@ function Test-Endpoint([string]$Url) {
   return $false
 }
 
+function Set-EnvValues([string]$Path, [hashtable]$Updates) {
+  $remaining = @{} + $Updates
+  $lines = @(foreach ($line in Get-Content -LiteralPath $Path) {
+    if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=' -and $remaining.ContainsKey($Matches[1])) {
+      $key = $Matches[1]
+      "$key=`"$($remaining[$key])`""
+      $remaining.Remove($key)
+    } else {
+      $line
+    }
+  })
+  foreach ($key in $remaining.Keys) { $lines += "$key=`"$($remaining[$key])`"" }
+  # Overwrites the content in place, so the restricted ACL on the file is kept.
+  $lines | Set-Content -LiteralPath $Path -Encoding ASCII
+}
+
 New-Item -ItemType Directory -Force -Path (Split-Path $LogFile) | Out-Null
 $apiEnv = Join-Path $DataDir "api.env"
 
-# api.env is created before the transcript starts so typed secrets never reach the log.
-if (-not (Test-Path -LiteralPath $apiEnv)) {
+# api.env is created/updated before the transcript starts so secrets never reach the log.
+if (Test-Path -LiteralPath $apiEnv) {
+  $envUpdates = @{}
+  if ($DatabaseUrl) { $envUpdates["DATABASE_URL"] = $DatabaseUrl }
+  if ($ClientUrl) { $envUpdates["CLIENT_URL"] = $ClientUrl }
+  if ($envUpdates.Count -gt 0) {
+    Write-Step ("Updating " + (($envUpdates.Keys | Sort-Object) -join ", ") + " in $apiEnv")
+    Set-EnvValues $apiEnv $envUpdates
+  }
+} else {
   Write-Step "First deploy: creating $apiEnv"
   if (-not $DatabaseUrl) {
     $secure = Read-Host "DATABASE_URL (postgresql://user:pass@host:5432/db?schema=public)" -AsSecureString
@@ -181,7 +211,9 @@ try {
 
   $envValues = Read-EnvFile $apiEnv
   $dbUrl = $envValues["DATABASE_URL"]
-  if (-not $dbUrl -or $dbUrl -like "*<*") { throw "DATABASE_URL in $apiEnv is not set." }
+  if (-not $dbUrl -or $dbUrl -like "*<*") {
+    throw "DATABASE_URL in $apiEnv is not set (or still contains a <placeholder>). Re-run with -DatabaseUrl `"postgresql://...`" to overwrite it."
+  }
 
   # 2. Backup.
   if (-not $SkipBackup) {
