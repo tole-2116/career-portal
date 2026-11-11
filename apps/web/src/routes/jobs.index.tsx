@@ -244,8 +244,6 @@ function JobsPage() {
             <SelectContent>
               <SelectItem value="relevant">{t("jobs.sort.relevant")}</SelectItem>
               <SelectItem value="newest">{t("jobs.sort.newest")}</SelectItem>
-              <SelectItem value="salaryDesc">{t("jobs.sort.salaryDesc")}</SelectItem>
-              <SelectItem value="salaryAsc">{t("jobs.sort.salaryAsc")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
