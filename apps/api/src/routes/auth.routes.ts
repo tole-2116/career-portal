@@ -1,4 +1,4 @@
-import { Router, type Router as RouterType } from "express";
+import { Router, type Request, type Router as RouterType } from "express";
 import bcrypt from "bcryptjs";
 import { db } from "@career-portal/database";
 import { signAccessToken, requireAuth, hashToken } from "../middleware/auth";
@@ -8,13 +8,17 @@ import { env } from "../config/env";
 export const authRoutes: RouterType = Router();
 
 const REFRESH_COOKIE = "refreshToken";
-const refreshCookieOptions = {
-  httpOnly: true,
-  secure: env.isProduction,
-  sameSite: env.isProduction ? ("strict" as const) : ("lax" as const),
-  path: "/api/auth",
-  maxAge: env.jwtRefreshTtlDays * 24 * 60 * 60 * 1000,
-};
+// Browsers drop Secure cookies on plain http, which would log users out on every reload, so
+// the flag follows the scheme the visitor used (X-Forwarded-Proto from IIS, trusted on loopback).
+function refreshCookieOptions(req: Request) {
+  return {
+    httpOnly: true,
+    secure: env.isProduction && req.secure,
+    sameSite: env.isProduction ? ("strict" as const) : ("lax" as const),
+    path: "/api/auth",
+    maxAge: env.jwtRefreshTtlDays * 24 * 60 * 60 * 1000,
+  };
+}
 
 function clientMeta(req: { headers: Record<string, unknown>; ip?: string; socket?: { remoteAddress?: string } }) {
   const userAgent = typeof req.headers["user-agent"] === "string" ? req.headers["user-agent"] : undefined;
@@ -59,7 +63,7 @@ authRoutes.post("/login", async (req, res) => {
 
     const { userAgent, ipAddress } = clientMeta(req);
     const refreshToken = await authService.createRefreshSession(user.id, userAgent, ipAddress);
-    res.cookie(REFRESH_COOKIE, refreshToken, refreshCookieOptions);
+    res.cookie(REFRESH_COOKIE, refreshToken, refreshCookieOptions(req));
 
     return res.json({
       success: true,
@@ -94,7 +98,7 @@ authRoutes.post("/refresh", async (req, res) => {
       });
     }
 
-    res.cookie(REFRESH_COOKIE, result.newToken, refreshCookieOptions);
+    res.cookie(REFRESH_COOKIE, result.newToken, refreshCookieOptions(req));
     return res.json({
       success: true,
       data: { token: signAccessToken(result.userId) },
