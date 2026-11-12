@@ -2,7 +2,9 @@
  * Stages a self-contained IIS release at deploy/career-portal:
  *
  *   career-portal/
- *     setup-iis.ps1   configures IIS (run as admin on the server, from this folder)
+ *     data/api.env.example settings template: copy to data/api.env and set DATABASE_URL
+ *     tools/               optional helper scripts (check-site, reset-admin-password, ...)
+ *     deploy.ps1, setup-iis.ps1  alternative versioned-release deploy
  *     README.md       deployment guide
  *     web/            Nitro node-server output + web.config + iis-launch.mjs
  *     api/            bundled Express API (dist/index.js) + Prisma client/engine
@@ -15,6 +17,9 @@
 import { access, cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
+
+import { defaultFormConfig } from "../../apps/api/src/defaults/form-config.defaults";
+import { siteConfigSeed } from "../../apps/api/src/defaults/site-config.seed";
 
 const root = path.resolve(import.meta.dir, "../..");
 const templates = path.join(import.meta.dir, "iis");
@@ -53,6 +58,9 @@ async function stageApi() {
     sourcemap: "linked",
     minify: { whitespace: true, syntax: true, identifiers: false },
     external: ["@prisma/client", ".prisma/client"],
+    // Bun otherwise inlines the build machine's NODE_ENV (development), which turned off
+    // production checks (JWT_SECRET length, Secure/strict cookies) in the release.
+    define: { "process.env.NODE_ENV": JSON.stringify("production") },
   });
   if (!result.success) {
     for (const log of result.logs) console.error(log);
@@ -87,6 +95,12 @@ async function stageApi() {
     );
   }
 
+  // Prisma CLI (+ schema engine) so iis-launch.cjs can run `prisma migrate deploy` on start
+  // without Internet. Query engines are skipped: the generated client already ships one.
+  const cliFilter = (source: string) => prismaFilter(source) || source.endsWith("prisma_schema_build_bg.wasm");
+  const withoutQueryEngine = (source: string) => cliFilter(source) && !/query_engine-[^\\/]*\.node$/.test(source);
+  await copyPackageClosure(requireFromDb, "prisma", path.join(apiOut, "node_modules"), withoutQueryEngine);
+
   // Schema + migrations so `prisma migrate deploy` can run against production.
   await cp(path.join(root, "packages/database/prisma"), path.join(apiOut, "prisma"), {
     recursive: true,
@@ -100,6 +114,45 @@ async function stageApi() {
   );
 }
 
+/** Copies a package and its runtime dependencies (not optional ones) into `targetModules`. */
+async function copyPackageClosure(
+  requireFrom: NodeJS.Require,
+  name: string,
+  targetModules: string,
+  filter: (source: string) => boolean,
+) {
+  const seen = new Set<string>();
+  const queue: Array<{ name: string; from: NodeJS.Require }> = [{ name, from: requireFrom }];
+  while (queue.length > 0) {
+    const next = queue.shift()!;
+    if (seen.has(next.name)) continue;
+    seen.add(next.name);
+    const manifestPath = next.from.resolve(`${next.name}/package.json`);
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as { dependencies?: Record<string, string> };
+    await cp(path.dirname(manifestPath), path.join(targetModules, next.name), {
+      recursive: true,
+      dereference: true,
+      filter: (source) => filter(source) && !source.includes(`${path.sep}node_modules${path.sep}.cache`),
+    });
+    const fromHere = createRequire(manifestPath);
+    for (const dependency of Object.keys(manifest.dependencies ?? {})) queue.push({ name: dependency, from: fromHere });
+  }
+}
+
+async function stageInstaller() {
+  await mkdir(path.join(outDir, "data"), { recursive: true });
+  await cp(path.join(templates, "api.env.example"), path.join(outDir, "data", "api.env.example"));
+  const toolsOut = path.join(outDir, "tools");
+  await cp(path.join(templates, "tools"), toolsOut, { recursive: true });
+  // Default rows inserted by tools/seed-initial-data.ps1 on a new database (same as db:seed:prod).
+  const seedData = {
+    admin_name: "Quản trị viên",
+    site_configs: [siteConfigSeed],
+    form_configs: [defaultFormConfig],
+  };
+  await writeFile(path.join(toolsOut, "seed-data.json"), JSON.stringify(seedData, null, 2) + "\n");
+}
+
 await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
 await stageWeb();
@@ -108,5 +161,6 @@ for (const file of ["setup-iis.ps1", "deploy.ps1"]) {
   await cp(path.join(templates, file), path.join(outDir, file));
 }
 await cp(path.join(templates, "README.md"), path.join(outDir, "README.md"));
+await stageInstaller();
 
 console.log(`IIS release staged in ${path.relative(root, outDir)}`);

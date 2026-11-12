@@ -26,6 +26,7 @@ import { newsRoutes } from "./routes/news.routes";
 import { authRoutes } from "./routes/auth.routes";
 import { UPLOAD_DIR, uploadCv } from "./middleware/upload";
 import multer from "multer";
+import { bootstrapDatabase } from "./bootstrap";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -49,8 +50,10 @@ app.use((_, res, next) => {
 app.use(cookieParser());
 app.use(express.json());
 
-// Phục vụ file đã upload (ảnh bìa, CV). Trên IIS, /uploads do IIS phục vụ trực tiếp.
+// Phục vụ file đã upload (ảnh bìa, CV). Trên IIS, request /uploads/* tới site web được
+// iis-launch.mjs chuyển sang /api/uploads/* (ứng dụng IIS /api chỉ nhận đường dẫn /api/...).
 app.use("/uploads", express.static(UPLOAD_DIR));
+app.use("/api/uploads", express.static(UPLOAD_DIR));
 
 // API: Jobs công khai (mở) — danh sách job đang tuyển + chi tiết, không cần đăng nhập.
 app.use("/api/jobs", publicJobsRoutes);
@@ -310,5 +313,10 @@ app.use("/api/news", newsRoutes);
 const onListening = () => {
   console.log(`🚀 Server running on http://${HOST ?? "localhost"}:${PORT}`);
 };
-if (HOST) app.listen(PORT, HOST, onListening);
-else app.listen(PORT, onListening);
+// Create default configuration / first admin on an empty database, then start listening.
+bootstrapDatabase()
+  .catch((error) => console.error("[bootstrap] failed:", error))
+  .finally(() => {
+    if (HOST) app.listen(PORT, HOST, onListening);
+    else app.listen(PORT, onListening);
+  });
