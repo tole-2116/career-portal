@@ -143,6 +143,7 @@ Như vậy Node không bị tắt khi không có người truy cập.
 | Log: `no admin account yet` | Thêm `INITIAL_ADMIN_PASSWORD` vào `api.env`, rồi Recycle pool |
 | Trang web lỗi khi tải dữ liệu, còn `/api/jobs` vẫn chạy | Chưa có ứng dụng tên đúng là `api` (bước 5) |
 | `node.exe` not found | Cài Node cho mọi user, rồi `iisreset` |
+| Admin báo "Không thể lưu lên máy chủ", xóa không được; `PUT`/`DELETE` trả `405` (trang lỗi IIS) | Server có cài **WebDAV Publishing**, chặn `PUT`/`DELETE`. `api\web.config` của bản build mới đã gỡ WebDAV cho ứng dụng API; bản cũ thì chép `api\web.config` mới đè lên |
 
 Sau khi sửa `api.env`: vào **Application Pools** → pool của site → **Recycle**.
 
