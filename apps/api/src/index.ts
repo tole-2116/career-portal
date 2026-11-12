@@ -48,6 +48,10 @@ app.use((_, res, next) => {
   next();
 });
 app.use(cookieParser());
+// Site configuration embeds uploaded images (logo, hero, leaders; up to 1 MB each, ~1.4 MB as
+// base64 data URLs), far above the 100 KB default. Only this admin route gets the larger limit;
+// keep it below maxAllowedContentLength in scripts/deploy/iis/api/web.config.
+app.use("/api/admin/site-config", express.json({ limit: "25mb" }));
 app.use(express.json());
 
 // Phục vụ file đã upload (ảnh bìa, CV). Trên IIS, request /uploads/* tới site web được
